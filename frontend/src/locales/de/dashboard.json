@@ -1,0 +1,80 @@
+{
+  "title": "Dashboard",
+  "newPackage": "Neues Paket",
+  "newToken": "Neuer Token",
+  "failedToLoad": "Dashboard konnte nicht geladen werden",
+  "stats": {
+    "packages": "Pakete",
+    "downloads": "Downloads",
+    "tokens": "API-Tokens",
+    "members": "Mitglieder",
+    "users": "Benutzer",
+    "noPackages": "Noch keine Pakete",
+    "addedThisWeek_one": "{{count}} diese Woche hinzugefügt",
+    "addedThisWeek_other": "{{count}} diese Woche hinzugefügt",
+    "acrossTypes": "Über alle Typen hinweg",
+    "noDownloads": "Noch keine Downloads",
+    "lastSevenDays": "{{count}} in den letzten 7 Tagen",
+    "noTokens": "Noch keine Tokens",
+    "activeOnly": "{{active}} aktiv",
+    "activeAndExpired": "{{active}} aktiv · {{expired}} abgelaufen",
+    "noMembers": "Noch keine Mitglieder",
+    "owners_one": "{{count}} Eigentümer",
+    "owners_other": "{{count}} Eigentümer",
+    "membersCount_one": "{{count}} Mitglied",
+    "membersCount_other": "{{count}} Mitglieder",
+    "ownersAndMembers": "{{owners}} · {{members}}"
+  },
+  "recentPackages": "Letzte Pakete",
+  "getStarted": "Erste Schritte",
+  "steps": {
+    "create": {
+      "title": "Paket erstellen",
+      "body": "Benennen Sie es vendor/package. Sie können es über die Paket-Seite oder die API erstellen."
+    },
+    "upload": {
+      "title": "ZIP hochladen oder Git verbinden",
+      "body": "Laden Sie ein Release-Archiv manuell hoch oder konfigurieren Sie eine Git-Quelle für automatische Synchronisation."
+    },
+    "install": {
+      "title": "Über Composer installieren",
+      "body": "Verweisen Sie Composer auf dieses Repository und führen Sie composer require für Ihr Paket aus."
+    }
+  },
+  "composer": {
+    "title": "Composer-Repository",
+    "url": "URL",
+    "composerJson": "composer.json",
+    "authNote": "Authentifizieren Sie sich mit einem Token aus <0>API-Tokens</0>. Verwenden Sie den Token als Benutzernamen und <1>satispress</1> als Passwort."
+  },
+  "topPackages": {
+    "title": "Top-Pakete",
+    "empty": "Downloads erscheinen, sobald Composer-Clients Pakete abrufen."
+  },
+  "recentDownloads": {
+    "title": "Letzte Downloads",
+    "empty": "Noch keine Downloads."
+  },
+  "tokenActivity": {
+    "title": "Token-Aktivität",
+    "empty": "Noch kein Token wurde verwendet."
+  },
+  "organization": {
+    "title": "Organisation",
+    "members": "Mitglieder",
+    "empty": "Noch keine Mitglieder.",
+    "manage": "Verwalten →"
+  },
+  "table": {
+    "name": "Name",
+    "type": "Typ",
+    "versions": "Versionen",
+    "downloads": "Downloads",
+    "updated": "Aktualisiert"
+  },
+  "copy": {
+    "repoURL": "Repository-URL kopieren",
+    "composerJson": "composer.json-Snippet kopieren",
+    "composerConfig": "Composer-Konfigurationsbefehl kopieren"
+  }
+}

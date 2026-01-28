@@ -1,0 +1,39 @@
+{
+  "title": "Perfil",
+  "subtitle": "Gerencie sua conta e preferências.",
+  "section": {
+    "account": "Conta",
+    "preferences": "Preferências",
+    "password": "Senha"
+  },
+  "field": {
+    "name": "Nome",
+    "email": "E-mail",
+    "emailHelp": "Entre em contato com o suporte para alterar seu e-mail.",
+    "language": "Idioma",
+    "languageHelp": "A interface usará este idioma.",
+    "currentPassword": "Senha atual",
+    "newPassword": "Nova senha",
+    "confirmPassword": "Confirmar nova senha"
+  },
+  "language": {
+    "en": "Inglês",
+    "mk": "Macedônio",
+    "de": "Alemão",
+    "fr": "Francês",
+    "es": "Espanhol",
+    "pt-BR": "Português (Brasil)",
+    "it": "Italiano"
+  },
+  "save": "Salvar alterações",
+  "saving": "Salvando…",
+  "saved": "Salvo.",
+  "failed": "Falha ao salvar.",
+  "password": {
+    "change": "Alterar senha",
+    "saving": "Alterando…",
+    "saved": "Senha alterada. As outras sessões foram encerradas.",
+    "mismatch": "As senhas não coincidem.",
+    "tooShort": "A senha deve ter pelo menos 8 caracteres."
+  }
+}

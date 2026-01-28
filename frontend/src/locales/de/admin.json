@@ -1,0 +1,158 @@
+{
+  "users": {
+    "title": "Benutzer",
+    "add": "Benutzer erstellen",
+    "createTitle": "Benutzer erstellen",
+    "fields": {
+      "email": "E-Mail",
+      "name": "Name",
+      "password": "Passwort",
+      "grantSuper": "Super-Admin gewähren"
+    },
+    "create": "Erstellen",
+    "empty": "Keine Benutzer.",
+    "table": {
+      "email": "E-Mail",
+      "name": "Name",
+      "role": "Rolle",
+      "created": "Erstellt"
+    },
+    "role": {
+      "super": "Super-Admin",
+      "user": "Benutzer"
+    },
+    "titles": {
+      "revoke": "Super-Admin widerrufen",
+      "grant": "Super-Admin gewähren",
+      "resetPassword": "Passwort zurücksetzen"
+    },
+    "errors": {
+      "cannotRevokeSelf": "Sie können Ihre eigene Super-Admin-Rolle nicht entziehen.",
+      "cannotDeleteSelf": "Sie können Ihr eigenes Konto nicht löschen.",
+      "failedCreate": "Erstellung fehlgeschlagen"
+    },
+    "confirmGrant": {
+      "title": "Super-Admin gewähren?",
+      "description": "{{email}} erhält vollen Zugriff auf jede Organisation und die Admin-API.",
+      "confirm": "Gewähren"
+    },
+    "confirmRevoke": {
+      "title": "Super-Admin widerrufen?",
+      "description": "{{email}} verliert Zugriff auf /admin und die Machine-to-Machine-APIs.",
+      "confirm": "Widerrufen"
+    },
+    "confirmDelete": {
+      "title": "{{email}} löschen?",
+      "description": "Entfernt den Benutzer aus jeder Organisation und löscht alle Sitzungen. Von ihm hochgeladene Pakete bleiben erhalten.",
+      "confirm": "Löschen"
+    },
+    "resetPassword": {
+      "title": "Passwort zurücksetzen",
+      "label": "Neues Passwort",
+      "submit": "Passwort zurücksetzen",
+      "success": "Passwort zurückgesetzt."
+    }
+  },
+  "orgs": {
+    "title": "Organisationen",
+    "add": "Organisation erstellen",
+    "createTitle": "Organisation erstellen",
+    "fields": {
+      "slug": "Slug",
+      "slugHelp": "3–32 Zeichen, Kleinbuchstaben/Ziffern/Bindestriche. Wird zum URL-Präfix.",
+      "name": "Anzeigename",
+      "ownerSection": "Eigentümer (optional)",
+      "ownerEmail": "E-Mail des Eigentümers",
+      "ownerName": "Name des Eigentümers",
+      "ownerPassword": "Passwort des Eigentümers",
+      "ownerPasswordHelp": "Erforderlich, wenn diese E-Mail noch kein Konto hat."
+    },
+    "create": "Erstellen",
+    "empty": "Noch keine Organisationen.",
+    "all": "Alle Organisationen",
+    "table": {
+      "slug": "Slug",
+      "name": "Name",
+      "status": "Status",
+      "created": "Erstellt"
+    },
+    "status": {
+      "active": "aktiv",
+      "suspended": "gesperrt",
+      "archived": "archiviert"
+    },
+    "actions": {
+      "activate": "Aktivieren",
+      "suspend": "Sperren (402)",
+      "archive": "Archivieren",
+      "hardDelete": "Endgültig löschen…"
+    },
+    "errors": {
+      "failedCreate": "Erstellung fehlgeschlagen"
+    },
+    "confirmArchive": {
+      "title": "{{slug}} archivieren?",
+      "description": "Mitglieder verlieren den Zugriff. Composer-Clients erhalten 404. Daten bleiben erhalten und die Organisation kann reaktiviert werden.",
+      "confirm": "Archivieren"
+    },
+    "confirmHardDelete": {
+      "title": "{{slug}} endgültig löschen?",
+      "description": "Unumkehrbar. Organisation, Mitglieder, Tokens und Quellen werden entfernt. Wird abgelehnt, wenn Pakete vorhanden sind.",
+      "confirm": "Löschen"
+    },
+    "confirmForce": {
+      "title": "{{slug}} enthält noch Pakete.",
+      "description": "Trotzdem löschen? Alle Pakete, Versionen und gespeicherten ZIPs werden vernichtet.",
+      "confirm": "Erzwungen löschen"
+    }
+  },
+  "packages": {
+    "title": "Pakete (alle Organisationen)",
+    "countTitle_one": "{{count}} Paket",
+    "countTitle_other": "{{count}} Pakete",
+    "empty": "Nirgends Pakete.",
+    "table": {
+      "org": "Org",
+      "package": "Paket",
+      "type": "Typ",
+      "created": "Erstellt"
+    },
+    "confirmDelete": {
+      "title": "{{name}} erzwungen löschen?",
+      "description": "Unumkehrbar. Entfernt alle Versionen und ZIP-Dateien in der Organisation.",
+      "confirm": "Löschen"
+    }
+  },
+  "tokens": {
+    "title": "Admin-Tokens",
+    "add": "Token erstellen",
+    "createTitle": "Admin-Token erstellen",
+    "createdTitle": "Token erstellt",
+    "copyOnce": "Kopieren Sie diesen Token jetzt. Er wird nicht erneut angezeigt. Speichern Sie ihn als Bearer-Credential in der Umgebung Ihres externen Dienstes.",
+    "name": "Token-Name",
+    "namePlaceholder": "z. B. CI-Pipeline",
+    "nameHelp": "Dient der Identifikation, zu welcher Integration dieser Token gehört. In der UI angezeigt; nicht Teil des Tokens selbst.",
+    "create": "Token erstellen",
+    "done": "Fertig",
+    "useAs": "Als Bearer verwenden:",
+    "empty": "Noch keine Admin-Tokens.",
+    "all": "Alle Admin-Tokens",
+    "table": {
+      "name": "Name",
+      "prefix": "Präfix",
+      "status": "Status",
+      "lastUsed": "Zuletzt verwendet",
+      "created": "Erstellt"
+    },
+    "status": {
+      "active": "Aktiv",
+      "inactive": "Inaktiv"
+    },
+    "never": "Nie",
+    "confirmRevoke": {
+      "title": "Admin-Token „{{name}}“ widerrufen?",
+      "description": "Dienste, die diesen Token für die Admin-API verwenden, erhalten sofort 401.",
+      "confirm": "Widerrufen"
+    }
+  }
+}

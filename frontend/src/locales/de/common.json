@@ -1,0 +1,18 @@
+{
+  "app": {
+    "name": "Packyard"
+  },
+  "actions": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "close": "Schließen",
+    "edit": "Bearbeiten",
+    "remove": "Entfernen"
+  },
+  "layout": {
+    "profile": "Profil",
+    "signOut": "Abmelden"
+  },
+  "loading": "Wird geladen…"
+}

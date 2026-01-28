@@ -1,0 +1,49 @@
+{
+  "title": "Membri",
+  "add": "Aggiungi membro",
+  "addTitle": "Aggiungi membro",
+  "editTitle": "Modifica {{name}}",
+  "editFallback": "Membro",
+  "fields": {
+    "email": "E-mail",
+    "name": "Nome",
+    "password": "Password",
+    "passwordHelp": "Per nuovi utenti",
+    "role": "Ruolo",
+    "permissions": "Permessi"
+  },
+  "roles": {
+    "owner": "Proprietario",
+    "ownerAll": "Proprietario (tutti i permessi)",
+    "member": "Membro",
+    "memberCustom": "Membro (permessi personalizzati)"
+  },
+  "save": "Salva modifiche",
+  "addButton": "Aggiungi membro",
+  "failedAdd": "Impossibile aggiungere il membro",
+  "failedUpdate": "Aggiornamento non riuscito",
+  "failedRemove": "Rimozione non riuscita",
+  "table": {
+    "name": "Nome",
+    "email": "E-mail",
+    "role": "Ruolo",
+    "permissions": "Permessi"
+  },
+  "you": "Tu",
+  "sectionTitle": "Membri dell'organizzazione",
+  "permission": {
+    "packagesRead": "Vedere i pacchetti",
+    "packagesWrite": "Creare pacchetti e caricare versioni",
+    "packagesDelete": "Eliminare pacchetti e versioni",
+    "tokensManage": "Gestire i token API",
+    "sourcesManage": "Gestire sorgenti Git e sincronizzazione",
+    "membersManage": "Gestire i membri"
+  },
+  "all": "Tutti",
+  "none": "Nessuno",
+  "confirmRemove": {
+    "title": "Rimuovere {{name}} dall'organizzazione?",
+    "description": "Perderanno l'accesso a pacchetti, token e sorgenti. L'account utente viene conservato.",
+    "confirm": "Rimuovi"
+  }
+}

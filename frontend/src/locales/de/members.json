@@ -1,0 +1,49 @@
+{
+  "title": "Mitglieder",
+  "add": "Mitglied hinzufügen",
+  "addTitle": "Mitglied hinzufügen",
+  "editTitle": "{{name}} bearbeiten",
+  "editFallback": "Mitglied",
+  "fields": {
+    "email": "E-Mail",
+    "name": "Name",
+    "password": "Passwort",
+    "passwordHelp": "Für neue Benutzer",
+    "role": "Rolle",
+    "permissions": "Berechtigungen"
+  },
+  "roles": {
+    "owner": "Eigentümer",
+    "ownerAll": "Eigentümer (alle Berechtigungen)",
+    "member": "Mitglied",
+    "memberCustom": "Mitglied (angepasste Berechtigungen)"
+  },
+  "save": "Änderungen speichern",
+  "addButton": "Mitglied hinzufügen",
+  "failedAdd": "Mitglied konnte nicht hinzugefügt werden",
+  "failedUpdate": "Aktualisierung fehlgeschlagen",
+  "failedRemove": "Entfernen fehlgeschlagen",
+  "table": {
+    "name": "Name",
+    "email": "E-Mail",
+    "role": "Rolle",
+    "permissions": "Berechtigungen"
+  },
+  "you": "Sie",
+  "sectionTitle": "Mitglieder der Organisation",
+  "permission": {
+    "packagesRead": "Pakete ansehen",
+    "packagesWrite": "Pakete erstellen und Versionen hochladen",
+    "packagesDelete": "Pakete und Versionen löschen",
+    "tokensManage": "API-Tokens verwalten",
+    "sourcesManage": "Git-Quellen und Synchronisation verwalten",
+    "membersManage": "Mitglieder verwalten"
+  },
+  "all": "Alle",
+  "none": "Keine",
+  "confirmRemove": {
+    "title": "{{name}} aus der Organisation entfernen?",
+    "description": "Der Zugriff auf Pakete, Tokens und Quellen geht verloren. Das Benutzerkonto bleibt erhalten.",
+    "confirm": "Entfernen"
+  }
+}

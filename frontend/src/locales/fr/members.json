@@ -1,0 +1,49 @@
+{
+  "title": "Membres",
+  "add": "Ajouter un membre",
+  "addTitle": "Ajouter un membre",
+  "editTitle": "Modifier {{name}}",
+  "editFallback": "Membre",
+  "fields": {
+    "email": "E-mail",
+    "name": "Nom",
+    "password": "Mot de passe",
+    "passwordHelp": "Pour les nouveaux utilisateurs",
+    "role": "Rôle",
+    "permissions": "Autorisations"
+  },
+  "roles": {
+    "owner": "Propriétaire",
+    "ownerAll": "Propriétaire (toutes les autorisations)",
+    "member": "Membre",
+    "memberCustom": "Membre (autorisations personnalisées)"
+  },
+  "save": "Enregistrer les modifications",
+  "addButton": "Ajouter un membre",
+  "failedAdd": "Échec de l'ajout du membre",
+  "failedUpdate": "Échec de la mise à jour",
+  "failedRemove": "Échec du retrait",
+  "table": {
+    "name": "Nom",
+    "email": "E-mail",
+    "role": "Rôle",
+    "permissions": "Autorisations"
+  },
+  "you": "Vous",
+  "sectionTitle": "Membres de l'organisation",
+  "permission": {
+    "packagesRead": "Voir les paquets",
+    "packagesWrite": "Créer des paquets et téléverser des versions",
+    "packagesDelete": "Supprimer des paquets et des versions",
+    "tokensManage": "Gérer les jetons API",
+    "sourcesManage": "Gérer les sources Git et la synchronisation",
+    "membersManage": "Gérer les membres"
+  },
+  "all": "Toutes",
+  "none": "Aucune",
+  "confirmRemove": {
+    "title": "Retirer {{name}} de l'organisation ?",
+    "description": "Ils perdront l'accès aux paquets, jetons et sources. Leur compte utilisateur est conservé.",
+    "confirm": "Retirer"
+  }
+}

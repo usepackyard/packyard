@@ -1,0 +1,142 @@
+{
+  "title": "Pacotes",
+  "add": "Adicionar pacote",
+  "createTitle": "Criar pacote",
+  "fields": {
+    "name": "Nome do pacote",
+    "namePlaceholder": "vendor/package",
+    "type": "Tipo",
+    "description": "Descrição"
+  },
+  "types": {
+    "wordpressPlugin": "Plugin WordPress",
+    "wordpressTheme": "Tema WordPress",
+    "library": "Biblioteca"
+  },
+  "create": "Criar",
+  "failedCreate": "Falha ao criar o pacote",
+  "empty": "Ainda não há pacotes. Crie um para começar.",
+  "allPackages": "Todos os pacotes",
+  "table": {
+    "package": "Pacote",
+    "type": "Tipo",
+    "versions": "Versões",
+    "latest": "Mais recente",
+    "downloads": "Downloads",
+    "lastReleased": "Último release"
+  },
+  "dash": "—",
+  "detail": {
+    "back": "Voltar",
+    "delete": "Excluir pacote",
+    "confirmDelete": {
+      "title": "Excluir {{name}}?",
+      "description": "Isso exclui permanentemente o pacote, todas as versões e todos os arquivos enviados.",
+      "confirm": "Excluir"
+    },
+    "upload": {
+      "title": "Enviar uma versão",
+      "dropHere": "Solte o arquivo ZIP aqui",
+      "dragOrClick": "Arraste um .zip ou clique para selecionar",
+      "selectFile": "Selecionar arquivo",
+      "uploading": "Enviando…",
+      "failed": "Falha no envio"
+    },
+    "version": {
+      "title": "Versões",
+      "total": "{{count}} no total",
+      "empty": "Ainda não há versões enviadas.",
+      "table": {
+        "version": "Versão",
+        "normalized": "Normalizada",
+        "size": "Tamanho",
+        "downloads": "Downloads",
+        "sha1": "SHA-1",
+        "released": "Lançada"
+      },
+      "lastDownloaded": "Último download {{when}}",
+      "neverDownloaded": "Nunca baixada",
+      "page": "Página {{current}} de {{total}}",
+      "prev": "Anterior",
+      "next": "Próxima",
+      "confirmDelete": {
+        "title": "Excluir a versão {{version}}?",
+        "description": "O arquivo ZIP será removido. Clientes Composer fixados nesta versão serão quebrados.",
+        "confirm": "Excluir"
+      }
+    },
+    "source": {
+      "title": "Fonte Git",
+      "notConfigured": "Nenhuma fonte Git configurada.",
+      "configure": "Configurar",
+      "addSource": "Adicionar fonte",
+      "lastSynced": "Última sincronização {{when}}",
+      "neverSynced": "Nunca sincronizado",
+      "sync": "Sincronizar agora",
+      "syncing": "Sincronizando…",
+      "queued": "Na fila…",
+      "running": "Executando {{done}}/{{total}}",
+      "failed": "Falha na sincronização",
+      "moreActions": "Mais ações",
+      "editSource": "Editar fonte",
+      "remove": "Remover fonte",
+      "provider": "Provedor",
+      "repo": "Repositório",
+      "strategy": "Estratégia",
+      "assetPattern": "Padrão de asset",
+      "metadataSource": "Fonte de metadados",
+      "versionSource": "Fonte de versão",
+      "manualRequire": "Require manual",
+      "webhookUrl": "URL do webhook",
+      "webhookSecret": "Segredo do webhook",
+      "copyWebhook": "Copiar URL do webhook",
+      "copySecret": "Copiar segredo do webhook",
+      "secretWarning": "Copie este segredo agora — ele não será exibido novamente.",
+      "configTitle": "Configurar fonte Git",
+      "save": "Salvar",
+      "cancel": "Cancelar",
+      "fields": {
+        "provider": "Provedor",
+        "owner": "Proprietário",
+        "repo": "Repo",
+        "strategy": "Estratégia",
+        "assetPattern": "Padrão de asset",
+        "assetPatternHelp": "Regex que combina nomes de asset. Deixe em branco para usar source archives.",
+        "metadataSource": "Fonte de metadados",
+        "metadataFromZip": "Ler composer.json do ZIP do release",
+        "metadataManual": "Usar require manual (sem composer.json no ZIP)",
+        "versionSource": "Fonte de versão",
+        "versionAuto": "Automática (composer.json, senão tag Git)",
+        "versionGitTag": "Tag Git (reescreve o campo version do composer.json)",
+        "versionComposerJson": "Exigir que o composer.json declare uma versão",
+        "manualRequire": "Require manual (JSON)",
+        "manualRequireHelp": "Entradas composer require quando a fonte de metadados é \"manual\".",
+        "authToken": "Token de autenticação (opcional)",
+        "authTokenHelp": "Personal Access Token do GitHub para repositórios privados. Não é armazenado no servidor.",
+        "preview": "Pré-visualizar releases"
+      },
+      "preview": {
+        "title": "Pré-visualização de releases",
+        "empty": "Nenhum release encontrado para este repositório.",
+        "noAssets": "(sem assets)"
+      },
+      "syncResult": {
+        "title": "Resultado da sincronização",
+        "imported_one": "{{count}} importada",
+        "imported_other": "{{count}} importadas",
+        "refreshed_one": "{{count}} data de release atualizada",
+        "refreshed_other": "{{count}} datas de release atualizadas",
+        "refreshedTooltip": "Datas de release preenchidas em versões existentes. Bytes dist inalterados.",
+        "skipped_one": "{{count}} ignorada",
+        "skipped_other": "{{count}} ignoradas",
+        "errors_one": "{{count}} erro",
+        "errors_other": "{{count}} erros"
+      },
+      "confirmRemove": {
+        "title": "Remover a fonte?",
+        "description": "Interrompe a sincronização do GitHub para este pacote. As versões existentes são preservadas.",
+        "confirm": "Remover"
+      }
+    }
+  }
+}

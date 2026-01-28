@@ -1,0 +1,142 @@
+{
+  "title": "Пакети",
+  "add": "Додај пакет",
+  "createTitle": "Создај пакет",
+  "fields": {
+    "name": "Име на пакет",
+    "namePlaceholder": "vendor/package",
+    "type": "Тип",
+    "description": "Опис"
+  },
+  "types": {
+    "wordpressPlugin": "WordPress додаток",
+    "wordpressTheme": "WordPress тема",
+    "library": "Библиотека"
+  },
+  "create": "Создај",
+  "failedCreate": "Неуспешно создавање на пакет",
+  "empty": "Сè уште нема пакети. Создадете еден за да почнете.",
+  "allPackages": "Сите пакети",
+  "table": {
+    "package": "Пакет",
+    "type": "Тип",
+    "versions": "Верзии",
+    "latest": "Последна",
+    "downloads": "Преземања",
+    "lastReleased": "Последно издание"
+  },
+  "dash": "—",
+  "detail": {
+    "back": "Назад",
+    "delete": "Избриши пакет",
+    "confirmDelete": {
+      "title": "Да се избрише {{name}}?",
+      "description": "Ова трајно го брише пакетот, сите верзии и сите прикачени датотеки.",
+      "confirm": "Избриши"
+    },
+    "upload": {
+      "title": "Прикачи верзија",
+      "dropHere": "Пуштете ZIP датотека овде",
+      "dragOrClick": "Повлечете .zip или кликнете за избор",
+      "selectFile": "Избери датотека",
+      "uploading": "Се прикачува…",
+      "failed": "Прикачувањето не успеа"
+    },
+    "version": {
+      "title": "Верзии",
+      "total": "{{count}} вкупно",
+      "empty": "Сè уште нема прикачени верзии.",
+      "table": {
+        "version": "Верзија",
+        "normalized": "Нормализирана",
+        "size": "Големина",
+        "downloads": "Преземања",
+        "sha1": "SHA-1",
+        "released": "Издание"
+      },
+      "lastDownloaded": "Последно преземено на {{when}}",
+      "neverDownloaded": "Никогаш не е преземено",
+      "page": "Страница {{current}} од {{total}}",
+      "prev": "Претходна",
+      "next": "Следна",
+      "confirmDelete": {
+        "title": "Да се избрише верзијата {{version}}?",
+        "description": "ZIP датотеката ќе биде отстранета. Composer клиентите кои ја користат оваа верзија ќе престанат да работат.",
+        "confirm": "Избриши"
+      }
+    },
+    "source": {
+      "title": "Git извор",
+      "notConfigured": "Нема конфигуриран git извор.",
+      "configure": "Конфигурирај",
+      "addSource": "Додај извор",
+      "lastSynced": "Последно синхронизирано {{when}}",
+      "neverSynced": "Никогаш не е синхронизирано",
+      "sync": "Синхронизирај сега",
+      "syncing": "Се синхронизира…",
+      "queued": "Закажано…",
+      "running": "Се извршува {{done}}/{{total}}",
+      "failed": "Синхронизацијата не успеа",
+      "moreActions": "Повеќе дејства",
+      "editSource": "Уреди извор",
+      "remove": "Отстрани извор",
+      "provider": "Провајдер",
+      "repo": "Складиште",
+      "strategy": "Стратегија",
+      "assetPattern": "Asset образец",
+      "metadataSource": "Извор на метаподатоци",
+      "versionSource": "Извор на верзија",
+      "manualRequire": "Рачен require",
+      "webhookUrl": "Webhook URL",
+      "webhookSecret": "Таен клуч за webhook",
+      "copyWebhook": "Копирај webhook URL",
+      "copySecret": "Копирај таен клуч",
+      "secretWarning": "Копирајте го клучот сега — нема повторно да биде прикажан.",
+      "configTitle": "Конфигурирај Git извор",
+      "save": "Зачувај",
+      "cancel": "Откажи",
+      "fields": {
+        "provider": "Провајдер",
+        "owner": "Сопственик",
+        "repo": "Складиште",
+        "strategy": "Стратегија",
+        "assetPattern": "Asset образец",
+        "assetPatternHelp": "Регекс што ги совпаѓа имињата на asset. Оставете празно за да се користат source архиви.",
+        "metadataSource": "Извор на метаподатоци",
+        "metadataFromZip": "Прочитај composer.json од ZIP изданието",
+        "metadataManual": "Користи рачен require (нема composer.json во ZIP)",
+        "versionSource": "Извор на верзија",
+        "versionAuto": "Автоматски (composer.json, во спротивно git таг)",
+        "versionGitTag": "Git таг (го презапишува полето version во composer.json)",
+        "versionComposerJson": "Барај composer.json да декларира верзија",
+        "manualRequire": "Рачен require (JSON)",
+        "manualRequireHelp": "Composer require ставки кога изворот на метаподатоци е „manual“.",
+        "authToken": "Токен за автентикација (незадолжително)",
+        "authTokenHelp": "GitHub Personal Access Token за приватни складишта. Не се чува на серверот.",
+        "preview": "Преглед на изданија"
+      },
+      "preview": {
+        "title": "Преглед на изданија",
+        "empty": "Не се пронајдени изданија за ова складиште.",
+        "noAssets": "(без asset)"
+      },
+      "syncResult": {
+        "title": "Резултат од синхронизација",
+        "imported_one": "Увезен {{count}}",
+        "imported_other": "Увезени {{count}}",
+        "refreshed_one": "Освежен {{count}} датум на издание",
+        "refreshed_other": "Освежени {{count}} датуми на издание",
+        "refreshedTooltip": "Датумите на издание се пополнети за постоечките верзии. Dist бајтите се непроменети.",
+        "skipped_one": "Прескокнат {{count}}",
+        "skipped_other": "Прескокнати {{count}}",
+        "errors_one": "{{count}} грешка",
+        "errors_other": "{{count}} грешки"
+      },
+      "confirmRemove": {
+        "title": "Да се отстрани изворот?",
+        "description": "Ја запира GitHub синхронизацијата за овој пакет. Постоечките верзии остануваат.",
+        "confirm": "Отстрани"
+      }
+    }
+  }
+}

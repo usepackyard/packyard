@@ -1,0 +1,39 @@
+{
+  "title": "Profilo",
+  "subtitle": "Gestisci il tuo account e le tue preferenze.",
+  "section": {
+    "account": "Account",
+    "preferences": "Preferenze",
+    "password": "Password"
+  },
+  "field": {
+    "name": "Nome",
+    "email": "E-mail",
+    "emailHelp": "Contatta l'assistenza per modificare la tua e-mail.",
+    "language": "Lingua",
+    "languageHelp": "L'interfaccia userà questa lingua.",
+    "currentPassword": "Password attuale",
+    "newPassword": "Nuova password",
+    "confirmPassword": "Conferma nuova password"
+  },
+  "language": {
+    "en": "Inglese",
+    "mk": "Macedone",
+    "de": "Tedesco",
+    "fr": "Francese",
+    "es": "Spagnolo",
+    "pt-BR": "Portoghese brasiliano",
+    "it": "Italiano"
+  },
+  "save": "Salva modifiche",
+  "saving": "Salvataggio…",
+  "saved": "Salvato.",
+  "failed": "Salvataggio non riuscito.",
+  "password": {
+    "change": "Cambia password",
+    "saving": "Modifica in corso…",
+    "saved": "Password modificata. Le altre sessioni sono state disconnesse.",
+    "mismatch": "Le password non corrispondono.",
+    "tooShort": "La password deve contenere almeno 8 caratteri."
+  }
+}

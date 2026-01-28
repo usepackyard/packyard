@@ -1,0 +1,158 @@
+{
+  "users": {
+    "title": "Users",
+    "add": "Create User",
+    "createTitle": "Create User",
+    "fields": {
+      "email": "Email",
+      "name": "Name",
+      "password": "Password",
+      "grantSuper": "Grant super-admin"
+    },
+    "create": "Create",
+    "empty": "No users.",
+    "table": {
+      "email": "Email",
+      "name": "Name",
+      "role": "Role",
+      "created": "Created"
+    },
+    "role": {
+      "super": "Super-admin",
+      "user": "User"
+    },
+    "titles": {
+      "revoke": "Revoke super-admin",
+      "grant": "Grant super-admin",
+      "resetPassword": "Reset password"
+    },
+    "resetPassword": {
+      "title": "Reset password",
+      "label": "New password",
+      "submit": "Reset password",
+      "success": "Password reset."
+    },
+    "errors": {
+      "cannotRevokeSelf": "You cannot revoke your own super-admin role.",
+      "cannotDeleteSelf": "You cannot delete your own account.",
+      "failedCreate": "Failed to create"
+    },
+    "confirmGrant": {
+      "title": "Grant super-admin?",
+      "description": "{{email}} will gain full access to every organization and the admin API.",
+      "confirm": "Grant"
+    },
+    "confirmRevoke": {
+      "title": "Revoke super-admin?",
+      "description": "{{email}} will lose access to /admin and machine-to-machine APIs.",
+      "confirm": "Revoke"
+    },
+    "confirmDelete": {
+      "title": "Delete {{email}}?",
+      "description": "Removes the user from every organization and deletes all their sessions. Packages they uploaded remain.",
+      "confirm": "Delete"
+    }
+  },
+  "orgs": {
+    "title": "Organizations",
+    "add": "Create Organization",
+    "createTitle": "Create Organization",
+    "fields": {
+      "slug": "Slug",
+      "slugHelp": "3–32 chars, lowercase letters/digits/hyphens. Becomes the URL prefix.",
+      "name": "Display name",
+      "ownerSection": "Owner (optional)",
+      "ownerEmail": "Owner email",
+      "ownerName": "Owner name",
+      "ownerPassword": "Owner password",
+      "ownerPasswordHelp": "Required if this email doesn't have an account yet."
+    },
+    "create": "Create",
+    "empty": "No organizations yet.",
+    "all": "All Organizations",
+    "table": {
+      "slug": "Slug",
+      "name": "Name",
+      "status": "Status",
+      "created": "Created"
+    },
+    "status": {
+      "active": "active",
+      "suspended": "suspended",
+      "archived": "archived"
+    },
+    "actions": {
+      "activate": "Activate",
+      "suspend": "Suspend (402)",
+      "archive": "Archive",
+      "hardDelete": "Hard delete…"
+    },
+    "errors": {
+      "failedCreate": "Failed to create"
+    },
+    "confirmArchive": {
+      "title": "Archive {{slug}}?",
+      "description": "Members lose access. Composer clients get 404. Data is preserved and the org can be reactivated.",
+      "confirm": "Archive"
+    },
+    "confirmHardDelete": {
+      "title": "Hard-delete {{slug}}?",
+      "description": "Irreversible. The org, members, tokens, and source configs will be removed. Refuses if packages exist.",
+      "confirm": "Delete"
+    },
+    "confirmForce": {
+      "title": "{{slug}} still has packages.",
+      "description": "Force-delete anyway? All packages, versions, and stored ZIPs will be destroyed.",
+      "confirm": "Force delete"
+    }
+  },
+  "packages": {
+    "title": "Packages (all organizations)",
+    "countTitle_one": "{{count}} package",
+    "countTitle_other": "{{count}} packages",
+    "empty": "No packages anywhere.",
+    "table": {
+      "org": "Org",
+      "package": "Package",
+      "type": "Type",
+      "created": "Created"
+    },
+    "confirmDelete": {
+      "title": "Force-delete {{name}}?",
+      "description": "Irreversible. Removes all versions and ZIP files across the org.",
+      "confirm": "Delete"
+    }
+  },
+  "tokens": {
+    "title": "Admin Tokens",
+    "add": "Create Token",
+    "createTitle": "Create Admin Token",
+    "createdTitle": "Token Created",
+    "copyOnce": "Copy this token now. It will not be shown again. Store it as the Bearer credential in your external service's environment.",
+    "name": "Token Name",
+    "namePlaceholder": "e.g. CI pipeline",
+    "nameHelp": "Used to identify which integration this token belongs to. Shown in the UI; not part of the token itself.",
+    "create": "Create Token",
+    "done": "Done",
+    "useAs": "Use as Bearer:",
+    "empty": "No admin tokens yet.",
+    "all": "All Admin Tokens",
+    "table": {
+      "name": "Name",
+      "prefix": "Prefix",
+      "status": "Status",
+      "lastUsed": "Last Used",
+      "created": "Created"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "never": "Never",
+    "confirmRevoke": {
+      "title": "Revoke admin token \"{{name}}\"?",
+      "description": "Services using this token for the admin API will immediately start returning 401.",
+      "confirm": "Revoke"
+    }
+  }
+}

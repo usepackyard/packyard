@@ -1,0 +1,49 @@
+{
+  "title": "Miembros",
+  "add": "Añadir miembro",
+  "addTitle": "Añadir miembro",
+  "editTitle": "Editar {{name}}",
+  "editFallback": "Miembro",
+  "fields": {
+    "email": "Correo electrónico",
+    "name": "Nombre",
+    "password": "Contraseña",
+    "passwordHelp": "Para nuevos usuarios",
+    "role": "Rol",
+    "permissions": "Permisos"
+  },
+  "roles": {
+    "owner": "Propietario",
+    "ownerAll": "Propietario (todos los permisos)",
+    "member": "Miembro",
+    "memberCustom": "Miembro (permisos personalizados)"
+  },
+  "save": "Guardar cambios",
+  "addButton": "Añadir miembro",
+  "failedAdd": "No se pudo añadir el miembro",
+  "failedUpdate": "Error al actualizar",
+  "failedRemove": "Error al eliminar",
+  "table": {
+    "name": "Nombre",
+    "email": "Correo electrónico",
+    "role": "Rol",
+    "permissions": "Permisos"
+  },
+  "you": "Tú",
+  "sectionTitle": "Miembros de la organización",
+  "permission": {
+    "packagesRead": "Ver paquetes",
+    "packagesWrite": "Crear paquetes y subir versiones",
+    "packagesDelete": "Eliminar paquetes y versiones",
+    "tokensManage": "Gestionar tokens API",
+    "sourcesManage": "Gestionar fuentes Git y sincronización",
+    "membersManage": "Gestionar miembros"
+  },
+  "all": "Todos",
+  "none": "Ninguno",
+  "confirmRemove": {
+    "title": "¿Eliminar a {{name}} de la organización?",
+    "description": "Perderán acceso a paquetes, tokens y fuentes. Su cuenta de usuario se conserva.",
+    "confirm": "Eliminar"
+  }
+}

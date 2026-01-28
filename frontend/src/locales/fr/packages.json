@@ -1,0 +1,142 @@
+{
+  "title": "Paquets",
+  "add": "Ajouter un paquet",
+  "createTitle": "Créer un paquet",
+  "fields": {
+    "name": "Nom du paquet",
+    "namePlaceholder": "vendor/package",
+    "type": "Type",
+    "description": "Description"
+  },
+  "types": {
+    "wordpressPlugin": "Plugin WordPress",
+    "wordpressTheme": "Thème WordPress",
+    "library": "Bibliothèque"
+  },
+  "create": "Créer",
+  "failedCreate": "Échec de la création du paquet",
+  "empty": "Aucun paquet pour le moment. Créez-en un pour commencer.",
+  "allPackages": "Tous les paquets",
+  "table": {
+    "package": "Paquet",
+    "type": "Type",
+    "versions": "Versions",
+    "latest": "Dernière",
+    "downloads": "Téléchargements",
+    "lastReleased": "Dernière release"
+  },
+  "dash": "—",
+  "detail": {
+    "back": "Retour",
+    "delete": "Supprimer le paquet",
+    "confirmDelete": {
+      "title": "Supprimer {{name}} ?",
+      "description": "Cela supprime définitivement le paquet, toutes les versions et tous les fichiers téléversés.",
+      "confirm": "Supprimer"
+    },
+    "upload": {
+      "title": "Téléverser une version",
+      "dropHere": "Déposez le fichier ZIP ici",
+      "dragOrClick": "Glissez un .zip ou cliquez pour sélectionner",
+      "selectFile": "Sélectionner un fichier",
+      "uploading": "Téléversement…",
+      "failed": "Échec du téléversement"
+    },
+    "version": {
+      "title": "Versions",
+      "total": "{{count}} au total",
+      "empty": "Aucune version téléversée pour le moment.",
+      "table": {
+        "version": "Version",
+        "normalized": "Normalisée",
+        "size": "Taille",
+        "downloads": "Téléchargements",
+        "sha1": "SHA-1",
+        "released": "Publiée"
+      },
+      "lastDownloaded": "Dernier téléchargement {{when}}",
+      "neverDownloaded": "Jamais téléchargée",
+      "page": "Page {{current}} sur {{total}}",
+      "prev": "Précédente",
+      "next": "Suivante",
+      "confirmDelete": {
+        "title": "Supprimer la version {{version}} ?",
+        "description": "Le fichier ZIP sera retiré. Les clients Composer qui épinglent cette version cesseront de fonctionner.",
+        "confirm": "Supprimer"
+      }
+    },
+    "source": {
+      "title": "Source Git",
+      "notConfigured": "Aucune source Git configurée.",
+      "configure": "Configurer",
+      "addSource": "Ajouter une source",
+      "lastSynced": "Dernière synchronisation {{when}}",
+      "neverSynced": "Jamais synchronisée",
+      "sync": "Synchroniser maintenant",
+      "syncing": "Synchronisation…",
+      "queued": "En file…",
+      "running": "En cours {{done}}/{{total}}",
+      "failed": "Échec de la synchronisation",
+      "moreActions": "Plus d'actions",
+      "editSource": "Modifier la source",
+      "remove": "Retirer la source",
+      "provider": "Fournisseur",
+      "repo": "Dépôt",
+      "strategy": "Stratégie",
+      "assetPattern": "Motif d'asset",
+      "metadataSource": "Source des métadonnées",
+      "versionSource": "Source de version",
+      "manualRequire": "Require manuel",
+      "webhookUrl": "URL du webhook",
+      "webhookSecret": "Secret du webhook",
+      "copyWebhook": "Copier l'URL du webhook",
+      "copySecret": "Copier le secret du webhook",
+      "secretWarning": "Copiez ce secret maintenant — il ne sera plus affiché.",
+      "configTitle": "Configurer la source Git",
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "fields": {
+        "provider": "Fournisseur",
+        "owner": "Propriétaire",
+        "repo": "Dépôt",
+        "strategy": "Stratégie",
+        "assetPattern": "Motif d'asset",
+        "assetPatternHelp": "Regex qui correspond aux noms d'asset. Laissez vide pour utiliser les archives source.",
+        "metadataSource": "Source des métadonnées",
+        "metadataFromZip": "Lire composer.json depuis le ZIP de la release",
+        "metadataManual": "Utiliser un require manuel (pas de composer.json dans le ZIP)",
+        "versionSource": "Source de version",
+        "versionAuto": "Automatique (composer.json, sinon tag Git)",
+        "versionGitTag": "Tag Git (réécrit le champ version de composer.json)",
+        "versionComposerJson": "Exiger que composer.json déclare une version",
+        "manualRequire": "Require manuel (JSON)",
+        "manualRequireHelp": "Entrées composer require utilisées lorsque la source de métadonnées est « manual ».",
+        "authToken": "Jeton d'authentification (optionnel)",
+        "authTokenHelp": "Personal Access Token GitHub pour les dépôts privés. Non stocké sur le serveur.",
+        "preview": "Aperçu des releases"
+      },
+      "preview": {
+        "title": "Aperçu des releases",
+        "empty": "Aucune release trouvée pour ce dépôt.",
+        "noAssets": "(aucun asset)"
+      },
+      "syncResult": {
+        "title": "Résultat de la synchronisation",
+        "imported_one": "{{count}} importée",
+        "imported_other": "{{count}} importées",
+        "refreshed_one": "{{count}} date de release actualisée",
+        "refreshed_other": "{{count}} dates de release actualisées",
+        "refreshedTooltip": "Dates de release rétro-remplies sur les versions existantes. Octets dist inchangés.",
+        "skipped_one": "{{count}} ignorée",
+        "skipped_other": "{{count}} ignorées",
+        "errors_one": "{{count}} erreur",
+        "errors_other": "{{count}} erreurs"
+      },
+      "confirmRemove": {
+        "title": "Retirer la source ?",
+        "description": "Arrête la synchronisation GitHub pour ce paquet. Les versions existantes sont conservées.",
+        "confirm": "Retirer"
+      }
+    }
+  }
+}

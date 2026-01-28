@@ -1,0 +1,39 @@
+{
+  "title": "Profile",
+  "subtitle": "Manage your account and preferences.",
+  "section": {
+    "account": "Account",
+    "preferences": "Preferences",
+    "password": "Password"
+  },
+  "field": {
+    "name": "Name",
+    "email": "Email",
+    "emailHelp": "Contact support to change your email.",
+    "language": "Language",
+    "languageHelp": "The dashboard UI will use this language.",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm new password"
+  },
+  "language": {
+    "en": "English",
+    "mk": "Македонски",
+    "de": "German",
+    "fr": "French",
+    "es": "Spanish",
+    "pt-BR": "Portuguese (Brazil)",
+    "it": "Italian"
+  },
+  "save": "Save changes",
+  "saving": "Saving…",
+  "saved": "Saved.",
+  "failed": "Failed to save.",
+  "password": {
+    "change": "Change password",
+    "saving": "Changing…",
+    "saved": "Password changed. Other sessions have been signed out.",
+    "mismatch": "Passwords do not match.",
+    "tooShort": "Password must be at least 8 characters."
+  }
+}

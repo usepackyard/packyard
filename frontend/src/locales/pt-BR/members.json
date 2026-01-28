@@ -1,0 +1,49 @@
+{
+  "title": "Membros",
+  "add": "Adicionar membro",
+  "addTitle": "Adicionar membro",
+  "editTitle": "Editar {{name}}",
+  "editFallback": "Membro",
+  "fields": {
+    "email": "E-mail",
+    "name": "Nome",
+    "password": "Senha",
+    "passwordHelp": "Para novos usuários",
+    "role": "Função",
+    "permissions": "Permissões"
+  },
+  "roles": {
+    "owner": "Proprietário",
+    "ownerAll": "Proprietário (todas as permissões)",
+    "member": "Membro",
+    "memberCustom": "Membro (permissões personalizadas)"
+  },
+  "save": "Salvar alterações",
+  "addButton": "Adicionar membro",
+  "failedAdd": "Falha ao adicionar membro",
+  "failedUpdate": "Falha ao atualizar",
+  "failedRemove": "Falha ao remover",
+  "table": {
+    "name": "Nome",
+    "email": "E-mail",
+    "role": "Função",
+    "permissions": "Permissões"
+  },
+  "you": "Você",
+  "sectionTitle": "Membros da organização",
+  "permission": {
+    "packagesRead": "Ver pacotes",
+    "packagesWrite": "Criar pacotes e enviar versões",
+    "packagesDelete": "Excluir pacotes e versões",
+    "tokensManage": "Gerenciar tokens de API",
+    "sourcesManage": "Gerenciar fontes Git e sincronização",
+    "membersManage": "Gerenciar membros"
+  },
+  "all": "Todas",
+  "none": "Nenhuma",
+  "confirmRemove": {
+    "title": "Remover {{name}} da organização?",
+    "description": "Eles perderão acesso a pacotes, tokens e fontes. A conta de usuário é preservada.",
+    "confirm": "Remover"
+  }
+}

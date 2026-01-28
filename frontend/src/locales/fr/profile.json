@@ -1,0 +1,39 @@
+{
+  "title": "Profil",
+  "subtitle": "Gérez votre compte et vos préférences.",
+  "section": {
+    "account": "Compte",
+    "preferences": "Préférences",
+    "password": "Mot de passe"
+  },
+  "field": {
+    "name": "Nom",
+    "email": "E-mail",
+    "emailHelp": "Contactez le support pour modifier votre e-mail.",
+    "language": "Langue",
+    "languageHelp": "L'interface utilisera cette langue.",
+    "currentPassword": "Mot de passe actuel",
+    "newPassword": "Nouveau mot de passe",
+    "confirmPassword": "Confirmer le nouveau mot de passe"
+  },
+  "language": {
+    "en": "Anglais",
+    "mk": "Macédonien",
+    "de": "Allemand",
+    "fr": "Français",
+    "es": "Espagnol",
+    "pt-BR": "Portugais brésilien",
+    "it": "Italien"
+  },
+  "save": "Enregistrer les modifications",
+  "saving": "Enregistrement…",
+  "saved": "Enregistré.",
+  "failed": "Échec de l'enregistrement.",
+  "password": {
+    "change": "Changer le mot de passe",
+    "saving": "Modification…",
+    "saved": "Mot de passe modifié. Les autres sessions ont été déconnectées.",
+    "mismatch": "Les mots de passe ne correspondent pas.",
+    "tooShort": "Le mot de passe doit contenir au moins 8 caractères."
+  }
+}

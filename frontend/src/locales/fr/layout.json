@@ -1,0 +1,29 @@
+{
+  "tagline": "Dépôt Composer",
+  "openMenu": "Ouvrir le menu",
+  "closeMenu": "Fermer le menu",
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "packages": "Paquets",
+    "tokens": "Jetons API",
+    "members": "Membres",
+    "users": "Utilisateurs",
+    "orgs": "Organisations",
+    "adminTokens": "Jetons admin"
+  },
+  "enterSuperAdmin": "Entrer en super-admin",
+  "backToDashboard": "Retour au tableau de bord",
+  "contextSwitcher": {
+    "superAdmin": "Super-admin",
+    "allOrgs": "toutes les organisations",
+    "select": "Sélectionner",
+    "superAdminMode": "Mode super-admin",
+    "backToOrg": "Retour à l'organisation",
+    "organizations": "Organisations",
+    "noOrgs": "Aucune organisation",
+    "switchTitle": "Passer à une organisation",
+    "noOrgsHelp": "Vous n'êtes encore membre d'aucune organisation. Créez-en une ou ajoutez-vous à une existante pour passer dans son tableau de bord.",
+    "stayInSuperAdmin": "Rester en super-admin",
+    "manageOrgs": "Gérer les organisations"
+  }
+}

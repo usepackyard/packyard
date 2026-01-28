@@ -1,0 +1,29 @@
+{
+  "tagline": "Composer Repository",
+  "openMenu": "Open menu",
+  "closeMenu": "Close menu",
+  "nav": {
+    "dashboard": "Dashboard",
+    "packages": "Packages",
+    "tokens": "API Tokens",
+    "members": "Members",
+    "users": "Users",
+    "orgs": "Organizations",
+    "adminTokens": "Admin Tokens"
+  },
+  "enterSuperAdmin": "Enter Super-admin",
+  "backToDashboard": "Back to dashboard",
+  "contextSwitcher": {
+    "superAdmin": "Super-admin",
+    "allOrgs": "all organizations",
+    "select": "Select",
+    "superAdminMode": "Super-admin mode",
+    "backToOrg": "Back to organization",
+    "organizations": "Organizations",
+    "noOrgs": "No organizations",
+    "switchTitle": "Switch to an organization",
+    "noOrgsHelp": "You're not a member of any organization yet. Create one or add yourself to an existing organization to switch into its dashboard.",
+    "stayInSuperAdmin": "Stay in super-admin",
+    "manageOrgs": "Manage organizations"
+  }
+}

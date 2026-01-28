@@ -1,0 +1,29 @@
+{
+  "tagline": "Repository Composer",
+  "openMenu": "Apri menu",
+  "closeMenu": "Chiudi menu",
+  "nav": {
+    "dashboard": "Dashboard",
+    "packages": "Pacchetti",
+    "tokens": "Token API",
+    "members": "Membri",
+    "users": "Utenti",
+    "orgs": "Organizzazioni",
+    "adminTokens": "Token admin"
+  },
+  "enterSuperAdmin": "Entra in super-admin",
+  "backToDashboard": "Torna alla dashboard",
+  "contextSwitcher": {
+    "superAdmin": "Super-admin",
+    "allOrgs": "tutte le organizzazioni",
+    "select": "Seleziona",
+    "superAdminMode": "Modalità super-admin",
+    "backToOrg": "Torna all'organizzazione",
+    "organizations": "Organizzazioni",
+    "noOrgs": "Nessuna organizzazione",
+    "switchTitle": "Passa a un'organizzazione",
+    "noOrgsHelp": "Non sei ancora membro di alcuna organizzazione. Creane una o aggiungiti a una esistente per accedere alla sua dashboard.",
+    "stayInSuperAdmin": "Resta in super-admin",
+    "manageOrgs": "Gestisci organizzazioni"
+  }
+}

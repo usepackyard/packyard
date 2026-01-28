@@ -1,0 +1,80 @@
+{
+  "title": "Контролна табла",
+  "newPackage": "Нов пакет",
+  "newToken": "Нов токен",
+  "failedToLoad": "Неуспешно вчитување на контролната табла",
+  "stats": {
+    "packages": "Пакети",
+    "downloads": "Преземања",
+    "tokens": "API токени",
+    "members": "Членови",
+    "users": "Корисници",
+    "noPackages": "Нема пакети",
+    "addedThisWeek_one": "{{count}} додаден оваа недела",
+    "addedThisWeek_other": "{{count}} додадени оваа недела",
+    "acrossTypes": "Сите типови",
+    "noDownloads": "Нема преземања",
+    "lastSevenDays": "{{count}} во последните 7 дена",
+    "noTokens": "Нема токени",
+    "activeOnly": "{{active}} активни",
+    "activeAndExpired": "{{active}} активни · {{expired}} истечени",
+    "noMembers": "Нема членови",
+    "owners_one": "{{count}} сопственик",
+    "owners_other": "{{count}} сопственици",
+    "membersCount_one": "{{count}} член",
+    "membersCount_other": "{{count}} членови",
+    "ownersAndMembers": "{{owners}} · {{members}}"
+  },
+  "recentPackages": "Скорешни пакети",
+  "getStarted": "Како да почнете",
+  "steps": {
+    "create": {
+      "title": "Создајте пакет",
+      "body": "Именувајте го како vendor/package. Можете да го создадете од страницата Пакети или преку API."
+    },
+    "upload": {
+      "title": "Прикачете ZIP или поврзете Git",
+      "body": "Прикачете архива на издание рачно, или конфигурирајте Git извор за автоматска синхронизација на изданијата."
+    },
+    "install": {
+      "title": "Инсталирајте преку Composer",
+      "body": "Упатете го Composer на ова складиште, потоа извршете composer require за вашиот пакет."
+    }
+  },
+  "composer": {
+    "title": "Composer складиште",
+    "url": "URL",
+    "composerJson": "composer.json",
+    "authNote": "Автентицирајте со токен од <0>API Токени</0>. Користете го токенот како корисничко име и <1>satispress</1> како лозинка."
+  },
+  "topPackages": {
+    "title": "Најпреземани пакети",
+    "empty": "Преземањата ќе се појават откако Composer клиентите ќе почнат да ги преземаат пакетите."
+  },
+  "recentDownloads": {
+    "title": "Скорешни преземања",
+    "empty": "Сè уште нема преземања."
+  },
+  "tokenActivity": {
+    "title": "Активност на токени",
+    "empty": "Сè уште ниту еден токен не е употребен."
+  },
+  "organization": {
+    "title": "Организација",
+    "members": "Членови",
+    "empty": "Сè уште нема членови.",
+    "manage": "Управувај →"
+  },
+  "table": {
+    "name": "Име",
+    "type": "Тип",
+    "versions": "Верзии",
+    "downloads": "Преземања",
+    "updated": "Ажурирано"
+  },
+  "copy": {
+    "repoURL": "Копирај URL на складиштето",
+    "composerJson": "Копирај composer.json исечок",
+    "composerConfig": "Копирај Composer команда за конфигурација"
+  }
+}

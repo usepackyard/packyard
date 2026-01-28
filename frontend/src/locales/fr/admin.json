@@ -1,0 +1,158 @@
+{
+  "users": {
+    "title": "Utilisateurs",
+    "add": "Créer un utilisateur",
+    "createTitle": "Créer un utilisateur",
+    "fields": {
+      "email": "E-mail",
+      "name": "Nom",
+      "password": "Mot de passe",
+      "grantSuper": "Accorder le super-admin"
+    },
+    "create": "Créer",
+    "empty": "Aucun utilisateur.",
+    "table": {
+      "email": "E-mail",
+      "name": "Nom",
+      "role": "Rôle",
+      "created": "Créé"
+    },
+    "role": {
+      "super": "Super-admin",
+      "user": "Utilisateur"
+    },
+    "titles": {
+      "revoke": "Révoquer le super-admin",
+      "grant": "Accorder le super-admin",
+      "resetPassword": "Réinitialiser le mot de passe"
+    },
+    "errors": {
+      "cannotRevokeSelf": "Vous ne pouvez pas révoquer votre propre rôle de super-admin.",
+      "cannotDeleteSelf": "Vous ne pouvez pas supprimer votre propre compte.",
+      "failedCreate": "Échec de la création"
+    },
+    "confirmGrant": {
+      "title": "Accorder le super-admin ?",
+      "description": "{{email}} obtiendra un accès complet à toutes les organisations et à l'API admin.",
+      "confirm": "Accorder"
+    },
+    "confirmRevoke": {
+      "title": "Révoquer le super-admin ?",
+      "description": "{{email}} perdra l'accès à /admin et aux API machine-to-machine.",
+      "confirm": "Révoquer"
+    },
+    "confirmDelete": {
+      "title": "Supprimer {{email}} ?",
+      "description": "Retire l'utilisateur de toutes les organisations et supprime toutes ses sessions. Les paquets qu'il a téléversés sont conservés.",
+      "confirm": "Supprimer"
+    },
+    "resetPassword": {
+      "title": "Réinitialiser le mot de passe",
+      "label": "Nouveau mot de passe",
+      "submit": "Réinitialiser le mot de passe",
+      "success": "Mot de passe réinitialisé."
+    }
+  },
+  "orgs": {
+    "title": "Organisations",
+    "add": "Créer une organisation",
+    "createTitle": "Créer une organisation",
+    "fields": {
+      "slug": "Slug",
+      "slugHelp": "3–32 caractères, minuscules/chiffres/tirets. Devient le préfixe d'URL.",
+      "name": "Nom d'affichage",
+      "ownerSection": "Propriétaire (facultatif)",
+      "ownerEmail": "Email du propriétaire",
+      "ownerName": "Nom du propriétaire",
+      "ownerPassword": "Mot de passe du propriétaire",
+      "ownerPasswordHelp": "Requis si cet email n'a pas encore de compte."
+    },
+    "create": "Créer",
+    "empty": "Aucune organisation pour le moment.",
+    "all": "Toutes les organisations",
+    "table": {
+      "slug": "Slug",
+      "name": "Nom",
+      "status": "Statut",
+      "created": "Créée"
+    },
+    "status": {
+      "active": "actif",
+      "suspended": "suspendue",
+      "archived": "archivée"
+    },
+    "actions": {
+      "activate": "Activer",
+      "suspend": "Suspendre (402)",
+      "archive": "Archiver",
+      "hardDelete": "Suppression définitive…"
+    },
+    "errors": {
+      "failedCreate": "Échec de la création"
+    },
+    "confirmArchive": {
+      "title": "Archiver {{slug}} ?",
+      "description": "Les membres perdent l'accès. Les clients Composer reçoivent 404. Les données sont conservées et l'organisation peut être réactivée.",
+      "confirm": "Archiver"
+    },
+    "confirmHardDelete": {
+      "title": "Supprimer définitivement {{slug}} ?",
+      "description": "Irréversible. L'organisation, les membres, les jetons et les sources seront retirés. Refuse si des paquets existent.",
+      "confirm": "Supprimer"
+    },
+    "confirmForce": {
+      "title": "{{slug}} contient encore des paquets.",
+      "description": "Forcer la suppression ? Tous les paquets, versions et ZIP stockés seront détruits.",
+      "confirm": "Forcer la suppression"
+    }
+  },
+  "packages": {
+    "title": "Paquets (toutes les organisations)",
+    "countTitle_one": "{{count}} paquet",
+    "countTitle_other": "{{count}} paquets",
+    "empty": "Aucun paquet nulle part.",
+    "table": {
+      "org": "Org",
+      "package": "Paquet",
+      "type": "Type",
+      "created": "Créé"
+    },
+    "confirmDelete": {
+      "title": "Supprimer {{name}} de force ?",
+      "description": "Irréversible. Retire toutes les versions et les fichiers ZIP dans l'organisation.",
+      "confirm": "Supprimer"
+    }
+  },
+  "tokens": {
+    "title": "Jetons admin",
+    "add": "Créer un jeton",
+    "createTitle": "Créer un jeton admin",
+    "createdTitle": "Jeton créé",
+    "copyOnce": "Copiez ce jeton maintenant. Il ne sera plus affiché. Stockez-le comme identifiant Bearer dans l'environnement de votre service externe.",
+    "name": "Nom du jeton",
+    "namePlaceholder": "ex. pipeline CI",
+    "nameHelp": "Sert à identifier à quelle intégration appartient ce jeton. Affiché dans l'UI ; ne fait pas partie du jeton lui-même.",
+    "create": "Créer le jeton",
+    "done": "Terminé",
+    "useAs": "Utiliser comme Bearer :",
+    "empty": "Aucun jeton admin pour le moment.",
+    "all": "Tous les jetons admin",
+    "table": {
+      "name": "Nom",
+      "prefix": "Préfixe",
+      "status": "Statut",
+      "lastUsed": "Dernière utilisation",
+      "created": "Créé"
+    },
+    "status": {
+      "active": "Actif",
+      "inactive": "Inactif"
+    },
+    "never": "Jamais",
+    "confirmRevoke": {
+      "title": "Révoquer le jeton admin « {{name}} » ?",
+      "description": "Les services utilisant ce jeton pour l'API admin recevront immédiatement 401.",
+      "confirm": "Révoquer"
+    }
+  }
+}

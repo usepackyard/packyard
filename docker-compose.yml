@@ -1,0 +1,46 @@
+name: packyard
+
+services:
+  app:
+    build: .
+    ports:
+      - "9090:8080"
+    environment:
+      PACKYARD_PORT: "8080"
+      PACKYARD_BASE_URL: "http://localhost:9090"
+      PACKYARD_DB_DRIVER: "mysql"
+      PACKYARD_DB_HOST: "database"
+      PACKYARD_DB_PORT: "3306"
+      PACKYARD_DB_NAME: "packyard"
+      PACKYARD_DB_USER: "packyard"
+      PACKYARD_DB_PASSWORD: "password"
+      PACKYARD_STORAGE_TYPE: "local"
+      PACKYARD_STORAGE_LOCAL_PATH: "/data/packages"
+      # Dev-only session secret. Override in production.
+      PACKYARD_SESSION_SECRET: "compose-dev-secret-change-in-production-32+"
+      PACKYARD_ADMIN_EMAIL: "admin@example.com"
+      PACKYARD_ADMIN_PASSWORD: "password"
+    volumes:
+      - package_data:/data/packages
+    depends_on:
+      database:
+        condition: service_healthy
+
+  database:
+    image: mariadb:11
+    environment:
+      MYSQL_DATABASE: packyard
+      MYSQL_USER: packyard
+      MYSQL_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: password
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  db_data:
+  package_data:

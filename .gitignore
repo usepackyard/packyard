@@ -1,0 +1,28 @@
+# Binary
+packyard
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+
+# Storage
+data/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Embedded frontend (rebuilt from frontend/dist)
+internal/frontend/dist/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+
+# Environment
+.env

@@ -1,0 +1,142 @@
+{
+  "title": "Packages",
+  "add": "Add Package",
+  "createTitle": "Create Package",
+  "fields": {
+    "name": "Package Name",
+    "namePlaceholder": "vendor/package",
+    "type": "Type",
+    "description": "Description"
+  },
+  "types": {
+    "wordpressPlugin": "WordPress Plugin",
+    "wordpressTheme": "WordPress Theme",
+    "library": "Library"
+  },
+  "create": "Create",
+  "failedCreate": "Failed to create package",
+  "empty": "No packages yet. Create one to get started.",
+  "allPackages": "All Packages",
+  "table": {
+    "package": "Package",
+    "type": "Type",
+    "versions": "Versions",
+    "latest": "Latest",
+    "downloads": "Downloads",
+    "lastReleased": "Last released"
+  },
+  "dash": "—",
+  "detail": {
+    "back": "Back",
+    "delete": "Delete Package",
+    "confirmDelete": {
+      "title": "Delete {{name}}?",
+      "description": "This will permanently delete the package, all versions, and all uploaded files.",
+      "confirm": "Delete"
+    },
+    "upload": {
+      "title": "Upload a Version",
+      "dropHere": "Drop zip file here",
+      "dragOrClick": "Drag a .zip or click to select",
+      "selectFile": "Select File",
+      "uploading": "Uploading…",
+      "failed": "Upload failed"
+    },
+    "version": {
+      "title": "Versions",
+      "total": "{{count}} total",
+      "empty": "No versions uploaded yet.",
+      "table": {
+        "version": "Version",
+        "normalized": "Normalized",
+        "size": "Size",
+        "downloads": "Downloads",
+        "sha1": "SHA-1",
+        "released": "Released"
+      },
+      "lastDownloaded": "Last downloaded {{when}}",
+      "neverDownloaded": "Never downloaded",
+      "page": "Page {{current}} of {{total}}",
+      "prev": "Previous",
+      "next": "Next",
+      "confirmDelete": {
+        "title": "Delete version {{version}}?",
+        "description": "The ZIP file will be removed. Composer clients currently pinning this version will break.",
+        "confirm": "Delete"
+      }
+    },
+    "source": {
+      "title": "Git Source",
+      "notConfigured": "No git source configured.",
+      "configure": "Configure",
+      "addSource": "Add source",
+      "lastSynced": "Last synced {{when}}",
+      "neverSynced": "Never synced",
+      "sync": "Sync now",
+      "syncing": "Syncing…",
+      "queued": "Queued…",
+      "running": "Running {{done}}/{{total}}",
+      "failed": "Sync failed",
+      "moreActions": "More actions",
+      "editSource": "Edit source",
+      "remove": "Remove source",
+      "provider": "Provider",
+      "repo": "Repository",
+      "strategy": "Strategy",
+      "assetPattern": "Asset pattern",
+      "metadataSource": "Metadata source",
+      "versionSource": "Version source",
+      "manualRequire": "Manual require",
+      "webhookUrl": "Webhook URL",
+      "webhookSecret": "Webhook secret",
+      "copyWebhook": "Copy webhook URL",
+      "copySecret": "Copy webhook secret",
+      "secretWarning": "Copy this secret now — it won't be shown again.",
+      "configTitle": "Configure Git Source",
+      "save": "Save",
+      "cancel": "Cancel",
+      "fields": {
+        "provider": "Provider",
+        "owner": "Owner",
+        "repo": "Repo",
+        "strategy": "Strategy",
+        "assetPattern": "Asset pattern",
+        "assetPatternHelp": "Regex matching release asset names. Leave blank to use source archives.",
+        "metadataSource": "Metadata source",
+        "metadataFromZip": "Read composer.json from release zip",
+        "metadataManual": "Use manual require (no composer.json in zip)",
+        "versionSource": "Version source",
+        "versionAuto": "Automatic (composer.json, fallback to git tag)",
+        "versionGitTag": "Git tag (rewrites composer.json version)",
+        "versionComposerJson": "Require composer.json to declare version",
+        "manualRequire": "Manual require (JSON)",
+        "manualRequireHelp": "Composer require entries used when metadata source is \"manual\".",
+        "authToken": "Auth token (optional)",
+        "authTokenHelp": "GitHub personal access token for private repos. Not stored on the server.",
+        "preview": "Preview releases"
+      },
+      "preview": {
+        "title": "Release preview",
+        "empty": "No releases found for that repository.",
+        "noAssets": "(no assets)"
+      },
+      "syncResult": {
+        "title": "Sync Result",
+        "imported_one": "Imported {{count}}",
+        "imported_other": "Imported {{count}}",
+        "refreshed_one": "Refreshed {{count}} release date",
+        "refreshed_other": "Refreshed {{count}} release dates",
+        "refreshedTooltip": "Release dates backfilled on existing versions. Dist bytes unchanged.",
+        "skipped_one": "Skipped {{count}}",
+        "skipped_other": "Skipped {{count}}",
+        "errors_one": "{{count}} error",
+        "errors_other": "{{count}} errors"
+      },
+      "confirmRemove": {
+        "title": "Remove source?",
+        "description": "Stops GitHub sync for this package. Existing versions remain.",
+        "confirm": "Remove"
+      }
+    }
+  }
+}

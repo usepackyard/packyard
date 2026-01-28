@@ -1,0 +1,158 @@
+{
+  "users": {
+    "title": "Utenti",
+    "add": "Crea utente",
+    "createTitle": "Crea utente",
+    "fields": {
+      "email": "E-mail",
+      "name": "Nome",
+      "password": "Password",
+      "grantSuper": "Concedi super-admin"
+    },
+    "create": "Crea",
+    "empty": "Nessun utente.",
+    "table": {
+      "email": "E-mail",
+      "name": "Nome",
+      "role": "Ruolo",
+      "created": "Creato"
+    },
+    "role": {
+      "super": "Super-admin",
+      "user": "Utente"
+    },
+    "titles": {
+      "revoke": "Revoca super-admin",
+      "grant": "Concedi super-admin",
+      "resetPassword": "Reimposta password"
+    },
+    "errors": {
+      "cannotRevokeSelf": "Non puoi revocare il tuo ruolo di super-admin.",
+      "cannotDeleteSelf": "Non puoi eliminare il tuo account.",
+      "failedCreate": "Creazione non riuscita"
+    },
+    "confirmGrant": {
+      "title": "Concedere super-admin?",
+      "description": "{{email}} otterrà accesso totale a tutte le organizzazioni e all'API admin.",
+      "confirm": "Concedi"
+    },
+    "confirmRevoke": {
+      "title": "Revocare super-admin?",
+      "description": "{{email}} perderà l'accesso a /admin e alle API machine-to-machine.",
+      "confirm": "Revoca"
+    },
+    "confirmDelete": {
+      "title": "Eliminare {{email}}?",
+      "description": "Rimuove l'utente da tutte le organizzazioni ed elimina le sue sessioni. I pacchetti che ha caricato restano.",
+      "confirm": "Elimina"
+    },
+    "resetPassword": {
+      "title": "Reimposta password",
+      "label": "Nuova password",
+      "submit": "Reimposta password",
+      "success": "Password reimpostata."
+    }
+  },
+  "orgs": {
+    "title": "Organizzazioni",
+    "add": "Crea organizzazione",
+    "createTitle": "Crea organizzazione",
+    "fields": {
+      "slug": "Slug",
+      "slugHelp": "3–32 caratteri, minuscole/cifre/trattini. Diventa il prefisso URL.",
+      "name": "Nome da visualizzare",
+      "ownerSection": "Proprietario (facoltativo)",
+      "ownerEmail": "Email del proprietario",
+      "ownerName": "Nome del proprietario",
+      "ownerPassword": "Password del proprietario",
+      "ownerPasswordHelp": "Obbligatorio se questa email non ha ancora un account."
+    },
+    "create": "Crea",
+    "empty": "Nessuna organizzazione per ora.",
+    "all": "Tutte le organizzazioni",
+    "table": {
+      "slug": "Slug",
+      "name": "Nome",
+      "status": "Stato",
+      "created": "Creata"
+    },
+    "status": {
+      "active": "attiva",
+      "suspended": "sospesa",
+      "archived": "archiviata"
+    },
+    "actions": {
+      "activate": "Attiva",
+      "suspend": "Sospendi (402)",
+      "archive": "Archivia",
+      "hardDelete": "Elimina definitivamente…"
+    },
+    "errors": {
+      "failedCreate": "Creazione non riuscita"
+    },
+    "confirmArchive": {
+      "title": "Archiviare {{slug}}?",
+      "description": "I membri perdono l'accesso. I client Composer ricevono 404. I dati vengono conservati e l'organizzazione può essere riattivata.",
+      "confirm": "Archivia"
+    },
+    "confirmHardDelete": {
+      "title": "Eliminare definitivamente {{slug}}?",
+      "description": "Irreversibile. Organizzazione, membri, token e sorgenti verranno rimossi. Viene rifiutato se esistono pacchetti.",
+      "confirm": "Elimina"
+    },
+    "confirmForce": {
+      "title": "{{slug}} contiene ancora pacchetti.",
+      "description": "Forzare l'eliminazione? Tutti i pacchetti, le versioni e gli ZIP memorizzati verranno distrutti.",
+      "confirm": "Forza eliminazione"
+    }
+  },
+  "packages": {
+    "title": "Pacchetti (tutte le organizzazioni)",
+    "countTitle_one": "{{count}} pacchetto",
+    "countTitle_other": "{{count}} pacchetti",
+    "empty": "Nessun pacchetto da nessuna parte.",
+    "table": {
+      "org": "Org",
+      "package": "Pacchetto",
+      "type": "Tipo",
+      "created": "Creato"
+    },
+    "confirmDelete": {
+      "title": "Forzare l'eliminazione di {{name}}?",
+      "description": "Irreversibile. Rimuove tutte le versioni e i file ZIP nell'organizzazione.",
+      "confirm": "Elimina"
+    }
+  },
+  "tokens": {
+    "title": "Token admin",
+    "add": "Crea token",
+    "createTitle": "Crea token admin",
+    "createdTitle": "Token creato",
+    "copyOnce": "Copia subito questo token. Non verrà mostrato di nuovo. Salvalo come credenziale Bearer nell'ambiente del tuo servizio esterno.",
+    "name": "Nome del token",
+    "namePlaceholder": "es. pipeline CI",
+    "nameHelp": "Serve a identificare a quale integrazione appartiene questo token. Mostrato nella UI; non fa parte del token stesso.",
+    "create": "Crea token",
+    "done": "Fatto",
+    "useAs": "Usa come Bearer:",
+    "empty": "Nessun token admin per ora.",
+    "all": "Tutti i token admin",
+    "table": {
+      "name": "Nome",
+      "prefix": "Prefisso",
+      "status": "Stato",
+      "lastUsed": "Ultimo uso",
+      "created": "Creato"
+    },
+    "status": {
+      "active": "Attivo",
+      "inactive": "Inattivo"
+    },
+    "never": "Mai",
+    "confirmRevoke": {
+      "title": "Revocare il token admin «{{name}}»?",
+      "description": "I servizi che usano questo token per l'API admin riceveranno immediatamente 401.",
+      "confirm": "Revoca"
+    }
+  }
+}

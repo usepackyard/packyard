@@ -1,0 +1,49 @@
+{
+  "title": "Members",
+  "add": "Add Member",
+  "addTitle": "Add Member",
+  "editTitle": "Edit {{name}}",
+  "editFallback": "Member",
+  "fields": {
+    "email": "Email",
+    "name": "Name",
+    "password": "Password",
+    "passwordHelp": "For new users",
+    "role": "Role",
+    "permissions": "Permissions"
+  },
+  "roles": {
+    "owner": "Owner",
+    "ownerAll": "Owner (all permissions)",
+    "member": "Member",
+    "memberCustom": "Member (custom permissions)"
+  },
+  "save": "Save Changes",
+  "addButton": "Add Member",
+  "failedAdd": "Failed to add member",
+  "failedUpdate": "Failed to update",
+  "failedRemove": "Failed to remove",
+  "table": {
+    "name": "Name",
+    "email": "Email",
+    "role": "Role",
+    "permissions": "Permissions"
+  },
+  "you": "You",
+  "sectionTitle": "Organization Members",
+  "permission": {
+    "packagesRead": "View packages",
+    "packagesWrite": "Create packages & upload versions",
+    "packagesDelete": "Delete packages & versions",
+    "tokensManage": "Manage API tokens",
+    "sourcesManage": "Manage git sources & sync",
+    "membersManage": "Manage members"
+  },
+  "all": "All",
+  "none": "None",
+  "confirmRemove": {
+    "title": "Remove {{name}} from the organization?",
+    "description": "They lose access to packages, tokens, and source configs. Their user account is preserved.",
+    "confirm": "Remove"
+  }
+}

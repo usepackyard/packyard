@@ -1,0 +1,9 @@
+[
+  { "code": "en",    "native": "English" },
+  { "code": "mk",    "native": "Македонски" },
+  { "code": "de",    "native": "Deutsch" },
+  { "code": "fr",    "native": "Français" },
+  { "code": "es",    "native": "Español" },
+  { "code": "pt-BR", "native": "Português (Brasil)" },
+  { "code": "it",    "native": "Italiano" }
+]

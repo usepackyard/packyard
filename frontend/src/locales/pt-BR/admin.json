@@ -1,0 +1,158 @@
+{
+  "users": {
+    "title": "Usuários",
+    "add": "Criar usuário",
+    "createTitle": "Criar usuário",
+    "fields": {
+      "email": "E-mail",
+      "name": "Nome",
+      "password": "Senha",
+      "grantSuper": "Conceder super-admin"
+    },
+    "create": "Criar",
+    "empty": "Sem usuários.",
+    "table": {
+      "email": "E-mail",
+      "name": "Nome",
+      "role": "Função",
+      "created": "Criado"
+    },
+    "role": {
+      "super": "Super-admin",
+      "user": "Usuário"
+    },
+    "titles": {
+      "revoke": "Revogar super-admin",
+      "grant": "Conceder super-admin",
+      "resetPassword": "Redefinir senha"
+    },
+    "errors": {
+      "cannotRevokeSelf": "Você não pode revogar sua própria função de super-admin.",
+      "cannotDeleteSelf": "Você não pode excluir sua própria conta.",
+      "failedCreate": "Falha ao criar"
+    },
+    "confirmGrant": {
+      "title": "Conceder super-admin?",
+      "description": "{{email}} obterá acesso total a todas as organizações e à API admin.",
+      "confirm": "Conceder"
+    },
+    "confirmRevoke": {
+      "title": "Revogar super-admin?",
+      "description": "{{email}} perderá acesso a /admin e às APIs machine-to-machine.",
+      "confirm": "Revogar"
+    },
+    "confirmDelete": {
+      "title": "Excluir {{email}}?",
+      "description": "Remove o usuário de todas as organizações e exclui todas as sessões. Os pacotes que ele enviou são preservados.",
+      "confirm": "Excluir"
+    },
+    "resetPassword": {
+      "title": "Redefinir senha",
+      "label": "Nova senha",
+      "submit": "Redefinir senha",
+      "success": "Senha redefinida."
+    }
+  },
+  "orgs": {
+    "title": "Organizações",
+    "add": "Criar organização",
+    "createTitle": "Criar organização",
+    "fields": {
+      "slug": "Slug",
+      "slugHelp": "3–32 caracteres, letras minúsculas/dígitos/hifens. Torna-se o prefixo da URL.",
+      "name": "Nome exibido",
+      "ownerSection": "Proprietário (opcional)",
+      "ownerEmail": "Email do proprietário",
+      "ownerName": "Nome do proprietário",
+      "ownerPassword": "Senha do proprietário",
+      "ownerPasswordHelp": "Obrigatório se este email ainda não possui uma conta."
+    },
+    "create": "Criar",
+    "empty": "Ainda não há organizações.",
+    "all": "Todas as organizações",
+    "table": {
+      "slug": "Slug",
+      "name": "Nome",
+      "status": "Status",
+      "created": "Criada"
+    },
+    "status": {
+      "active": "ativa",
+      "suspended": "suspensa",
+      "archived": "arquivada"
+    },
+    "actions": {
+      "activate": "Ativar",
+      "suspend": "Suspender (402)",
+      "archive": "Arquivar",
+      "hardDelete": "Exclusão definitiva…"
+    },
+    "errors": {
+      "failedCreate": "Falha ao criar"
+    },
+    "confirmArchive": {
+      "title": "Arquivar {{slug}}?",
+      "description": "Os membros perdem o acesso. Os clientes Composer recebem 404. Os dados são preservados e a organização pode ser reativada.",
+      "confirm": "Arquivar"
+    },
+    "confirmHardDelete": {
+      "title": "Excluir definitivamente {{slug}}?",
+      "description": "Irreversível. A organização, membros, tokens e fontes serão removidos. É recusado se houver pacotes.",
+      "confirm": "Excluir"
+    },
+    "confirmForce": {
+      "title": "{{slug}} ainda contém pacotes.",
+      "description": "Forçar a exclusão? Todos os pacotes, versões e ZIPs armazenados serão destruídos.",
+      "confirm": "Forçar exclusão"
+    }
+  },
+  "packages": {
+    "title": "Pacotes (todas as organizações)",
+    "countTitle_one": "{{count}} pacote",
+    "countTitle_other": "{{count}} pacotes",
+    "empty": "Nenhum pacote em lugar algum.",
+    "table": {
+      "org": "Org",
+      "package": "Pacote",
+      "type": "Tipo",
+      "created": "Criado"
+    },
+    "confirmDelete": {
+      "title": "Forçar exclusão de {{name}}?",
+      "description": "Irreversível. Remove todas as versões e arquivos ZIP na organização.",
+      "confirm": "Excluir"
+    }
+  },
+  "tokens": {
+    "title": "Tokens admin",
+    "add": "Criar token",
+    "createTitle": "Criar token admin",
+    "createdTitle": "Token criado",
+    "copyOnce": "Copie este token agora. Ele não será exibido novamente. Guarde-o como credencial Bearer no ambiente do seu serviço externo.",
+    "name": "Nome do token",
+    "namePlaceholder": "ex. pipeline CI",
+    "nameHelp": "Serve para identificar a qual integração este token pertence. Exibido na UI; não faz parte do token em si.",
+    "create": "Criar token",
+    "done": "Pronto",
+    "useAs": "Usar como Bearer:",
+    "empty": "Ainda não há tokens admin.",
+    "all": "Todos os tokens admin",
+    "table": {
+      "name": "Nome",
+      "prefix": "Prefixo",
+      "status": "Status",
+      "lastUsed": "Último uso",
+      "created": "Criado"
+    },
+    "status": {
+      "active": "Ativo",
+      "inactive": "Inativo"
+    },
+    "never": "Nunca",
+    "confirmRevoke": {
+      "title": "Revogar o token admin \"{{name}}\"?",
+      "description": "Serviços que usam este token para a API admin receberão 401 imediatamente.",
+      "confirm": "Revogar"
+    }
+  }
+}

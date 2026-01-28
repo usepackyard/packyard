@@ -1,0 +1,80 @@
+{
+  "title": "Painel",
+  "newPackage": "Novo pacote",
+  "newToken": "Novo token",
+  "failedToLoad": "Falha ao carregar o painel",
+  "stats": {
+    "packages": "Pacotes",
+    "downloads": "Downloads",
+    "tokens": "Tokens de API",
+    "members": "Membros",
+    "users": "Usuários",
+    "noPackages": "Sem pacotes ainda",
+    "addedThisWeek_one": "{{count}} adicionado esta semana",
+    "addedThisWeek_other": "{{count}} adicionados esta semana",
+    "acrossTypes": "Em todos os tipos",
+    "noDownloads": "Sem downloads ainda",
+    "lastSevenDays": "{{count}} nos últimos 7 dias",
+    "noTokens": "Sem tokens ainda",
+    "activeOnly": "{{active}} ativos",
+    "activeAndExpired": "{{active}} ativos · {{expired}} expirados",
+    "noMembers": "Sem membros ainda",
+    "owners_one": "{{count}} proprietário",
+    "owners_other": "{{count}} proprietários",
+    "membersCount_one": "{{count}} membro",
+    "membersCount_other": "{{count}} membros",
+    "ownersAndMembers": "{{owners}} · {{members}}"
+  },
+  "recentPackages": "Pacotes recentes",
+  "getStarted": "Primeiros passos",
+  "steps": {
+    "create": {
+      "title": "Crie um pacote",
+      "body": "Nomeie-o como vendor/package. Você pode criá-lo pela página Pacotes ou via API."
+    },
+    "upload": {
+      "title": "Envie um ZIP ou conecte o Git",
+      "body": "Envie manualmente um arquivo de release ou configure uma fonte Git para sincronizar releases automaticamente."
+    },
+    "install": {
+      "title": "Instale via Composer",
+      "body": "Aponte o Composer para este repositório e execute composer require no seu pacote."
+    }
+  },
+  "composer": {
+    "title": "Repositório Composer",
+    "url": "URL",
+    "composerJson": "composer.json",
+    "authNote": "Autentique-se com um token em <0>Tokens de API</0>. Use o token como nome de usuário e <1>satispress</1> como senha."
+  },
+  "topPackages": {
+    "title": "Pacotes mais baixados",
+    "empty": "Os downloads aparecerão quando os clientes Composer começarem a buscar pacotes."
+  },
+  "recentDownloads": {
+    "title": "Downloads recentes",
+    "empty": "Ainda não há downloads."
+  },
+  "tokenActivity": {
+    "title": "Atividade de tokens",
+    "empty": "Nenhum token foi usado ainda."
+  },
+  "organization": {
+    "title": "Organização",
+    "members": "Membros",
+    "empty": "Ainda não há membros.",
+    "manage": "Gerenciar →"
+  },
+  "table": {
+    "name": "Nome",
+    "type": "Tipo",
+    "versions": "Versões",
+    "downloads": "Downloads",
+    "updated": "Atualizado"
+  },
+  "copy": {
+    "repoURL": "Copiar URL do repositório",
+    "composerJson": "Copiar snippet composer.json",
+    "composerConfig": "Copiar comando de configuração do Composer"
+  }
+}

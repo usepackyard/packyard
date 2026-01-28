@@ -1,0 +1,39 @@
+{
+  "title": "Perfil",
+  "subtitle": "Gestiona tu cuenta y preferencias.",
+  "section": {
+    "account": "Cuenta",
+    "preferences": "Preferencias",
+    "password": "Contraseña"
+  },
+  "field": {
+    "name": "Nombre",
+    "email": "Correo electrónico",
+    "emailHelp": "Contacta con soporte para cambiar tu correo.",
+    "language": "Idioma",
+    "languageHelp": "La interfaz usará este idioma.",
+    "currentPassword": "Contraseña actual",
+    "newPassword": "Nueva contraseña",
+    "confirmPassword": "Confirmar nueva contraseña"
+  },
+  "language": {
+    "en": "Inglés",
+    "mk": "Macedonio",
+    "de": "Alemán",
+    "fr": "Francés",
+    "es": "Español",
+    "pt-BR": "Portugués brasileño",
+    "it": "Italiano"
+  },
+  "save": "Guardar cambios",
+  "saving": "Guardando…",
+  "saved": "Guardado.",
+  "failed": "Error al guardar.",
+  "password": {
+    "change": "Cambiar contraseña",
+    "saving": "Cambiando…",
+    "saved": "Contraseña cambiada. Las demás sesiones han sido cerradas.",
+    "mismatch": "Las contraseñas no coinciden.",
+    "tooShort": "La contraseña debe tener al menos 8 caracteres."
+  }
+}

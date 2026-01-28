@@ -1,0 +1,80 @@
+{
+  "title": "Tableau de bord",
+  "newPackage": "Nouveau paquet",
+  "newToken": "Nouveau jeton",
+  "failedToLoad": "Échec du chargement du tableau de bord",
+  "stats": {
+    "packages": "Paquets",
+    "downloads": "Téléchargements",
+    "tokens": "Jetons API",
+    "members": "Membres",
+    "users": "Utilisateurs",
+    "noPackages": "Aucun paquet",
+    "addedThisWeek_one": "{{count}} ajouté cette semaine",
+    "addedThisWeek_other": "{{count}} ajoutés cette semaine",
+    "acrossTypes": "Tous types confondus",
+    "noDownloads": "Aucun téléchargement",
+    "lastSevenDays": "{{count}} au cours des 7 derniers jours",
+    "noTokens": "Aucun jeton",
+    "activeOnly": "{{active}} actif·s",
+    "activeAndExpired": "{{active}} actif·s · {{expired}} expiré·s",
+    "noMembers": "Aucun membre",
+    "owners_one": "{{count}} propriétaire",
+    "owners_other": "{{count}} propriétaires",
+    "membersCount_one": "{{count}} membre",
+    "membersCount_other": "{{count}} membres",
+    "ownersAndMembers": "{{owners}} · {{members}}"
+  },
+  "recentPackages": "Paquets récents",
+  "getStarted": "Pour commencer",
+  "steps": {
+    "create": {
+      "title": "Créer un paquet",
+      "body": "Nommez-le vendor/package. Vous pouvez le créer depuis la page Paquets ou via l'API."
+    },
+    "upload": {
+      "title": "Téléversez un ZIP ou connectez Git",
+      "body": "Téléversez une archive de release manuellement, ou configurez une source Git pour synchroniser automatiquement les releases."
+    },
+    "install": {
+      "title": "Installer via Composer",
+      "body": "Pointez Composer vers ce dépôt, puis exécutez composer require sur votre paquet."
+    }
+  },
+  "composer": {
+    "title": "Dépôt Composer",
+    "url": "URL",
+    "composerJson": "composer.json",
+    "authNote": "Authentifiez-vous avec un jeton depuis <0>Jetons API</0>. Utilisez le jeton comme nom d'utilisateur et <1>satispress</1> comme mot de passe."
+  },
+  "topPackages": {
+    "title": "Paquets populaires",
+    "empty": "Les téléchargements apparaîtront dès que les clients Composer commenceront à récupérer des paquets."
+  },
+  "recentDownloads": {
+    "title": "Téléchargements récents",
+    "empty": "Aucun téléchargement pour le moment."
+  },
+  "tokenActivity": {
+    "title": "Activité des jetons",
+    "empty": "Aucun jeton n'a encore été utilisé."
+  },
+  "organization": {
+    "title": "Organisation",
+    "members": "Membres",
+    "empty": "Aucun membre pour le moment.",
+    "manage": "Gérer →"
+  },
+  "table": {
+    "name": "Nom",
+    "type": "Type",
+    "versions": "Versions",
+    "downloads": "Téléchargements",
+    "updated": "Mis à jour"
+  },
+  "copy": {
+    "repoURL": "Copier l'URL du dépôt",
+    "composerJson": "Copier le snippet composer.json",
+    "composerConfig": "Copier la commande de configuration Composer"
+  }
+}

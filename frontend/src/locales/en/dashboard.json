@@ -1,0 +1,80 @@
+{
+  "title": "Dashboard",
+  "newPackage": "New package",
+  "newToken": "New token",
+  "failedToLoad": "Failed to load dashboard",
+  "stats": {
+    "packages": "Packages",
+    "downloads": "Downloads",
+    "tokens": "API Tokens",
+    "members": "Members",
+    "users": "Users",
+    "noPackages": "No packages yet",
+    "addedThisWeek_one": "{{count}} added this week",
+    "addedThisWeek_other": "{{count}} added this week",
+    "acrossTypes": "Across all types",
+    "noDownloads": "No downloads yet",
+    "lastSevenDays": "{{count}} in the last 7 days",
+    "noTokens": "No tokens yet",
+    "activeOnly": "{{active}} active",
+    "activeAndExpired": "{{active}} active · {{expired}} expired",
+    "noMembers": "No members yet",
+    "owners_one": "{{count}} owner",
+    "owners_other": "{{count}} owners",
+    "membersCount_one": "{{count}} member",
+    "membersCount_other": "{{count}} members",
+    "ownersAndMembers": "{{owners}} · {{members}}"
+  },
+  "recentPackages": "Recent packages",
+  "getStarted": "Get started",
+  "steps": {
+    "create": {
+      "title": "Create a package",
+      "body": "Name it vendor/package. You can create it from the Packages page or via the API."
+    },
+    "upload": {
+      "title": "Upload a ZIP or connect Git",
+      "body": "Upload a release archive manually, or configure a Git source so releases sync automatically."
+    },
+    "install": {
+      "title": "Install via Composer",
+      "body": "Point Composer at this repository, then composer require your package."
+    }
+  },
+  "composer": {
+    "title": "Composer repository",
+    "url": "URL",
+    "composerJson": "composer.json",
+    "authNote": "Authenticate with a token from <0>API Tokens</0>. Use the token as the username and <1>satispress</1> as the password."
+  },
+  "topPackages": {
+    "title": "Top packages",
+    "empty": "Downloads will appear once Composer clients start fetching packages."
+  },
+  "recentDownloads": {
+    "title": "Recent downloads",
+    "empty": "No downloads yet."
+  },
+  "tokenActivity": {
+    "title": "Token activity",
+    "empty": "No tokens have been used yet."
+  },
+  "organization": {
+    "title": "Organization",
+    "members": "Members",
+    "empty": "No members yet.",
+    "manage": "Manage →"
+  },
+  "table": {
+    "name": "Name",
+    "type": "Type",
+    "versions": "Versions",
+    "downloads": "Downloads",
+    "updated": "Updated"
+  },
+  "copy": {
+    "repoURL": "Copy repository URL",
+    "composerJson": "Copy composer.json snippet",
+    "composerConfig": "Copy Composer config command"
+  }
+}

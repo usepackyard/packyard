@@ -1,0 +1,29 @@
+{
+  "title": "Users",
+  "add": "Add User",
+  "createTitle": "Create User",
+  "fields": {
+    "name": "Name",
+    "email": "Email",
+    "password": "Password"
+  },
+  "create": "Create",
+  "failedCreate": "Failed to create user",
+  "failedDelete": "Failed to delete user",
+  "you": "You",
+  "table": {
+    "name": "Name",
+    "email": "Email",
+    "status": "Status",
+    "created": "Created"
+  },
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive"
+  },
+  "confirmDelete": {
+    "title": "Delete {{email}}?",
+    "description": "Removes the user from this organization.",
+    "confirm": "Delete"
+  }
+}

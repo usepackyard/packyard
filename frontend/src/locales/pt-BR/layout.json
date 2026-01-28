@@ -1,0 +1,29 @@
+{
+  "tagline": "Repositório Composer",
+  "openMenu": "Abrir menu",
+  "closeMenu": "Fechar menu",
+  "nav": {
+    "dashboard": "Painel",
+    "packages": "Pacotes",
+    "tokens": "Tokens de API",
+    "members": "Membros",
+    "users": "Usuários",
+    "orgs": "Organizações",
+    "adminTokens": "Tokens admin"
+  },
+  "enterSuperAdmin": "Entrar no super-admin",
+  "backToDashboard": "Voltar ao painel",
+  "contextSwitcher": {
+    "superAdmin": "Super-admin",
+    "allOrgs": "todas as organizações",
+    "select": "Selecionar",
+    "superAdminMode": "Modo super-admin",
+    "backToOrg": "Voltar para a organização",
+    "organizations": "Organizações",
+    "noOrgs": "Sem organizações",
+    "switchTitle": "Mudar para uma organização",
+    "noOrgsHelp": "Você ainda não é membro de nenhuma organização. Crie uma ou adicione-se a uma existente para entrar no painel dela.",
+    "stayInSuperAdmin": "Permanecer no super-admin",
+    "manageOrgs": "Gerenciar organizações"
+  }
+}

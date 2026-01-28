@@ -1,0 +1,29 @@
+{
+  "title": "Utenti",
+  "add": "Aggiungi utente",
+  "createTitle": "Crea utente",
+  "fields": {
+    "name": "Nome",
+    "email": "E-mail",
+    "password": "Password"
+  },
+  "create": "Crea",
+  "failedCreate": "Impossibile creare l'utente",
+  "failedDelete": "Impossibile eliminare l'utente",
+  "you": "Tu",
+  "table": {
+    "name": "Nome",
+    "email": "E-mail",
+    "status": "Stato",
+    "created": "Creato"
+  },
+  "status": {
+    "active": "Attivo",
+    "inactive": "Inattivo"
+  },
+  "confirmDelete": {
+    "title": "Eliminare {{email}}?",
+    "description": "Rimuove l'utente da questa organizzazione.",
+    "confirm": "Elimina"
+  }
+}
