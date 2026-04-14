@@ -3,17 +3,17 @@ module github.com/usepackyard/packyard
 go 1.25.0
 
 require (
-	github.com/aws/aws-sdk-go-v2/config v1.32.7
-	github.com/aws/aws-sdk-go-v2/credentials v1.19.7
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.96.0
+	github.com/aws/aws-sdk-go-v2/config v1.32.14
+	github.com/aws/aws-sdk-go-v2/credentials v1.19.14
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.99.0
 	github.com/go-sql-driver/mysql v1.9.3
-	github.com/jackc/pgx/v5 v5.8.0
-	github.com/uptrace/bun v1.2.16
-	github.com/uptrace/bun/dialect/mysqldialect v1.2.16
-	github.com/uptrace/bun/dialect/pgdialect v1.2.16
-	github.com/uptrace/bun/dialect/sqlitedialect v1.2.16
-	golang.org/x/crypto v0.47.0
-	modernc.org/sqlite v1.44.3
+	github.com/jackc/pgx/v5 v5.9.1
+	github.com/uptrace/bun v1.2.18
+	github.com/uptrace/bun/dialect/mysqldialect v1.2.18
+	github.com/uptrace/bun/dialect/pgdialect v1.2.18
+	github.com/uptrace/bun/dialect/sqlitedialect v1.2.18
+	golang.org/x/crypto v0.50.0
+	modernc.org/sqlite v1.48.2
 )
 
 require (
