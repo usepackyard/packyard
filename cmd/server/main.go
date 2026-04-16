@@ -28,6 +28,8 @@ import (
 	"github.com/usepackyard/packyard/internal/store"
 )
 
+var version = "dev"
+
 func main() {
 	cfg := config.Load()
 	setupLogger(cfg.Log.Level)
@@ -37,7 +39,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	slog.Info("starting packyard", "port", cfg.Port, "db_driver", cfg.DB.Driver, "storage", cfg.Storage.Type, "mode", cfg.Mode)
+	slog.Info("starting packyard", "version", version, "port", cfg.Port, "db_driver", cfg.DB.Driver, "storage", cfg.Storage.Type, "mode", cfg.Mode)
 
 	// Database.
 	db, err := database.Open(cfg.DB)

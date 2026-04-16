@@ -18,10 +18,10 @@ COPY internal/ ./internal/
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /packyard ./cmd/server
 
 # Stage 3: Minimal runtime
-FROM alpine:3.21
-RUN apk --no-cache add ca-certificates tzdata
+FROM debian:13-slim
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates tzdata && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /packyard /usr/local/bin/packyard
-RUN mkdir -p /data/packages && chown -R nobody:nobody /data
+RUN mkdir -p /data/packages && chown -R nobody:nogroup /data
 USER nobody
 EXPOSE 8080
 ENTRYPOINT ["packyard"]
