@@ -1,0 +1,40 @@
+# Node artifacts — the `frontend` stage runs `bun install` + `bun run build`
+# inside the image, so pulling these from the host both wastes build context
+# (~370 MB) and poisons the COPY layer's cache key. Without this ignore,
+# an unrelated `bun install` on the host can cause Docker to reuse a stale
+# `bun run build` output and ship pre-edit JS.
+frontend/node_modules
+frontend/dist
+
+# The embedded SPA. The Dockerfile first copies the fresh dist from the
+# `frontend` build stage into this path, then does `COPY internal/ ./internal/`.
+# Without this ignore, that second COPY pulls any host-side stale
+# `internal/frontend/dist/index-*.js` back into the image (Docker COPY merges,
+# it does not remove extraneous destination files), shadowing the fresh bundle
+# via the stale `index.html`'s `<script src="/assets/index-OLD.js">`.
+internal/frontend/dist
+
+# Go artifacts — compiled from source inside the `builder` stage.
+bin
+packyard
+*.db
+*.db-wal
+*.db-shm
+
+# VCS + editor state
+.git
+.gitignore
+.github
+.idea
+.vscode
+
+# Local dev / ops files
+*.log
+.env
+.env.local
+.env.*.local
+docker-compose.yml
+docker-compose.override.yml
+README.md
+AGENTS.md
+CLAUDE.md
