@@ -9,8 +9,9 @@ import (
 type PackageSource struct {
 	bun.BaseModel `bun:"table:package_sources,alias:ps" json:"-"`
 
-	ID           int64  `bun:"id,pk,autoincrement" json:"id"`
-	PackageID    int64  `bun:"package_id,notnull,unique" json:"package_id"`
+	ID           int64  `bun:"id,pk,autoincrement" json:"-"`
+	PublicID     string `bun:"public_id,notnull,unique" json:"id"`
+	PackageID    int64  `bun:"package_id,notnull,unique" json:"-"`
 	Provider     string `bun:"provider,notnull" json:"provider"`
 	RepoOwner    string `bun:"repo_owner,notnull" json:"repo_owner"`
 	RepoName     string `bun:"repo_name,notnull" json:"repo_name"`

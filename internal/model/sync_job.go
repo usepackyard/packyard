@@ -19,9 +19,10 @@ import (
 type SyncJob struct {
 	bun.BaseModel `bun:"table:sync_jobs,alias:sj" json:"-"`
 
-	ID        int64  `bun:"id,pk,autoincrement" json:"id"`
-	OrgID     int64  `bun:"org_id,notnull" json:"org_id"`
-	PackageID int64  `bun:"package_id,notnull" json:"package_id"`
+	ID        int64  `bun:"id,pk,autoincrement" json:"-"`
+	PublicID  string `bun:"public_id,notnull,unique" json:"id"`
+	OrgID     int64  `bun:"org_id,notnull" json:"-"`
+	PackageID int64  `bun:"package_id,notnull" json:"-"`
 	// Trigger records what caused this job to exist. "manual" from the
 	// dashboard, "webhook" from a provider push. Used purely for audit.
 	Trigger string `bun:"trigger,notnull" json:"trigger"`

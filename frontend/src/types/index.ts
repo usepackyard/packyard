@@ -1,5 +1,5 @@
 export interface User {
-  id: number;
+  id: string;
   email: string;
   name: string;
   language: string;
@@ -21,10 +21,9 @@ export interface Organization {
 }
 
 export interface AdminToken {
-  id: number;
+  id: string;
   name: string;
   token_prefix: string;
-  created_by: number;
   last_used_at?: string;
   expires_at?: string;
   is_active: boolean;
@@ -32,9 +31,7 @@ export interface AdminToken {
 }
 
 export interface OrgMember {
-  id: number;
-  org_id: number;
-  user_id: number;
+  id: string;
   role: string;
   permissions: string[];
   created_at: string;
@@ -42,7 +39,7 @@ export interface OrgMember {
 }
 
 export interface Package {
-  id: number;
+  id: string;
   org_id: number;
   name: string;
   type: string;
@@ -54,8 +51,7 @@ export interface Package {
 }
 
 export interface Version {
-  id: number;
-  package_id: number;
+  id: string;
   version: string;
   version_normalized: string;
   dist_type: string;
@@ -68,16 +64,17 @@ export interface Version {
 
 // Download-stats payload returned by GET /packages/stats. One request
 // feeds the whole dashboard so stat cards, leaderboard, and activity
-// feed stay consistent with each other.
+// feed stay consistent with each other. `package_id` is the package's
+// prefixed-ULID public id (pkg_…), so links can use it directly.
 export interface PackageDownloadCount {
-  package_id: number;
+  package_id: string;
   package_name: string;
   count: number;
 }
 
 export interface DownloadEventView {
   at: string;
-  package_id: number;
+  package_id: string;
   package_name: string;
   version: string;
 }
@@ -97,8 +94,7 @@ export interface PackageStats {
 }
 
 export interface PackageSource {
-  id: number;
-  package_id: number;
+  id: string;
   provider: string;
   repo_owner: string;
   repo_name: string;
@@ -132,9 +128,7 @@ export interface SyncResult {
 // one sync pipeline run. The frontend polls GetSyncJob for live state and
 // renders the final SyncResult (from ResultJSON) once terminal.
 export interface SyncJob {
-  id: number;
-  org_id: number;
-  package_id: number;
+  id: string;
   trigger: "manual" | "webhook";
   status: "queued" | "running" | "succeeded" | "failed" | "stale";
   progress_done: number;
@@ -178,14 +172,12 @@ export interface ReleasePreviewAsset {
 }
 
 export interface APIToken {
-  id: number;
-  org_id: number;
+  id: string;
   name: string;
   token_prefix: string;
   last_used_at?: string;
   expires_at?: string;
   is_active: boolean;
-  created_by?: number;
   created_at: string;
 }
 

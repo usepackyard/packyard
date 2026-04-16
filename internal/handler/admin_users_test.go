@@ -96,7 +96,7 @@ func TestAdminUserHandler_Delete(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("DELETE /api/users/{id}", h.Delete)
 
-	req := httptest.NewRequest("DELETE", "/api/users/"+itoa(int(user.ID)), nil)
+	req := httptest.NewRequest("DELETE", "/api/users/"+user.PublicID, nil)
 	// Acting as a different user.
 	req = req.WithContext(auth.SetUserIDForTest(req.Context(), other.ID))
 	rec := httptest.NewRecorder()
@@ -121,7 +121,7 @@ func TestAdminUserHandler_SetSuperAdmin_Promote(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("PUT /api/admin/users/{id}/super-admin", h.SetSuperAdmin)
 
-	req := httptest.NewRequest("PUT", "/api/admin/users/"+itoa(int(target.ID))+"/super-admin",
+	req := httptest.NewRequest("PUT", "/api/admin/users/"+target.PublicID+"/super-admin",
 		strings.NewReader(`{"is_super_admin":true}`))
 	req.Header.Set("Content-Type", "application/json")
 	req = req.WithContext(auth.SetUserIDForTest(req.Context(), actor.ID))
@@ -149,7 +149,7 @@ func TestAdminUserHandler_SetSuperAdmin_PreventsSelfRevoke(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("PUT /api/admin/users/{id}/super-admin", h.SetSuperAdmin)
 
-	req := httptest.NewRequest("PUT", "/api/admin/users/"+itoa(int(actor.ID))+"/super-admin",
+	req := httptest.NewRequest("PUT", "/api/admin/users/"+actor.PublicID+"/super-admin",
 		strings.NewReader(`{"is_super_admin":false}`))
 	req.Header.Set("Content-Type", "application/json")
 	req = req.WithContext(auth.SetUserIDForTest(req.Context(), actor.ID))
@@ -173,7 +173,7 @@ func TestAdminUserHandler_SetSuperAdmin_NotFound(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("PUT /api/admin/users/{id}/super-admin", h.SetSuperAdmin)
 
-	req := httptest.NewRequest("PUT", "/api/admin/users/9999/super-admin",
+	req := httptest.NewRequest("PUT", "/api/admin/users/usr_01JHZ8K3Y5WQ9V2N6TRB4XE7CM/super-admin",
 		strings.NewReader(`{"is_super_admin":true}`))
 	req.Header.Set("Content-Type", "application/json")
 	req = req.WithContext(auth.SetUserIDForTest(req.Context(), actor.ID))
@@ -193,7 +193,7 @@ func TestAdminUserHandler_Delete_PreventsSelfDelete(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("DELETE /api/users/{id}", h.Delete)
 
-	req := httptest.NewRequest("DELETE", "/api/users/"+itoa(int(user.ID)), nil)
+	req := httptest.NewRequest("DELETE", "/api/users/"+user.PublicID, nil)
 	req = req.WithContext(auth.SetUserIDForTest(req.Context(), user.ID))
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)

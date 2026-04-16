@@ -6,6 +6,7 @@ import (
 
 	"github.com/usepackyard/packyard/internal/composer"
 	"github.com/usepackyard/packyard/internal/model"
+	"github.com/usepackyard/packyard/internal/pid"
 	"github.com/usepackyard/packyard/internal/storage"
 	"github.com/usepackyard/packyard/internal/store"
 )
@@ -51,13 +52,13 @@ func (h *AdminGlobalPackageHandler) List(w http.ResponseWriter, r *http.Request)
 // Delete force-deletes a package by ID, regardless of org. Drops version
 // files from storage and invalidates the cache for the owning org.
 func (h *AdminGlobalPackageHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	id, err := pathID(r, "id")
+	publicID, err := pathPublicID(r, "id", pid.Package)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_package_id", "invalid package id")
+		writeError(w, http.StatusNotFound, "package_not_found", "package not found")
 		return
 	}
 
-	pkg, err := h.packages.GetByIDGlobal(r.Context(), id)
+	pkg, err := h.packages.GetByPublicIDGlobal(r.Context(), publicID)
 	if err != nil {
 		slog.Error("admin packages: get error", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal_error", "internal error")

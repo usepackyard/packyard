@@ -13,6 +13,7 @@ import (
 	"github.com/usepackyard/packyard/internal/auth"
 	"github.com/usepackyard/packyard/internal/composer"
 	"github.com/usepackyard/packyard/internal/model"
+	"github.com/usepackyard/packyard/internal/pid"
 	"github.com/usepackyard/packyard/internal/storage"
 	"github.com/usepackyard/packyard/internal/store"
 )
@@ -36,13 +37,13 @@ func (h *AdminVersionHandler) Upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pkgID, err := pathID(r, "id")
+	pkgPublicID, err := pathPublicID(r, "id", pid.Package)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_package_id", "invalid package id")
+		writeError(w, http.StatusNotFound, "package_not_found", "package not found")
 		return
 	}
 
-	pkg, err := h.packages.GetByID(r.Context(), org.ID, pkgID)
+	pkg, err := h.packages.GetByPublicID(r.Context(), org.ID, pkgPublicID)
 	if err != nil || pkg == nil {
 		writeError(w, http.StatusNotFound, "package_not_found", "package not found")
 		return
@@ -92,7 +93,7 @@ func (h *AdminVersionHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check for duplicate version.
-	versions, _ := h.packages.ListVersions(r.Context(), org.ID, pkgID)
+	versions, _ := h.packages.ListVersions(r.Context(), org.ID, pkg.ID)
 	for _, v := range versions {
 		if v.Version == cj.Version {
 			writeError(w, http.StatusConflict, "version_already_exists",
@@ -175,13 +176,13 @@ func (h *AdminVersionHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := pathID(r, "id")
+	publicID, err := pathPublicID(r, "id", pid.Version)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_version_id", "invalid version id")
+		writeError(w, http.StatusNotFound, "version_not_found", "version not found")
 		return
 	}
 
-	version, err := h.packages.GetVersionByID(r.Context(), id)
+	version, err := h.packages.GetVersionByPublicID(r.Context(), publicID)
 	if err != nil {
 		slog.Error("get version error", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal_error", "internal error")
@@ -204,7 +205,7 @@ func (h *AdminVersionHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		slog.Error("delete version file error", "error", err, "version_id", version.ID)
 	}
 
-	if err := h.packages.DeleteVersion(r.Context(), id); err != nil {
+	if err := h.packages.DeleteVersion(r.Context(), version.ID); err != nil {
 		slog.Error("delete version error", "error", err)
 		writeError(w, http.StatusInternalServerError, "failed_delete_version", "failed to delete version")
 		return

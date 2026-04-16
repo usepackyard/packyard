@@ -143,7 +143,7 @@ func TestE2E_FullComposerFlow(t *testing.T) {
 	}
 	var pkgResp struct {
 		Package struct {
-			ID int64 `json:"id"`
+			ID string `json:"id"`
 		} `json:"package"`
 	}
 	if err := json.Unmarshal(createBody, &pkgResp); err != nil {
@@ -158,7 +158,7 @@ func TestE2E_FullComposerFlow(t *testing.T) {
 	fw.Write(zipBytes)
 	mw.Close()
 
-	uploadURL := f.baseURL + "/api/orgs/acme/packages/" + itoa(int(pkgResp.Package.ID)) + "/versions"
+	uploadURL := f.baseURL + "/api/orgs/acme/packages/" + pkgResp.Package.ID + "/versions"
 	req, _ := http.NewRequest("POST", uploadURL, &multipartBody)
 	req.Header.Set("Content-Type", mw.FormDataContentType())
 	req.Header.Set("X-Requested-With", "XMLHttpRequest")
@@ -462,7 +462,7 @@ type statsResponseE2E struct {
 	DownloadsLast7d  int64 `json:"downloads_last_7d"`
 	DownloadsLast30d int64 `json:"downloads_last_30d"`
 	TopPackages      []struct {
-		PackageID   int64  `json:"package_id"`
+		PackageID   string `json:"package_id"`
 		PackageName string `json:"package_name"`
 		Count       int64  `json:"count"`
 	} `json:"top_packages"`

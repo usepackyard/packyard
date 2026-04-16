@@ -127,7 +127,7 @@ func TestAdminPackageHandler_Get_HappyPath(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/packages/{id}", s.handler.Get)
 
-	req := httptest.NewRequest("GET", "/api/packages/"+itoa(int(pkg.ID)), nil)
+	req := httptest.NewRequest("GET", "/api/packages/"+pkg.PublicID, nil)
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, s.withOrg(req))
 
@@ -148,12 +148,14 @@ func TestAdminPackageHandler_Get_BadID(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/packages/{id}", s.handler.Get)
 
-	req := httptest.NewRequest("GET", "/api/packages/not-a-number", nil)
+	// A malformed / wrong-prefix id is indistinguishable from "no such
+	// package" from the client's perspective — both map to 404.
+	req := httptest.NewRequest("GET", "/api/packages/not-a-pkg-id", nil)
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, s.withOrg(req))
 
-	if rec.Code != http.StatusBadRequest {
-		t.Fatalf("status = %d, want 400", rec.Code)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want 404", rec.Code)
 	}
 }
 
@@ -166,7 +168,7 @@ func TestAdminPackageHandler_Get_CrossOrgIsolation(t *testing.T) {
 	mux.HandleFunc("GET /api/packages/{id}", s.handler.Get)
 
 	// Try to read other org's package while in s.org context.
-	req := httptest.NewRequest("GET", "/api/packages/"+itoa(int(otherPkg.ID)), nil)
+	req := httptest.NewRequest("GET", "/api/packages/"+otherPkg.PublicID, nil)
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, s.withOrg(req))
 
@@ -181,7 +183,7 @@ func TestAdminPackageHandler_Get_NotFound(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/packages/{id}", s.handler.Get)
 
-	req := httptest.NewRequest("GET", "/api/packages/9999", nil)
+	req := httptest.NewRequest("GET", "/api/packages/pkg_01JHZ8K3Y5WQ9V2N6TRB4XE7CM", nil)
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, s.withOrg(req))
 
@@ -197,7 +199,7 @@ func TestAdminPackageHandler_Delete(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("DELETE /api/packages/{id}", s.handler.Delete)
 
-	req := httptest.NewRequest("DELETE", "/api/packages/"+itoa(int(pkg.ID)), nil)
+	req := httptest.NewRequest("DELETE", "/api/packages/"+pkg.PublicID, nil)
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, s.withOrg(req))
 

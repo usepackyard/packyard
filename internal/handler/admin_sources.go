@@ -13,6 +13,7 @@ import (
 	"github.com/usepackyard/packyard/internal/composer"
 	"github.com/usepackyard/packyard/internal/config"
 	"github.com/usepackyard/packyard/internal/model"
+	"github.com/usepackyard/packyard/internal/pid"
 	"github.com/usepackyard/packyard/internal/provider"
 	"github.com/usepackyard/packyard/internal/storage"
 	"github.com/usepackyard/packyard/internal/store"
@@ -39,9 +40,9 @@ func NewAdminSourceHandler(sources store.SourceStore, packages store.PackageStor
 }
 
 func (h *AdminSourceHandler) Get(w http.ResponseWriter, r *http.Request) {
-	pkgID, err := pathID(r, "id")
+	pkgPublicID, err := pathPublicID(r, "id", pid.Package)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_package_id", "invalid package id")
+		writeError(w, http.StatusNotFound, "package_not_found", "package not found")
 		return
 	}
 
@@ -52,7 +53,7 @@ func (h *AdminSourceHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Verify the package belongs to this org.
-	pkg, err := h.packages.GetByID(r.Context(), org.ID, pkgID)
+	pkg, err := h.packages.GetByPublicID(r.Context(), org.ID, pkgPublicID)
 	if err != nil || pkg == nil {
 		writeError(w, http.StatusNotFound, "package_not_found", "package not found")
 		return
@@ -76,9 +77,9 @@ func (h *AdminSourceHandler) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AdminSourceHandler) Set(w http.ResponseWriter, r *http.Request) {
-	pkgID, err := pathID(r, "id")
+	pkgPublicID, err := pathPublicID(r, "id", pid.Package)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_package_id", "invalid package id")
+		writeError(w, http.StatusNotFound, "package_not_found", "package not found")
 		return
 	}
 
@@ -88,7 +89,7 @@ func (h *AdminSourceHandler) Set(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pkg, err := h.packages.GetByID(r.Context(), org.ID, pkgID)
+	pkg, err := h.packages.GetByPublicID(r.Context(), org.ID, pkgPublicID)
 	if err != nil || pkg == nil {
 		writeError(w, http.StatusNotFound, "package_not_found", "package not found")
 		return
@@ -253,9 +254,9 @@ func (h *AdminSourceHandler) Set(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AdminSourceHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	pkgID, err := pathID(r, "id")
+	pkgPublicID, err := pathPublicID(r, "id", pid.Package)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_package_id", "invalid package id")
+		writeError(w, http.StatusNotFound, "package_not_found", "package not found")
 		return
 	}
 
@@ -266,7 +267,7 @@ func (h *AdminSourceHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Verify the package belongs to this org.
-	pkg, err := h.packages.GetByID(r.Context(), org.ID, pkgID)
+	pkg, err := h.packages.GetByPublicID(r.Context(), org.ID, pkgPublicID)
 	if err != nil || pkg == nil {
 		writeError(w, http.StatusNotFound, "package_not_found", "package not found")
 		return
@@ -290,9 +291,9 @@ func (h *AdminSourceHandler) Delete(w http.ResponseWriter, r *http.Request) {
 // of scheduling a duplicate. Webhooks and manual triggers both go
 // through this path for unified concurrency control.
 func (h *AdminSourceHandler) Sync(w http.ResponseWriter, r *http.Request) {
-	pkgID, err := pathID(r, "id")
+	pkgPublicID, err := pathPublicID(r, "id", pid.Package)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_package_id", "invalid package id")
+		writeError(w, http.StatusNotFound, "package_not_found", "package not found")
 		return
 	}
 
@@ -302,7 +303,7 @@ func (h *AdminSourceHandler) Sync(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pkg, err := h.packages.GetByID(r.Context(), org.ID, pkgID)
+	pkg, err := h.packages.GetByPublicID(r.Context(), org.ID, pkgPublicID)
 	if err != nil || pkg == nil {
 		writeError(w, http.StatusNotFound, "package_not_found", "package not found")
 		return
@@ -351,14 +352,14 @@ func (h *AdminSourceHandler) Sync(w http.ResponseWriter, r *http.Request) {
 // GetSyncJob returns the state of a single sync job scoped to this org
 // and package — used by the frontend's poll loop.
 func (h *AdminSourceHandler) GetSyncJob(w http.ResponseWriter, r *http.Request) {
-	pkgID, err := pathID(r, "id")
+	pkgPublicID, err := pathPublicID(r, "id", pid.Package)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_package_id", "invalid package id")
+		writeError(w, http.StatusNotFound, "package_not_found", "package not found")
 		return
 	}
-	jobID, err := pathID(r, "job_id")
+	jobPublicID, err := pathPublicID(r, "job_id", pid.SyncJob)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_job_id", "invalid job id")
+		writeError(w, http.StatusNotFound, "job_not_found", "job not found")
 		return
 	}
 
@@ -370,13 +371,13 @@ func (h *AdminSourceHandler) GetSyncJob(w http.ResponseWriter, r *http.Request) 
 
 	// Confirm the package belongs to this org — same cross-tenant guard
 	// as every other org-scoped admin handler.
-	pkg, err := h.packages.GetByID(r.Context(), org.ID, pkgID)
+	pkg, err := h.packages.GetByPublicID(r.Context(), org.ID, pkgPublicID)
 	if err != nil || pkg == nil {
 		writeError(w, http.StatusNotFound, "package_not_found", "package not found")
 		return
 	}
 
-	job, err := h.jobs.GetByID(r.Context(), org.ID, jobID)
+	job, err := h.jobs.GetByPublicID(r.Context(), org.ID, jobPublicID)
 	if err != nil {
 		slog.Error("get sync job", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal_error", "internal error")
@@ -393,9 +394,9 @@ func (h *AdminSourceHandler) GetSyncJob(w http.ResponseWriter, r *http.Request) 
 // Powers the (future) sync history UI; endpoint lands with the rest of
 // the plumbing so the API surface is stable.
 func (h *AdminSourceHandler) ListSyncJobs(w http.ResponseWriter, r *http.Request) {
-	pkgID, err := pathID(r, "id")
+	pkgPublicID, err := pathPublicID(r, "id", pid.Package)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_package_id", "invalid package id")
+		writeError(w, http.StatusNotFound, "package_not_found", "package not found")
 		return
 	}
 
@@ -405,7 +406,7 @@ func (h *AdminSourceHandler) ListSyncJobs(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	pkg, err := h.packages.GetByID(r.Context(), org.ID, pkgID)
+	pkg, err := h.packages.GetByPublicID(r.Context(), org.ID, pkgPublicID)
 	if err != nil || pkg == nil {
 		writeError(w, http.StatusNotFound, "package_not_found", "package not found")
 		return

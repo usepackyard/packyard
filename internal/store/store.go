@@ -21,12 +21,15 @@ type PackageStore interface {
 	List(ctx context.Context, orgID int64) ([]model.Package, error)
 	GetByID(ctx context.Context, orgID, id int64) (*model.Package, error)
 	GetByIDGlobal(ctx context.Context, id int64) (*model.Package, error)
+	GetByPublicID(ctx context.Context, orgID int64, publicID string) (*model.Package, error)
+	GetByPublicIDGlobal(ctx context.Context, publicID string) (*model.Package, error)
 	GetByName(ctx context.Context, orgID int64, name string) (*model.Package, error)
 	Create(ctx context.Context, pkg *model.Package) error
 	Update(ctx context.Context, pkg *model.Package) error
 	Delete(ctx context.Context, orgID, id int64) error
 	ListVersions(ctx context.Context, orgID, packageID int64) ([]model.Version, error)
 	GetVersionByID(ctx context.Context, id int64) (*model.Version, error)
+	GetVersionByPublicID(ctx context.Context, publicID string) (*model.Version, error)
 	CreateVersion(ctx context.Context, v *model.Version) error
 	DeleteVersion(ctx context.Context, id int64) error
 	// UpdateVersionCreatedAt backfills the upstream release date on an
@@ -45,12 +48,14 @@ type TokenStore interface {
 	List(ctx context.Context, orgID int64) ([]model.APIToken, error)
 	Create(ctx context.Context, t *model.APIToken) error
 	GetByHash(ctx context.Context, hash string) (*model.APIToken, error)
+	GetByPublicID(ctx context.Context, orgID int64, publicID string) (*model.APIToken, error)
 	Delete(ctx context.Context, orgID, id int64) error
 	UpdateLastUsed(ctx context.Context, id int64) error
 }
 
 type UserStore interface {
 	GetByID(ctx context.Context, id int64) (*model.User, error)
+	GetByPublicID(ctx context.Context, publicID string) (*model.User, error)
 	GetByEmail(ctx context.Context, email string) (*model.User, error)
 	List(ctx context.Context) ([]model.User, error)
 	ListSuperAdmins(ctx context.Context) ([]model.User, error)
@@ -82,24 +87,29 @@ type AdminTokenStore interface {
 	List(ctx context.Context) ([]model.AdminToken, error)
 	Create(ctx context.Context, t *model.AdminToken) error
 	GetByHash(ctx context.Context, hash string) (*model.AdminToken, error)
+	GetByPublicID(ctx context.Context, publicID string) (*model.AdminToken, error)
 	Delete(ctx context.Context, id int64) error
 	UpdateLastUsed(ctx context.Context, id int64) error
 }
 
-// PackageDownloadCount is a leaderboard row for TopPackages.
+// PackageDownloadCount is a leaderboard row for TopPackages. The
+// `package_id` field carries the package's public ID (e.g. pkg_…) — the
+// same shape used elsewhere in URLs — so the frontend can build links
+// without a second round-trip.
 type PackageDownloadCount struct {
-	PackageID   int64  `json:"package_id"`
-	PackageName string `json:"package_name"`
-	Count       int64  `json:"count"`
+	PackageID   string `json:"package_id" bun:"package_id"`
+	PackageName string `json:"package_name" bun:"package_name"`
+	Count       int64  `json:"count" bun:"count"`
 }
 
 // DownloadEventView is a download event joined with its package/version,
-// shaped for "recent activity" feeds.
+// shaped for "recent activity" feeds. `package_id` is the package's
+// public ID.
 type DownloadEventView struct {
-	At          time.Time `json:"at"`
-	PackageID   int64     `json:"package_id"`
-	PackageName string    `json:"package_name"`
-	Version     string    `json:"version"`
+	At          time.Time `json:"at" bun:"at"`
+	PackageID   string    `json:"package_id" bun:"package_id"`
+	PackageName string    `json:"package_name" bun:"package_name"`
+	Version     string    `json:"version" bun:"version"`
 }
 
 // DailyCount is one bucket in a time-series of downloads per day.
@@ -152,6 +162,10 @@ type JobStore interface {
 	// GetByID returns a single job scoped to org (defense in depth so
 	// one tenant can't poll another's sync state via numeric ID guess).
 	GetByID(ctx context.Context, orgID, id int64) (*model.SyncJob, error)
+	// GetByPublicID returns a single job scoped to org, addressed by
+	// its public (prefixed ULID) identifier — the shape that appears
+	// in URLs.
+	GetByPublicID(ctx context.Context, orgID int64, publicID string) (*model.SyncJob, error)
 	// ListForPackage returns recent jobs for one package, newest first.
 	ListForPackage(ctx context.Context, orgID, packageID int64, limit int) ([]model.SyncJob, error)
 	// ActiveForPackage returns the current queued-or-running job for a
@@ -178,6 +192,7 @@ type OrgStore interface {
 	Delete(ctx context.Context, id int64) error
 	ListMembers(ctx context.Context, orgID int64) ([]model.OrgMember, error)
 	GetMember(ctx context.Context, orgID, userID int64) (*model.OrgMember, error)
+	GetMemberByPublicID(ctx context.Context, orgID int64, publicID string) (*model.OrgMember, error)
 	AddMember(ctx context.Context, m *model.OrgMember) error
 	UpdateMember(ctx context.Context, m *model.OrgMember) error
 	RemoveMember(ctx context.Context, orgID, userID int64) error

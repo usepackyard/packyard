@@ -7,6 +7,7 @@ import (
 
 	"github.com/usepackyard/packyard/internal/auth"
 	"github.com/usepackyard/packyard/internal/model"
+	"github.com/usepackyard/packyard/internal/pid"
 	"github.com/usepackyard/packyard/internal/store"
 )
 
@@ -84,19 +85,30 @@ func (h *AdminUserHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AdminUserHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	id, err := pathID(r, "id")
+	publicID, err := pathPublicID(r, "id", pid.User)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_user_id", "invalid user id")
+		writeError(w, http.StatusNotFound, "user_not_found", "user not found")
+		return
+	}
+
+	user, err := h.users.GetByPublicID(r.Context(), publicID)
+	if err != nil {
+		slog.Error("delete user: lookup error", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal_error", "internal error")
+		return
+	}
+	if user == nil {
+		writeError(w, http.StatusNotFound, "user_not_found", "user not found")
 		return
 	}
 
 	currentUserID, _ := auth.UserIDFromContext(r.Context())
-	if currentUserID == id {
+	if currentUserID == user.ID {
 		writeError(w, http.StatusBadRequest, "cannot_delete_self", "cannot delete your own account")
 		return
 	}
 
-	if err := h.users.Delete(r.Context(), id); err != nil {
+	if err := h.users.Delete(r.Context(), user.ID); err != nil {
 		slog.Error("delete user error", "error", err)
 		writeError(w, http.StatusInternalServerError, "failed_delete_user", "failed to delete user")
 		return
@@ -110,9 +122,9 @@ func (h *AdminUserHandler) Delete(w http.ResponseWriter, r *http.Request) {
 // responsible for verifying the user initiated the reset (e.g. via an
 // emailed one-time token on the SaaS side).
 func (h *AdminUserHandler) SetPassword(w http.ResponseWriter, r *http.Request) {
-	id, err := pathID(r, "id")
+	publicID, err := pathPublicID(r, "id", pid.User)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_user_id", "invalid user id")
+		writeError(w, http.StatusNotFound, "user_not_found", "user not found")
 		return
 	}
 
@@ -128,7 +140,7 @@ func (h *AdminUserHandler) SetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.users.GetByID(r.Context(), id)
+	user, err := h.users.GetByPublicID(r.Context(), publicID)
 	if err != nil {
 		slog.Error("set password: lookup error", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal_error", "internal error")
@@ -156,9 +168,9 @@ func (h *AdminUserHandler) SetPassword(w http.ResponseWriter, r *http.Request) {
 // SetSuperAdmin toggles the IsSuperAdmin flag. Body: {"is_super_admin": true/false}.
 // Refuses to revoke super-admin from yourself (prevents lockout).
 func (h *AdminUserHandler) SetSuperAdmin(w http.ResponseWriter, r *http.Request) {
-	id, err := pathID(r, "id")
+	publicID, err := pathPublicID(r, "id", pid.User)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_user_id", "invalid user id")
+		writeError(w, http.StatusNotFound, "user_not_found", "user not found")
 		return
 	}
 
@@ -170,13 +182,7 @@ func (h *AdminUserHandler) SetSuperAdmin(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	currentUserID, _ := auth.UserIDFromContext(r.Context())
-	if currentUserID == id && !req.IsSuperAdmin {
-		writeError(w, http.StatusBadRequest, "cannot_revoke_self_super_admin", "cannot revoke your own super-admin role")
-		return
-	}
-
-	user, err := h.users.GetByID(r.Context(), id)
+	user, err := h.users.GetByPublicID(r.Context(), publicID)
 	if err != nil {
 		slog.Error("set super-admin: lookup error", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal_error", "internal error")
@@ -184,6 +190,12 @@ func (h *AdminUserHandler) SetSuperAdmin(w http.ResponseWriter, r *http.Request)
 	}
 	if user == nil {
 		writeError(w, http.StatusNotFound, "user_not_found", "user not found")
+		return
+	}
+
+	currentUserID, _ := auth.UserIDFromContext(r.Context())
+	if currentUserID == user.ID && !req.IsSuperAdmin {
+		writeError(w, http.StatusBadRequest, "cannot_revoke_self_super_admin", "cannot revoke your own super-admin role")
 		return
 	}
 	user.IsSuperAdmin = req.IsSuperAdmin

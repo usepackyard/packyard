@@ -21,13 +21,13 @@ type statsResponse struct {
 	DownloadsLast7d  int64 `json:"downloads_last_7d"`
 	DownloadsLast30d int64 `json:"downloads_last_30d"`
 	TopPackages      []struct {
-		PackageID   int64  `json:"package_id"`
+		PackageID   string `json:"package_id"`
 		PackageName string `json:"package_name"`
 		Count       int64  `json:"count"`
 	} `json:"top_packages"`
 	RecentDownloads []struct {
 		At          time.Time `json:"at"`
-		PackageID   int64     `json:"package_id"`
+		PackageID   string    `json:"package_id"`
 		PackageName string    `json:"package_name"`
 		Version     string    `json:"version"`
 	} `json:"recent_downloads"`

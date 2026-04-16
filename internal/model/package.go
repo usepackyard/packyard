@@ -9,7 +9,8 @@ import (
 type Package struct {
 	bun.BaseModel `bun:"table:packages,alias:p" json:"-"`
 
-	ID          int64     `bun:"id,pk,autoincrement" json:"id"`
+	ID          int64     `bun:"id,pk,autoincrement" json:"-"`
+	PublicID    string    `bun:"public_id,notnull,unique" json:"id"`
 	OrgID       int64     `bun:"org_id,notnull,unique:pkg_org_name" json:"org_id"`
 	Name        string    `bun:"name,notnull,unique:pkg_org_name" json:"name"`
 	Type        string    `bun:"type,notnull" json:"type"`
@@ -23,8 +24,9 @@ type Package struct {
 type Version struct {
 	bun.BaseModel `bun:"table:versions,alias:v" json:"-"`
 
-	ID                int64      `bun:"id,pk,autoincrement" json:"id"`
-	PackageID         int64      `bun:"package_id,notnull" json:"package_id"`
+	ID                int64      `bun:"id,pk,autoincrement" json:"-"`
+	PublicID          string     `bun:"public_id,notnull,unique" json:"id"`
+	PackageID         int64      `bun:"package_id,notnull" json:"-"`
 	Version           string     `bun:"version,notnull" json:"version"`
 	VersionNormalized string     `bun:"version_normalized,notnull" json:"version_normalized"`
 	DistType          string     `bun:"dist_type,notnull" json:"dist_type"`

@@ -48,7 +48,7 @@ func TestAdminGlobalPackageHandler_Delete(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("DELETE /api/admin/packages/{id}", h.Delete)
 
-	req := httptest.NewRequest("DELETE", "/api/admin/packages/"+itoa(int(pkg.ID)), nil)
+	req := httptest.NewRequest("DELETE", "/api/admin/packages/"+pkg.PublicID, nil)
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
 
@@ -63,7 +63,7 @@ func TestAdminGlobalPackageHandler_Delete_NotFound(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("DELETE /api/admin/packages/{id}", h.Delete)
 
-	req := httptest.NewRequest("DELETE", "/api/admin/packages/9999", nil)
+	req := httptest.NewRequest("DELETE", "/api/admin/packages/pkg_01JHZ8K3Y5WQ9V2N6TRB4XE7CM", nil)
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
 

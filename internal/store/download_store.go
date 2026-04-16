@@ -61,12 +61,12 @@ func (s *downloadStoreDB) TopPackages(ctx context.Context, orgID int64, since ti
 	var rows []PackageDownloadCount
 	q := s.db.NewSelect().
 		TableExpr("download_events AS d").
-		ColumnExpr("d.package_id AS package_id").
+		ColumnExpr("p.public_id AS package_id").
 		ColumnExpr("p.name AS package_name").
 		ColumnExpr("COUNT(*) AS count").
 		Join("JOIN packages AS p ON p.id = d.package_id").
 		Where("d.org_id = ?", orgID).
-		GroupExpr("d.package_id, p.name").
+		GroupExpr("p.public_id, p.name").
 		OrderExpr("count DESC, p.name ASC").
 		Limit(limit)
 	if !since.IsZero() {
@@ -89,7 +89,7 @@ func (s *downloadStoreDB) Recent(ctx context.Context, orgID int64, limit int) ([
 	err := s.db.NewSelect().
 		TableExpr("download_events AS d").
 		ColumnExpr("d.at AS at").
-		ColumnExpr("d.package_id AS package_id").
+		ColumnExpr("p.public_id AS package_id").
 		ColumnExpr("p.name AS package_name").
 		ColumnExpr("v.version AS version").
 		Join("JOIN packages AS p ON p.id = d.package_id").

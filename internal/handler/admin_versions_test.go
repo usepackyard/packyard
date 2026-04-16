@@ -55,7 +55,7 @@ func TestAdminVersionHandler_Upload_HappyPath(t *testing.T) {
 	mux.HandleFunc("POST /api/packages/{id}/versions", vh.Upload)
 
 	rec := testutil.DoMultipart(t, contextWrap(mux, s),
-		"POST", "/api/packages/"+itoa(int(pkg.ID))+"/versions",
+		"POST", "/api/packages/"+pkg.PublicID+"/versions",
 		nil, &testutil.MultipartFile{FieldName: "file", Filename: "pkg.zip", Content: zipBytes})
 
 	if rec.Code != http.StatusCreated {
@@ -81,7 +81,7 @@ func TestAdminVersionHandler_Upload_StoragePathIncludesOrgID(t *testing.T) {
 	mux.HandleFunc("POST /api/packages/{id}/versions", vh.Upload)
 
 	rec := testutil.DoMultipart(t, contextWrap(mux, s),
-		"POST", "/api/packages/"+itoa(int(pkg.ID))+"/versions",
+		"POST", "/api/packages/"+pkg.PublicID+"/versions",
 		nil, &testutil.MultipartFile{FieldName: "file", Filename: "pkg.zip", Content: zipBytes})
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("status = %d", rec.Code)
@@ -111,7 +111,7 @@ func TestAdminVersionHandler_Upload_NameMismatch(t *testing.T) {
 	mux.HandleFunc("POST /api/packages/{id}/versions", vh.Upload)
 
 	rec := testutil.DoMultipart(t, contextWrap(mux, s),
-		"POST", "/api/packages/"+itoa(int(pkg.ID))+"/versions",
+		"POST", "/api/packages/"+pkg.PublicID+"/versions",
 		nil, &testutil.MultipartFile{FieldName: "file", Filename: "pkg.zip", Content: zipBytes})
 
 	if rec.Code != http.StatusBadRequest {
@@ -135,7 +135,7 @@ func TestAdminVersionHandler_Upload_DuplicateVersion(t *testing.T) {
 	mux.HandleFunc("POST /api/packages/{id}/versions", vh.Upload)
 
 	rec := testutil.DoMultipart(t, contextWrap(mux, s),
-		"POST", "/api/packages/"+itoa(int(pkg.ID))+"/versions",
+		"POST", "/api/packages/"+pkg.PublicID+"/versions",
 		nil, &testutil.MultipartFile{FieldName: "file", Filename: "pkg.zip", Content: zipBytes})
 
 	if rec.Code != http.StatusConflict {
@@ -160,7 +160,7 @@ func TestAdminVersionHandler_Upload_ZipBombRejected_TooManyEntries(t *testing.T)
 	mux.HandleFunc("POST /api/packages/{id}/versions", vh.Upload)
 
 	rec := testutil.DoMultipart(t, contextWrap(mux, s),
-		"POST", "/api/packages/"+itoa(int(pkg.ID))+"/versions",
+		"POST", "/api/packages/"+pkg.PublicID+"/versions",
 		nil, &testutil.MultipartFile{FieldName: "file", Filename: "bomb.zip", Content: zipBytes})
 
 	if rec.Code != http.StatusBadRequest {
@@ -179,7 +179,7 @@ func TestAdminVersionHandler_Upload_MissingFile(t *testing.T) {
 	mux.HandleFunc("POST /api/packages/{id}/versions", vh.Upload)
 
 	rec := testutil.DoMultipart(t, contextWrap(mux, s),
-		"POST", "/api/packages/"+itoa(int(pkg.ID))+"/versions",
+		"POST", "/api/packages/"+pkg.PublicID+"/versions",
 		map[string]string{"version": "1.0.0"}, nil)
 
 	if rec.Code != http.StatusBadRequest {
@@ -198,7 +198,7 @@ func TestAdminVersionHandler_Upload_PackageNotFound(t *testing.T) {
 	mux.HandleFunc("POST /api/packages/{id}/versions", vh.Upload)
 
 	rec := testutil.DoMultipart(t, contextWrap(mux, s),
-		"POST", "/api/packages/9999/versions",
+		"POST", "/api/packages/pkg_01JHZ8K3Y5WQ9V2N6TRB4XE7CM/versions",
 		nil, &testutil.MultipartFile{FieldName: "file", Filename: "p.zip", Content: zipBytes})
 
 	if rec.Code != http.StatusNotFound {
@@ -215,12 +215,14 @@ func TestAdminVersionHandler_Upload_BadID(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/packages/{id}/versions", vh.Upload)
 
+	// A malformed / wrong-prefix id is indistinguishable from "no such
+	// package" from the client's perspective — both map to 404.
 	rec := testutil.DoMultipart(t, contextWrap(mux, s),
-		"POST", "/api/packages/not-a-number/versions",
+		"POST", "/api/packages/not-a-pkg-id/versions",
 		nil, &testutil.MultipartFile{FieldName: "file", Filename: "p.zip", Content: zipBytes})
 
-	if rec.Code != http.StatusBadRequest {
-		t.Fatalf("status = %d, want 400", rec.Code)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want 404", rec.Code)
 	}
 }
 
@@ -236,7 +238,7 @@ func TestAdminVersionHandler_Upload_NoComposerJSON(t *testing.T) {
 	mux.HandleFunc("POST /api/packages/{id}/versions", vh.Upload)
 
 	rec := testutil.DoMultipart(t, contextWrap(mux, s),
-		"POST", "/api/packages/"+itoa(int(pkg.ID))+"/versions",
+		"POST", "/api/packages/"+pkg.PublicID+"/versions",
 		nil, &testutil.MultipartFile{FieldName: "file", Filename: "p.zip", Content: zipBytes})
 
 	if rec.Code != http.StatusBadRequest {
@@ -255,7 +257,7 @@ func TestAdminVersionHandler_Delete(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("DELETE /api/versions/{id}", vh.Delete)
 
-	req := httptest.NewRequest("DELETE", "/api/versions/"+itoa(int(v.ID)), nil)
+	req := httptest.NewRequest("DELETE", "/api/versions/"+v.PublicID, nil)
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, s.withOrg(req))
 
@@ -270,12 +272,14 @@ func TestAdminVersionHandler_Delete_BadID(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("DELETE /api/versions/{id}", vh.Delete)
 
-	req := httptest.NewRequest("DELETE", "/api/versions/not-a-number", nil)
+	// A malformed / wrong-prefix id is indistinguishable from "no such
+	// version" from the client's perspective — both map to 404.
+	req := httptest.NewRequest("DELETE", "/api/versions/not-a-ver-id", nil)
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, s.withOrg(req))
 
-	if rec.Code != http.StatusBadRequest {
-		t.Fatalf("status = %d, want 400", rec.Code)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want 404", rec.Code)
 	}
 }
 
@@ -285,7 +289,7 @@ func TestAdminVersionHandler_Delete_NotFound(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("DELETE /api/versions/{id}", vh.Delete)
 
-	req := httptest.NewRequest("DELETE", "/api/versions/9999", nil)
+	req := httptest.NewRequest("DELETE", "/api/versions/ver_01JHZ8K3Y5WQ9V2N6TRB4XE7CM", nil)
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, s.withOrg(req))
 

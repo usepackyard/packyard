@@ -70,13 +70,15 @@ func TestAdminTokenHandler_Delete_BadID(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("DELETE /api/tokens/{id}", h.Delete)
 
-	req := httptest.NewRequest("DELETE", "/api/tokens/not-a-number", nil)
+	// Malformed / wrong-prefix token id reads as 404 — same shape as
+	// "no such token" so attackers can't distinguish by response.
+	req := httptest.NewRequest("DELETE", "/api/tokens/not-a-tok-id", nil)
 	req = req.WithContext(auth.SetOrgInContext(req.Context(), org, nil))
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusBadRequest {
-		t.Fatalf("status = %d, want 400", rec.Code)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want 404", rec.Code)
 	}
 }
 
@@ -90,7 +92,7 @@ func TestAdminTokenHandler_Delete(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("DELETE /api/tokens/{id}", h.Delete)
 
-	req := httptest.NewRequest("DELETE", "/api/tokens/"+itoa(int(tok.ID)), nil)
+	req := httptest.NewRequest("DELETE", "/api/tokens/"+tok.PublicID, nil)
 	req = req.WithContext(auth.SetOrgInContext(req.Context(), org, nil))
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)

@@ -18,11 +18,12 @@ import (
 type AdminToken struct {
 	bun.BaseModel `bun:"table:admin_tokens,alias:at" json:"-"`
 
-	ID          int64      `bun:"id,pk,autoincrement" json:"id"`
+	ID          int64      `bun:"id,pk,autoincrement" json:"-"`
+	PublicID    string     `bun:"public_id,notnull,unique" json:"id"`
 	Name        string     `bun:"name,notnull" json:"name"`
 	TokenHash   string     `bun:"token_hash,notnull,unique" json:"-"`
 	TokenPrefix string     `bun:"token_prefix,notnull" json:"token_prefix"`
-	CreatedBy   int64      `bun:"created_by,notnull" json:"created_by"`
+	CreatedBy   int64      `bun:"created_by,notnull" json:"-"`
 	LastUsedAt  *time.Time `bun:"last_used_at" json:"last_used_at,omitempty"`
 	ExpiresAt   *time.Time `bun:"expires_at" json:"expires_at,omitempty"`
 	IsActive    bool       `bun:"is_active,notnull" json:"is_active"`

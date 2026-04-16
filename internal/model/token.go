@@ -9,8 +9,9 @@ import (
 type APIToken struct {
 	bun.BaseModel `bun:"table:api_tokens,alias:t" json:"-"`
 
-	ID          int64      `bun:"id,pk,autoincrement" json:"id"`
-	OrgID       int64      `bun:"org_id,notnull" json:"org_id"`
+	ID          int64      `bun:"id,pk,autoincrement" json:"-"`
+	PublicID    string     `bun:"public_id,notnull,unique" json:"id"`
+	OrgID       int64      `bun:"org_id,notnull" json:"-"`
 	Name        string     `bun:"name,notnull" json:"name"`
 	TokenHash    string     `bun:"token_hash,notnull,unique" json:"-"`
 	PasswordHash string     `bun:"password_hash,notnull" json:"-"`
@@ -18,6 +19,6 @@ type APIToken struct {
 	LastUsedAt  *time.Time `bun:"last_used_at" json:"last_used_at,omitempty"`
 	ExpiresAt   *time.Time `bun:"expires_at" json:"expires_at,omitempty"`
 	IsActive    bool       `bun:"is_active,notnull,default:true" json:"is_active"`
-	CreatedBy   *int64     `bun:"created_by" json:"created_by,omitempty"`
+	CreatedBy   *int64     `bun:"created_by" json:"-"`
 	CreatedAt   time.Time  `bun:"created_at,notnull,default:current_timestamp" json:"created_at"`
 }

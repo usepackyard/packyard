@@ -46,7 +46,7 @@ func TestAdminSourceHandler_Set_NewSourceReturnsWebhookURLAndSecret(t *testing.T
 	mux.HandleFunc("PUT /api/packages/{id}/source", h.Set)
 
 	body := `{"provider":"github","repo_owner":"octo","repo_name":"hello","strategy":"release_asset","asset_pattern":"*.zip"}`
-	req := httptest.NewRequest("PUT", "/api/packages/"+itoa(int(ctx.pkg.ID))+"/source",
+	req := httptest.NewRequest("PUT", "/api/packages/"+ctx.pkg.PublicID+"/source",
 		strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req = req.WithContext(auth.SetOrgInContext(req.Context(), ctx.org, nil))
@@ -70,7 +70,7 @@ func TestAdminSourceHandler_Set_RequiresRepoFields(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("PUT /api/packages/{id}/source", h.Set)
 
-	req := httptest.NewRequest("PUT", "/api/packages/"+itoa(int(ctx.pkg.ID))+"/source",
+	req := httptest.NewRequest("PUT", "/api/packages/"+ctx.pkg.PublicID+"/source",
 		strings.NewReader(`{"repo_owner":"","repo_name":""}`))
 	req.Header.Set("Content-Type", "application/json")
 	req = req.WithContext(auth.SetOrgInContext(req.Context(), ctx.org, nil))
@@ -88,7 +88,7 @@ func TestAdminSourceHandler_Set_RejectsUnknownProvider(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("PUT /api/packages/{id}/source", h.Set)
 
-	req := httptest.NewRequest("PUT", "/api/packages/"+itoa(int(ctx.pkg.ID))+"/source",
+	req := httptest.NewRequest("PUT", "/api/packages/"+ctx.pkg.PublicID+"/source",
 		strings.NewReader(`{"provider":"bitbucket","repo_owner":"o","repo_name":"r"}`))
 	req.Header.Set("Content-Type", "application/json")
 	req = req.WithContext(auth.SetOrgInContext(req.Context(), ctx.org, nil))
@@ -125,14 +125,14 @@ func TestAdminSourceHandler_Set_UpdateExisting(t *testing.T) {
 	mux.HandleFunc("PUT /api/packages/{id}/source", h.Set)
 
 	// First Set creates.
-	req1 := httptest.NewRequest("PUT", "/api/packages/"+itoa(int(ctx.pkg.ID))+"/source",
+	req1 := httptest.NewRequest("PUT", "/api/packages/"+ctx.pkg.PublicID+"/source",
 		strings.NewReader(`{"repo_owner":"old","repo_name":"r"}`))
 	req1.Header.Set("Content-Type", "application/json")
 	req1 = req1.WithContext(auth.SetOrgInContext(req1.Context(), ctx.org, nil))
 	mux.ServeHTTP(httptest.NewRecorder(), req1)
 
 	// Second Set updates.
-	req2 := httptest.NewRequest("PUT", "/api/packages/"+itoa(int(ctx.pkg.ID))+"/source",
+	req2 := httptest.NewRequest("PUT", "/api/packages/"+ctx.pkg.PublicID+"/source",
 		strings.NewReader(`{"repo_owner":"new","repo_name":"r"}`))
 	req2.Header.Set("Content-Type", "application/json")
 	req2 = req2.WithContext(auth.SetOrgInContext(req2.Context(), ctx.org, nil))
@@ -154,7 +154,7 @@ func TestAdminSourceHandler_Set_ValidatesStrategy(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("PUT /api/packages/{id}/source", h.Set)
 
-	req := httptest.NewRequest("PUT", "/api/packages/"+itoa(int(ctx.pkg.ID))+"/source",
+	req := httptest.NewRequest("PUT", "/api/packages/"+ctx.pkg.PublicID+"/source",
 		strings.NewReader(`{"repo_owner":"o","repo_name":"r","strategy":"clown"}`))
 	req.Header.Set("Content-Type", "application/json")
 	req = req.WithContext(auth.SetOrgInContext(req.Context(), ctx.org, nil))
@@ -172,7 +172,7 @@ func TestAdminSourceHandler_Get_NotFound(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/packages/{id}/source", h.Get)
 
-	req := httptest.NewRequest("GET", "/api/packages/"+itoa(int(ctx.pkg.ID))+"/source", nil)
+	req := httptest.NewRequest("GET", "/api/packages/"+ctx.pkg.PublicID+"/source", nil)
 	req = req.WithContext(auth.SetOrgInContext(req.Context(), ctx.org, nil))
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
@@ -190,7 +190,7 @@ func TestAdminSourceHandler_Get_PackageInWrongOrg(t *testing.T) {
 
 	// Use a totally different org slug (no member) — package not found.
 	otherOrg := &model.Organization{ID: 9999}
-	req := httptest.NewRequest("GET", "/api/packages/"+itoa(int(ctx.pkg.ID))+"/source", nil)
+	req := httptest.NewRequest("GET", "/api/packages/"+ctx.pkg.PublicID+"/source", nil)
 	req = req.WithContext(auth.SetOrgInContext(req.Context(), otherOrg, nil))
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
@@ -208,14 +208,14 @@ func TestAdminSourceHandler_GetAfterSet_ReturnsURL(t *testing.T) {
 	mux.HandleFunc("GET /api/packages/{id}/source", h.Get)
 
 	// Create.
-	setReq := httptest.NewRequest("PUT", "/api/packages/"+itoa(int(ctx.pkg.ID))+"/source",
+	setReq := httptest.NewRequest("PUT", "/api/packages/"+ctx.pkg.PublicID+"/source",
 		strings.NewReader(`{"repo_owner":"o","repo_name":"r"}`))
 	setReq.Header.Set("Content-Type", "application/json")
 	setReq = setReq.WithContext(auth.SetOrgInContext(setReq.Context(), ctx.org, nil))
 	mux.ServeHTTP(httptest.NewRecorder(), setReq)
 
 	// Read back.
-	getReq := httptest.NewRequest("GET", "/api/packages/"+itoa(int(ctx.pkg.ID))+"/source", nil)
+	getReq := httptest.NewRequest("GET", "/api/packages/"+ctx.pkg.PublicID+"/source", nil)
 	getReq = getReq.WithContext(auth.SetOrgInContext(getReq.Context(), ctx.org, nil))
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, getReq)
@@ -238,13 +238,15 @@ func TestAdminSourceHandler_Sync_BadID(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/packages/{id}/source/sync", h.Sync)
 
-	req := httptest.NewRequest("POST", "/api/packages/not-a-number/source/sync", nil)
+	// Malformed / wrong-prefix id returns 404 — same shape as a real
+	// "no such package" response.
+	req := httptest.NewRequest("POST", "/api/packages/not-a-pkg-id/source/sync", nil)
 	req = req.WithContext(auth.SetOrgInContext(req.Context(), ctx.org, nil))
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusBadRequest {
-		t.Fatalf("status = %d, want 400", rec.Code)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want 404", rec.Code)
 	}
 }
 
@@ -254,7 +256,7 @@ func TestAdminSourceHandler_Sync_PackageNotFound(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/packages/{id}/source/sync", h.Sync)
 
-	req := httptest.NewRequest("POST", "/api/packages/9999/source/sync", nil)
+	req := httptest.NewRequest("POST", "/api/packages/pkg_01JHZ8K3Y5WQ9V2N6TRB4XE7CM/source/sync", nil)
 	req = req.WithContext(auth.SetOrgInContext(req.Context(), ctx.org, nil))
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
@@ -271,7 +273,7 @@ func TestAdminSourceHandler_Sync_SourceNotConfigured(t *testing.T) {
 	mux.HandleFunc("POST /api/packages/{id}/source/sync", h.Sync)
 
 	// Package exists (created by newSourceHandler) but no source configured.
-	req := httptest.NewRequest("POST", "/api/packages/"+itoa(int(ctx.pkg.ID))+"/source/sync", nil)
+	req := httptest.NewRequest("POST", "/api/packages/"+ctx.pkg.PublicID+"/source/sync", nil)
 	req = req.WithContext(auth.SetOrgInContext(req.Context(), ctx.org, nil))
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
@@ -289,13 +291,13 @@ func TestAdminSourceHandler_Delete(t *testing.T) {
 	mux.HandleFunc("PUT /api/packages/{id}/source", h.Set)
 	mux.HandleFunc("DELETE /api/packages/{id}/source", h.Delete)
 
-	setReq := httptest.NewRequest("PUT", "/api/packages/"+itoa(int(ctx.pkg.ID))+"/source",
+	setReq := httptest.NewRequest("PUT", "/api/packages/"+ctx.pkg.PublicID+"/source",
 		strings.NewReader(`{"repo_owner":"o","repo_name":"r"}`))
 	setReq.Header.Set("Content-Type", "application/json")
 	setReq = setReq.WithContext(auth.SetOrgInContext(setReq.Context(), ctx.org, nil))
 	mux.ServeHTTP(httptest.NewRecorder(), setReq)
 
-	delReq := httptest.NewRequest("DELETE", "/api/packages/"+itoa(int(ctx.pkg.ID))+"/source", nil)
+	delReq := httptest.NewRequest("DELETE", "/api/packages/"+ctx.pkg.PublicID+"/source", nil)
 	delReq = delReq.WithContext(auth.SetOrgInContext(delReq.Context(), ctx.org, nil))
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, delReq)
@@ -358,7 +360,7 @@ func TestAdminSourceHandler_Set_ValidatesMetadataAndVersionSources(t *testing.T)
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			req := httptest.NewRequest("PUT", "/api/packages/"+itoa(int(ctx.pkg.ID))+"/source",
+			req := httptest.NewRequest("PUT", "/api/packages/"+ctx.pkg.PublicID+"/source",
 				strings.NewReader(tc.body))
 			req.Header.Set("Content-Type", "application/json")
 			req = req.WithContext(auth.SetOrgInContext(req.Context(), ctx.org, nil))
@@ -385,7 +387,7 @@ func TestAdminSourceHandler_Set_ManualMetadata_CoercesVersionSource(t *testing.T
 	// Send metadata_source=manual with version_source=composer_json (nonsense
 	// in manual mode) — backend must coerce to git_tag, not reject.
 	body := `{"repo_owner":"o","repo_name":"r","strategy":"release_asset","metadata_source":"manual","version_source":"composer_json","manual_require":"{\"composer/installers\":\"^2.0\"}"}`
-	setReq := httptest.NewRequest("PUT", "/api/packages/"+itoa(int(ctx.pkg.ID))+"/source",
+	setReq := httptest.NewRequest("PUT", "/api/packages/"+ctx.pkg.PublicID+"/source",
 		strings.NewReader(body))
 	setReq.Header.Set("Content-Type", "application/json")
 	setReq = setReq.WithContext(auth.SetOrgInContext(setReq.Context(), ctx.org, nil))
@@ -397,7 +399,7 @@ func TestAdminSourceHandler_Set_ManualMetadata_CoercesVersionSource(t *testing.T
 	}
 
 	// Round-trip through GET to confirm persisted shape matches backend rules.
-	getReq := httptest.NewRequest("GET", "/api/packages/"+itoa(int(ctx.pkg.ID))+"/source", nil)
+	getReq := httptest.NewRequest("GET", "/api/packages/"+ctx.pkg.PublicID+"/source", nil)
 	getReq = getReq.WithContext(auth.SetOrgInContext(getReq.Context(), ctx.org, nil))
 	getRec := httptest.NewRecorder()
 	mux.ServeHTTP(getRec, getReq)

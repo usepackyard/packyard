@@ -8,6 +8,7 @@ import (
 	"github.com/uptrace/bun"
 
 	"github.com/usepackyard/packyard/internal/model"
+	"github.com/usepackyard/packyard/internal/pid"
 )
 
 type sourceStoreDB struct {
@@ -50,6 +51,9 @@ func (s *sourceStoreDB) Create(ctx context.Context, src *model.PackageSource) er
 	now := time.Now()
 	src.CreatedAt = now
 	src.UpdatedAt = now
+	if src.PublicID == "" {
+		src.PublicID = pid.New(pid.PackageSource)
+	}
 	_, err := s.db.NewInsert().Model(src).Returning("id").Exec(ctx)
 	return err
 }

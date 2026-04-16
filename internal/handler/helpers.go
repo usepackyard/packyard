@@ -2,9 +2,12 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"strconv"
+
+	"github.com/usepackyard/packyard/internal/pid"
 )
 
 func writeJSON(w http.ResponseWriter, status int, data interface{}) {
@@ -49,4 +52,23 @@ func decodeJSON(w http.ResponseWriter, r *http.Request, v interface{}) error {
 
 func pathID(r *http.Request, name string) (int64, error) {
 	return strconv.ParseInt(r.PathValue(name), 10, 64)
+}
+
+// pathPublicID returns the prefixed-ULID path value for `name`, verifying
+// that it carries the expected kind prefix (e.g. "pkg", "ver"). Returns
+// the full "prefix_body" string on success; the caller hands that to a
+// store lookup. Use this for every URL-facing id route param.
+func pathPublicID(r *http.Request, name, prefix string) (string, error) {
+	raw := r.PathValue(name)
+	if _, err := pid.Parse(raw, prefix); err != nil {
+		return "", err
+	}
+	return raw, nil
+}
+
+// isPublicIDError reports whether err came from pid.Parse (wrong prefix
+// or malformed body). Callers use this to return 404 Not Found for a
+// well-formed URL that doesn't match an existing kind.
+func isPublicIDError(err error) bool {
+	return errors.Is(err, pid.ErrWrongPrefix) || errors.Is(err, pid.ErrMalformed)
 }

@@ -73,15 +73,15 @@ export function createApi(mode: string, orgSlug: string) {
     // Packages
     listPackages: () => request<{ packages: Package[] }>(`${prefix}/packages`),
     getPackageStats: () => request<PackageStats>(`${prefix}/packages/stats`),
-    getPackage: (id: number) => request<{ package: Package }>(`${prefix}/packages/${id}`),
+    getPackage: (id: string) => request<{ package: Package }>(`${prefix}/packages/${id}`),
     createPackage: (data: { name: string; type: string; description: string }) =>
       request<{ package: Package }>(`${prefix}/packages`, {
         method: "POST", body: JSON.stringify(data),
       }),
-    deletePackage: (id: number) => request(`${prefix}/packages/${id}`, { method: "DELETE" }),
+    deletePackage: (id: string) => request(`${prefix}/packages/${id}`, { method: "DELETE" }),
 
     // Versions
-    uploadVersion: (packageId: number, file: File, version?: string) => {
+    uploadVersion: (packageId: string, file: File, version?: string) => {
       const form = new FormData();
       form.append("file", file);
       if (version) form.append("version", version);
@@ -89,7 +89,7 @@ export function createApi(mode: string, orgSlug: string) {
         method: "POST", body: form,
       });
     },
-    deleteVersion: (id: number) => request(`${prefix}/versions/${id}`, { method: "DELETE" }),
+    deleteVersion: (id: string) => request(`${prefix}/versions/${id}`, { method: "DELETE" }),
 
     // Tokens
     listTokens: () => request<{ tokens: APIToken[] }>(`${prefix}/tokens`),
@@ -97,12 +97,12 @@ export function createApi(mode: string, orgSlug: string) {
       request<{ token: string; password: string; api_token: APIToken }>(`${prefix}/tokens`, {
         method: "POST", body: JSON.stringify({ name, expires_at: expiresAt }),
       }),
-    deleteToken: (id: number) => request(`${prefix}/tokens/${id}`, { method: "DELETE" }),
+    deleteToken: (id: string) => request(`${prefix}/tokens/${id}`, { method: "DELETE" }),
 
     // Sources
-    getSource: (packageId: number) =>
+    getSource: (packageId: string) =>
       request<{ source: PackageSource; webhook_url: string }>(`${prefix}/packages/${packageId}/source`).catch(() => null),
-    setSource: (packageId: number, data: {
+    setSource: (packageId: string, data: {
       provider: string; repo_owner: string; repo_name: string;
       strategy: string; asset_pattern?: string;
       metadata_source?: string; version_source?: string; manual_require?: string;
@@ -111,14 +111,14 @@ export function createApi(mode: string, orgSlug: string) {
       request<{ source: PackageSource; webhook_url: string; webhook_secret?: string }>(
         `${prefix}/packages/${packageId}/source`, { method: "PUT", body: JSON.stringify(data) }
       ),
-    deleteSource: (packageId: number) =>
+    deleteSource: (packageId: string) =>
       request(`${prefix}/packages/${packageId}/source`, { method: "DELETE" }),
     // syncSource enqueues a sync job and returns the job record — newly
     // queued (202) or the existing active one (409) with `existing:true`.
     // Both are successful outcomes from the UI's perspective, so we
     // bypass the generic request() helper (which would throw on 409) and
     // read the body directly.
-    syncSource: async (packageId: number): Promise<{ job: SyncJob; existing: boolean }> => {
+    syncSource: async (packageId: string): Promise<{ job: SyncJob; existing: boolean }> => {
       const res = await fetch(`${prefix}/packages/${packageId}/source/sync`, {
         method: "POST",
         credentials: "same-origin",
@@ -137,9 +137,9 @@ export function createApi(mode: string, orgSlug: string) {
       }
       throw new Error(data.error || `sync failed: ${res.status}`);
     },
-    getSyncJob: (packageId: number, jobId: number) =>
+    getSyncJob: (packageId: string, jobId: string) =>
       request<{ job: SyncJob }>(`${prefix}/packages/${packageId}/sync/${jobId}`),
-    listSyncJobs: (packageId: number) =>
+    listSyncJobs: (packageId: string) =>
       request<{ jobs: SyncJob[] }>(`${prefix}/packages/${packageId}/sync`),
     previewSource: (provider: string, owner: string, repo: string, authToken?: string) =>
       request<{ releases: ReleasePreview[] }>(`${prefix}/sources/preview`, {
@@ -153,17 +153,17 @@ export function createApi(mode: string, orgSlug: string) {
       request<{ member: OrgMember }>(`${prefix}/members`, {
         method: "POST", body: JSON.stringify(data),
       }),
-    updateMember: (id: number, data: { role: string; permissions: string[] }) =>
+    updateMember: (id: string, data: { role: string; permissions: string[] }) =>
       request<{ member: OrgMember }>(`${prefix}/members/${id}`, {
         method: "PUT", body: JSON.stringify(data),
       }),
-    removeMember: (id: number) => request(`${prefix}/members/${id}`, { method: "DELETE" }),
+    removeMember: (id: string) => request(`${prefix}/members/${id}`, { method: "DELETE" }),
 
     // Users (single mode only)
     listUsers: () => request<{ users: User[] }>(`/api/users`),
     createUser: (data: { email: string; password: string; name: string }) =>
       request<{ user: User }>(`/api/users`, { method: "POST", body: JSON.stringify(data) }),
-    deleteUser: (id: number) => request(`/api/users/${id}`, { method: "DELETE" }),
+    deleteUser: (id: string) => request(`/api/users/${id}`, { method: "DELETE" }),
   };
 }
 
@@ -212,26 +212,26 @@ export const adminApi = {
     request<{ member: OrgMember }>(`/api/admin/orgs/${slug}/members`, {
       method: "POST", body: JSON.stringify(data),
     }),
-  removeOrgMember: (slug: string, userId: number) =>
-    request(`/api/admin/orgs/${slug}/members/${userId}`, { method: "DELETE" }),
+  removeOrgMember: (slug: string, memberId: string) =>
+    request(`/api/admin/orgs/${slug}/members/${memberId}`, { method: "DELETE" }),
 
   // Global users
   listUsers: () => request<{ users: User[] }>("/api/admin/users"),
   createUser: (data: { email: string; password: string; name: string; is_super_admin?: boolean }) =>
     request<{ user: User }>("/api/admin/users", { method: "POST", body: JSON.stringify(data) }),
-  deleteUser: (id: number) => request(`/api/admin/users/${id}`, { method: "DELETE" }),
-  setSuperAdmin: (id: number, isSuperAdmin: boolean) =>
+  deleteUser: (id: string) => request(`/api/admin/users/${id}`, { method: "DELETE" }),
+  setSuperAdmin: (id: string, isSuperAdmin: boolean) =>
     request<{ user: User }>(`/api/admin/users/${id}/super-admin`, {
       method: "PUT", body: JSON.stringify({ is_super_admin: isSuperAdmin }),
     }),
-  setUserPassword: (id: number, password: string) =>
+  setUserPassword: (id: string, password: string) =>
     request<void>(`/api/admin/users/${id}/password`, {
       method: "PUT", body: JSON.stringify({ password }),
     }),
 
   // Cross-org packages
   listPackages: () => request<{ packages: Package[] }>("/api/admin/packages"),
-  deletePackage: (id: number) => request(`/api/admin/packages/${id}`, { method: "DELETE" }),
+  deletePackage: (id: string) => request(`/api/admin/packages/${id}`, { method: "DELETE" }),
 
   // Admin Bearer tokens
   listAdminTokens: () => request<{ tokens: AdminToken[] }>("/api/admin/tokens"),
@@ -239,5 +239,5 @@ export const adminApi = {
     request<{ token: string; admin_token: AdminToken }>("/api/admin/tokens", {
       method: "POST", body: JSON.stringify({ name }),
     }),
-  deleteAdminToken: (id: number) => request(`/api/admin/tokens/${id}`, { method: "DELETE" }),
+  deleteAdminToken: (id: string) => request(`/api/admin/tokens/${id}`, { method: "DELETE" }),
 };

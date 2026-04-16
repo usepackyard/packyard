@@ -29,9 +29,10 @@ type Organization struct {
 type OrgMember struct {
 	bun.BaseModel `bun:"table:org_members,alias:m" json:"-"`
 
-	ID          int64           `bun:"id,pk,autoincrement" json:"id"`
-	OrgID       int64           `bun:"org_id,notnull,unique:org_user" json:"org_id"`
-	UserID      int64           `bun:"user_id,notnull,unique:org_user" json:"user_id"`
+	ID          int64           `bun:"id,pk,autoincrement" json:"-"`
+	PublicID    string          `bun:"public_id,notnull,unique" json:"id"`
+	OrgID       int64           `bun:"org_id,notnull,unique:org_user" json:"-"`
+	UserID      int64           `bun:"user_id,notnull,unique:org_user" json:"-"`
 	Role        string          `bun:"role,notnull" json:"role"`
 	Permissions JSONStringSlice `bun:"permissions,notnull,type:text" json:"permissions"`
 	CreatedAt   time.Time       `bun:"created_at,notnull,default:current_timestamp" json:"created_at"`

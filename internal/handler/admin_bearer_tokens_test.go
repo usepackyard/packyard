@@ -93,12 +93,12 @@ func TestAdminBearerTokenHandler_Delete(t *testing.T) {
 	if len(tokens) != 1 {
 		t.Fatalf("expected 1 token before delete, got %d", len(tokens))
 	}
-	id := tokens[0].ID
+	publicID := tokens[0].PublicID
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("DELETE /api/admin/tokens/{id}", h.Delete)
 
-	delReq := httptest.NewRequest("DELETE", "/api/admin/tokens/"+itoa(int(id)), nil)
+	delReq := httptest.NewRequest("DELETE", "/api/admin/tokens/"+publicID, nil)
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, delReq)
 

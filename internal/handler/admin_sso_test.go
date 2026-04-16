@@ -28,7 +28,7 @@ func TestAdminSSO_CreateAndLogin(t *testing.T) {
 	mux := newAdminSSOMux(stores, cfg)
 
 	rec := doAdminJSON(t, mux, adminToken, "POST", "/api/admin/sso-tickets", map[string]any{
-		"user_id":     user.ID,
+		"user_id":     user.PublicID,
 		"redirect_to": "/packages",
 	})
 	if rec.Code != http.StatusCreated {
@@ -96,7 +96,7 @@ func TestAdminSSO_CreateRejectsInvalidRedirect(t *testing.T) {
 	mux := newAdminSSOMux(stores, cfg)
 
 	rec := doAdminJSON(t, mux, adminToken, "POST", "/api/admin/sso-tickets", map[string]any{
-		"user_id":     user.ID,
+		"user_id":     user.PublicID,
 		"redirect_to": "https://evil.example",
 	})
 	if rec.Code != http.StatusBadRequest {

@@ -14,6 +14,7 @@ import (
 	"github.com/usepackyard/packyard/internal/auth"
 	"github.com/usepackyard/packyard/internal/config"
 	"github.com/usepackyard/packyard/internal/model"
+	"github.com/usepackyard/packyard/internal/pid"
 	"github.com/usepackyard/packyard/internal/store"
 )
 
@@ -35,14 +36,14 @@ func NewAdminSSOHandler(users store.UserStore, tickets store.SSOTicketStore, ses
 
 func (h *AdminSSOHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		UserID     int64  `json:"user_id"`
+		UserID     string `json:"user_id"`
 		RedirectTo string `json:"redirect_to"`
 	}
 	if err := decodeJSON(w, r, &req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid_request_body", "invalid request body")
 		return
 	}
-	if req.UserID <= 0 {
+	if _, err := pid.Parse(req.UserID, pid.User); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid_user_id", "invalid user id")
 		return
 	}
@@ -53,7 +54,7 @@ func (h *AdminSSOHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.users.GetByID(r.Context(), req.UserID)
+	user, err := h.users.GetByPublicID(r.Context(), req.UserID)
 	if err != nil {
 		slog.Error("admin sso create: user lookup failed", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal_error", "internal error")

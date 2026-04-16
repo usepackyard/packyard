@@ -192,7 +192,7 @@ export default function MembersPage() {
                 <TableRow key={m.id}>
                   <TableCell className="font-medium">
                     {m.user?.name || "—"}
-                    {m.user_id === currentUser?.id && (
+                    {m.user?.id === currentUser?.id && (
                       <Badge variant="outline" className="ml-2">{t("you")}</Badge>
                     )}
                   </TableCell>
@@ -209,7 +209,7 @@ export default function MembersPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">
-                      {m.user_id !== currentUser?.id && (
+                      {m.user?.id !== currentUser?.id && (
                         <>
                           <Button variant="ghost" size="sm" onClick={() => {
                             setEditMember(m);

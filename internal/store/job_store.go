@@ -8,6 +8,7 @@ import (
 	"github.com/uptrace/bun"
 
 	"github.com/usepackyard/packyard/internal/model"
+	"github.com/usepackyard/packyard/internal/pid"
 )
 
 type jobStoreDB struct {
@@ -28,8 +29,26 @@ func (s *jobStoreDB) Enqueue(ctx context.Context, job *model.SyncJob) error {
 	if job.CreatedAt.IsZero() {
 		job.CreatedAt = time.Now().UTC()
 	}
+	if job.PublicID == "" {
+		job.PublicID = pid.New(pid.SyncJob)
+	}
 	_, err := s.db.NewInsert().Model(job).Returning("id").Exec(ctx)
 	return err
+}
+
+func (s *jobStoreDB) GetByPublicID(ctx context.Context, orgID int64, publicID string) (*model.SyncJob, error) {
+	job := new(model.SyncJob)
+	err := s.db.NewSelect().Model(job).
+		Where("org_id = ?", orgID).
+		Where("public_id = ?", publicID).
+		Scan(ctx)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return job, nil
 }
 
 // ClaimNext implements the compare-and-swap claim protocol documented in

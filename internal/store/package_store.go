@@ -8,6 +8,7 @@ import (
 	"github.com/uptrace/bun"
 
 	"github.com/usepackyard/packyard/internal/model"
+	"github.com/usepackyard/packyard/internal/pid"
 )
 
 type packageStoreDB struct {
@@ -73,8 +74,38 @@ func (s *packageStoreDB) Create(ctx context.Context, pkg *model.Package) error {
 	now := time.Now()
 	pkg.CreatedAt = now
 	pkg.UpdatedAt = now
+	if pkg.PublicID == "" {
+		pkg.PublicID = pid.New(pid.Package)
+	}
 	_, err := s.db.NewInsert().Model(pkg).Returning("id").Exec(ctx)
 	return err
+}
+
+func (s *packageStoreDB) GetByPublicID(ctx context.Context, orgID int64, publicID string) (*model.Package, error) {
+	p := new(model.Package)
+	err := s.db.NewSelect().Model(p).
+		Where("org_id = ?", orgID).
+		Where("public_id = ?", publicID).
+		Scan(ctx)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+
+func (s *packageStoreDB) GetByPublicIDGlobal(ctx context.Context, publicID string) (*model.Package, error) {
+	p := new(model.Package)
+	err := s.db.NewSelect().Model(p).Where("public_id = ?", publicID).Scan(ctx)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return p, nil
 }
 
 func (s *packageStoreDB) Update(ctx context.Context, pkg *model.Package) error {
@@ -127,8 +158,23 @@ func (s *packageStoreDB) CreateVersion(ctx context.Context, v *model.Version) er
 	if v.CreatedAt.IsZero() {
 		v.CreatedAt = time.Now()
 	}
+	if v.PublicID == "" {
+		v.PublicID = pid.New(pid.Version)
+	}
 	_, err := s.db.NewInsert().Model(v).Returning("id").Exec(ctx)
 	return err
+}
+
+func (s *packageStoreDB) GetVersionByPublicID(ctx context.Context, publicID string) (*model.Version, error) {
+	v := new(model.Version)
+	err := s.db.NewSelect().Model(v).Where("public_id = ?", publicID).Scan(ctx)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return v, nil
 }
 
 func (s *packageStoreDB) DeleteVersion(ctx context.Context, id int64) error {

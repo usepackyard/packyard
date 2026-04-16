@@ -8,6 +8,7 @@ import (
 	"github.com/uptrace/bun"
 
 	"github.com/usepackyard/packyard/internal/model"
+	"github.com/usepackyard/packyard/internal/pid"
 )
 
 type orgStoreDB struct {
@@ -112,8 +113,26 @@ func (s *orgStoreDB) AddMember(ctx context.Context, m *model.OrgMember) error {
 	if m.Permissions == nil {
 		m.Permissions = model.JSONStringSlice{}
 	}
+	if m.PublicID == "" {
+		m.PublicID = pid.New(pid.OrgMember)
+	}
 	_, err := s.db.NewInsert().Model(m).Returning("id").Exec(ctx)
 	return err
+}
+
+func (s *orgStoreDB) GetMemberByPublicID(ctx context.Context, orgID int64, publicID string) (*model.OrgMember, error) {
+	m := new(model.OrgMember)
+	err := s.db.NewSelect().Model(m).
+		Where("org_id = ?", orgID).
+		Where("public_id = ?", publicID).
+		Scan(ctx)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 func (s *orgStoreDB) UpdateMember(ctx context.Context, m *model.OrgMember) error {

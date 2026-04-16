@@ -10,6 +10,7 @@ import (
 
 	"github.com/usepackyard/packyard/internal/auth"
 	"github.com/usepackyard/packyard/internal/model"
+	"github.com/usepackyard/packyard/internal/pid"
 	"github.com/usepackyard/packyard/internal/store"
 )
 
@@ -88,12 +89,22 @@ func (h *AdminBearerTokenHandler) Create(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *AdminBearerTokenHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	id, err := pathID(r, "id")
+	publicID, err := pathPublicID(r, "id", pid.AdminToken)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_token_id", "invalid token id")
+		writeError(w, http.StatusNotFound, "token_not_found", "token not found")
 		return
 	}
-	if err := h.tokens.Delete(r.Context(), id); err != nil {
+	tok, err := h.tokens.GetByPublicID(r.Context(), publicID)
+	if err != nil {
+		slog.Error("admin bearer token delete: lookup error", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal_error", "internal error")
+		return
+	}
+	if tok == nil {
+		writeError(w, http.StatusNotFound, "token_not_found", "token not found")
+		return
+	}
+	if err := h.tokens.Delete(r.Context(), tok.ID); err != nil {
 		slog.Error("admin bearer token delete error", "error", err)
 		writeError(w, http.StatusInternalServerError, "failed_delete_token", "failed to delete token")
 		return

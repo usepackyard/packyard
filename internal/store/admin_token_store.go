@@ -8,6 +8,7 @@ import (
 	"github.com/uptrace/bun"
 
 	"github.com/usepackyard/packyard/internal/model"
+	"github.com/usepackyard/packyard/internal/pid"
 )
 
 type adminTokenStoreDB struct {
@@ -26,8 +27,23 @@ func (s *adminTokenStoreDB) List(ctx context.Context) ([]model.AdminToken, error
 
 func (s *adminTokenStoreDB) Create(ctx context.Context, t *model.AdminToken) error {
 	t.CreatedAt = time.Now()
+	if t.PublicID == "" {
+		t.PublicID = pid.New(pid.AdminToken)
+	}
 	_, err := s.db.NewInsert().Model(t).Returning("id").Exec(ctx)
 	return err
+}
+
+func (s *adminTokenStoreDB) GetByPublicID(ctx context.Context, publicID string) (*model.AdminToken, error) {
+	t := new(model.AdminToken)
+	err := s.db.NewSelect().Model(t).Where("public_id = ?", publicID).Scan(ctx)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return t, nil
 }
 
 func (s *adminTokenStoreDB) GetByHash(ctx context.Context, hash string) (*model.AdminToken, error) {

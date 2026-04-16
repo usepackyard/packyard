@@ -7,6 +7,7 @@ import (
 	"github.com/usepackyard/packyard/internal/auth"
 	"github.com/usepackyard/packyard/internal/composer"
 	"github.com/usepackyard/packyard/internal/model"
+	"github.com/usepackyard/packyard/internal/pid"
 	"github.com/usepackyard/packyard/internal/storage"
 	"github.com/usepackyard/packyard/internal/store"
 )
@@ -103,13 +104,13 @@ func (h *AdminPackageHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := pathID(r, "id")
+	publicID, err := pathPublicID(r, "id", pid.Package)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_package_id", "invalid package id")
+		writeError(w, http.StatusNotFound, "package_not_found", "package not found")
 		return
 	}
 
-	pkg, err := h.packages.GetByID(r.Context(), org.ID, id)
+	pkg, err := h.packages.GetByPublicID(r.Context(), org.ID, publicID)
 	if err != nil {
 		slog.Error("get package error", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal_error", "internal error")
@@ -143,14 +144,25 @@ func (h *AdminPackageHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := pathID(r, "id")
+	publicID, err := pathPublicID(r, "id", pid.Package)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_package_id", "invalid package id")
+		writeError(w, http.StatusNotFound, "package_not_found", "package not found")
+		return
+	}
+
+	pkg, err := h.packages.GetByPublicID(r.Context(), org.ID, publicID)
+	if err != nil {
+		slog.Error("lookup package for delete error", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal_error", "internal error")
+		return
+	}
+	if pkg == nil {
+		writeError(w, http.StatusNotFound, "package_not_found", "package not found")
 		return
 	}
 
 	// Delete all version files from storage first.
-	versions, err := h.packages.ListVersions(r.Context(), org.ID, id)
+	versions, err := h.packages.ListVersions(r.Context(), org.ID, pkg.ID)
 	if err != nil {
 		slog.Error("list versions for delete error", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal_error", "internal error")
@@ -162,7 +174,7 @@ func (h *AdminPackageHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := h.packages.Delete(r.Context(), org.ID, id); err != nil {
+	if err := h.packages.Delete(r.Context(), org.ID, pkg.ID); err != nil {
 		slog.Error("delete package error", "error", err)
 		writeError(w, http.StatusInternalServerError, "failed_delete_package", "failed to delete package")
 		return

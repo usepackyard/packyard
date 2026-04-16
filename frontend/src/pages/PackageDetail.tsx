@@ -47,7 +47,7 @@ export default function PackageDetail() {
     (activeJob.status === "queued" || activeJob.status === "running");
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const pkgId = Number(id);
+  const pkgId = id ?? "";
 
   const load = useCallback(() => {
     api.getPackage(pkgId).then((r) => setPkg(r.package));
@@ -110,7 +110,7 @@ export default function PackageDetail() {
 
   // pollJob walks the job through its state machine. Backs off from 2s
   // (active) to a one-shot final read, sets syncResult on completion.
-  const pollJob = useCallback(async (jobId: number) => {
+  const pollJob = useCallback(async (jobId: string) => {
     const tick = async () => {
       let res;
       try {
@@ -335,7 +335,7 @@ function VersionsTable({ versions, onDelete }: { versions: Version[]; onDelete: 
 // ── Source Card ──────────────────────────────────────────────────────────────
 
 interface SourceCardProps {
-  pkgId: number;
+  pkgId: string;
   source: PackageSource | null;
   webhookUrl: string;
   syncing: boolean;

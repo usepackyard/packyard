@@ -7,6 +7,7 @@ import (
 
 	"github.com/usepackyard/packyard/internal/auth"
 	"github.com/usepackyard/packyard/internal/model"
+	"github.com/usepackyard/packyard/internal/pid"
 	"github.com/usepackyard/packyard/internal/store"
 )
 
@@ -137,13 +138,13 @@ func (h *AdminMemberHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, err := pathID(r, "id")
+	memberPublicID, err := pathPublicID(r, "id", pid.OrgMember)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_member_id", "invalid member id")
+		writeError(w, http.StatusNotFound, "member_not_found", "member not found")
 		return
 	}
 
-	member, err := h.orgs.GetMember(r.Context(), org.ID, userID)
+	member, err := h.orgs.GetMemberByPublicID(r.Context(), org.ID, memberPublicID)
 	if err != nil {
 		slog.Error("update member: lookup error", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal_error", "internal error")
@@ -192,20 +193,31 @@ func (h *AdminMemberHandler) Remove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, err := pathID(r, "id")
+	memberPublicID, err := pathPublicID(r, "id", pid.OrgMember)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_member_id", "invalid member id")
+		writeError(w, http.StatusNotFound, "member_not_found", "member not found")
+		return
+	}
+
+	member, err := h.orgs.GetMemberByPublicID(r.Context(), org.ID, memberPublicID)
+	if err != nil {
+		slog.Error("remove member: lookup error", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal_error", "internal error")
+		return
+	}
+	if member == nil {
+		writeError(w, http.StatusNotFound, "member_not_found", "member not found")
 		return
 	}
 
 	// Prevent removing yourself.
 	currentUserID, _ := auth.UserIDFromContext(r.Context())
-	if currentUserID == userID {
+	if currentUserID == member.UserID {
 		writeError(w, http.StatusBadRequest, "cannot_remove_self", "cannot remove yourself")
 		return
 	}
 
-	if err := h.orgs.RemoveMember(r.Context(), org.ID, userID); err != nil {
+	if err := h.orgs.RemoveMember(r.Context(), org.ID, member.UserID); err != nil {
 		slog.Error("remove member error", "error", err)
 		writeError(w, http.StatusInternalServerError, "failed_remove_member", "failed to remove member")
 		return

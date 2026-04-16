@@ -125,13 +125,13 @@ func TestAdminMemberHandler_Update_RoleAndPermissions(t *testing.T) {
 	stores := testutil.NewStores(t)
 	org := testutil.MakeOrg(t, stores, "default", "Default")
 	user := testutil.MakeUser(t, stores, "u@example.com", "p")
-	testutil.MakeMember(t, stores, org.ID, user.ID, "member")
+	member := testutil.MakeMember(t, stores, org.ID, user.ID, "member")
 	h := handler.NewAdminMemberHandler(stores.Orgs, stores.Users, 4)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("PUT /api/members/{id}", h.Update)
 
-	req := httptest.NewRequest("PUT", "/api/members/"+itoa(int(user.ID)),
+	req := httptest.NewRequest("PUT", "/api/members/"+member.PublicID,
 		strings.NewReader(`{"role":"owner","permissions":["packages:write"]}`))
 	req.Header.Set("Content-Type", "application/json")
 	req = req.WithContext(auth.SetOrgInContext(req.Context(), org, nil))
@@ -150,13 +150,13 @@ func TestAdminMemberHandler_Update_RejectsBadRole(t *testing.T) {
 	stores := testutil.NewStores(t)
 	org := testutil.MakeOrg(t, stores, "default", "Default")
 	user := testutil.MakeUser(t, stores, "u@example.com", "p")
-	testutil.MakeMember(t, stores, org.ID, user.ID, "member")
+	member := testutil.MakeMember(t, stores, org.ID, user.ID, "member")
 	h := handler.NewAdminMemberHandler(stores.Orgs, stores.Users, 4)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("PUT /api/members/{id}", h.Update)
 
-	req := httptest.NewRequest("PUT", "/api/members/"+itoa(int(user.ID)),
+	req := httptest.NewRequest("PUT", "/api/members/"+member.PublicID,
 		strings.NewReader(`{"role":"superadmin"}`))
 	req.Header.Set("Content-Type", "application/json")
 	req = req.WithContext(auth.SetOrgInContext(req.Context(), org, nil))
@@ -176,7 +176,7 @@ func TestAdminMemberHandler_Update_NotFound(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("PUT /api/members/{id}", h.Update)
 
-	req := httptest.NewRequest("PUT", "/api/members/9999",
+	req := httptest.NewRequest("PUT", "/api/members/mbr_01JHZ8K3Y5WQ9V2N6TRB4XE7CM",
 		strings.NewReader(`{"role":"owner"}`))
 	req.Header.Set("Content-Type", "application/json")
 	req = req.WithContext(auth.SetOrgInContext(req.Context(), org, nil))
@@ -193,14 +193,14 @@ func TestAdminMemberHandler_Remove(t *testing.T) {
 	org := testutil.MakeOrg(t, stores, "default", "Default")
 	target := testutil.MakeUser(t, stores, "target@example.com", "p")
 	actor := testutil.MakeUser(t, stores, "actor@example.com", "p")
-	testutil.MakeMember(t, stores, org.ID, target.ID, "member")
+	targetMember := testutil.MakeMember(t, stores, org.ID, target.ID, "member")
 	testutil.MakeMember(t, stores, org.ID, actor.ID, "owner")
 	h := handler.NewAdminMemberHandler(stores.Orgs, stores.Users, 4)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("DELETE /api/members/{id}", h.Remove)
 
-	req := httptest.NewRequest("DELETE", "/api/members/"+itoa(int(target.ID)), nil)
+	req := httptest.NewRequest("DELETE", "/api/members/"+targetMember.PublicID, nil)
 	req = req.WithContext(auth.SetOrgInContext(req.Context(), org, nil))
 	req = req.WithContext(auth.SetUserIDForTest(req.Context(), actor.ID))
 	rec := httptest.NewRecorder()
@@ -215,13 +215,13 @@ func TestAdminMemberHandler_Remove_PreventsSelfRemove(t *testing.T) {
 	stores := testutil.NewStores(t)
 	org := testutil.MakeOrg(t, stores, "default", "Default")
 	user := testutil.MakeUser(t, stores, "self@example.com", "p")
-	testutil.MakeMember(t, stores, org.ID, user.ID, "owner")
+	member := testutil.MakeMember(t, stores, org.ID, user.ID, "owner")
 	h := handler.NewAdminMemberHandler(stores.Orgs, stores.Users, 4)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("DELETE /api/members/{id}", h.Remove)
 
-	req := httptest.NewRequest("DELETE", "/api/members/"+itoa(int(user.ID)), nil)
+	req := httptest.NewRequest("DELETE", "/api/members/"+member.PublicID, nil)
 	req = req.WithContext(auth.SetOrgInContext(req.Context(), org, nil))
 	req = req.WithContext(auth.SetUserIDForTest(req.Context(), user.ID))
 	rec := httptest.NewRecorder()

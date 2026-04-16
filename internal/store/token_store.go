@@ -8,6 +8,7 @@ import (
 	"github.com/uptrace/bun"
 
 	"github.com/usepackyard/packyard/internal/model"
+	"github.com/usepackyard/packyard/internal/pid"
 )
 
 type tokenStoreDB struct {
@@ -30,8 +31,26 @@ func (s *tokenStoreDB) List(ctx context.Context, orgID int64) ([]model.APIToken,
 func (s *tokenStoreDB) Create(ctx context.Context, t *model.APIToken) error {
 	t.CreatedAt = time.Now()
 	t.IsActive = true
+	if t.PublicID == "" {
+		t.PublicID = pid.New(pid.APIToken)
+	}
 	_, err := s.db.NewInsert().Model(t).Returning("id").Exec(ctx)
 	return err
+}
+
+func (s *tokenStoreDB) GetByPublicID(ctx context.Context, orgID int64, publicID string) (*model.APIToken, error) {
+	t := new(model.APIToken)
+	err := s.db.NewSelect().Model(t).
+		Where("org_id = ?", orgID).
+		Where("public_id = ?", publicID).
+		Scan(ctx)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return t, nil
 }
 
 func (s *tokenStoreDB) GetByHash(ctx context.Context, hash string) (*model.APIToken, error) {

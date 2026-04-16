@@ -62,10 +62,11 @@ func TestMigrate_Idempotent(t *testing.T) {
 		t.Fatalf("second Migrate: %v", err)
 	}
 
-	// Sanity: we can still insert into users.
+	// Sanity: we can still insert into users. public_id is NOT NULL
+	// on the users table, so supply a well-formed one.
 	_, err := db.ExecContext(context.Background(),
-		"INSERT INTO users (email, password, name, is_active) VALUES (?, ?, ?, ?)",
-		"test@example.com", "hash", "Test", true)
+		"INSERT INTO users (public_id, email, password, name, is_active) VALUES (?, ?, ?, ?, ?)",
+		"usr_01JHZ8K3Y5WQ9V2N6TRB4XE7CM", "test@example.com", "hash", "Test", true)
 	if err != nil {
 		t.Fatalf("insert after re-migrate: %v", err)
 	}

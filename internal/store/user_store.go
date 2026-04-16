@@ -8,6 +8,7 @@ import (
 	"github.com/uptrace/bun"
 
 	"github.com/usepackyard/packyard/internal/model"
+	"github.com/usepackyard/packyard/internal/pid"
 )
 
 type userStoreDB struct {
@@ -62,8 +63,23 @@ func (s *userStoreDB) Create(ctx context.Context, u *model.User) error {
 	u.CreatedAt = now
 	u.UpdatedAt = now
 	u.IsActive = true
+	if u.PublicID == "" {
+		u.PublicID = pid.New(pid.User)
+	}
 	_, err := s.db.NewInsert().Model(u).Returning("id").Exec(ctx)
 	return err
+}
+
+func (s *userStoreDB) GetByPublicID(ctx context.Context, publicID string) (*model.User, error) {
+	u := new(model.User)
+	err := s.db.NewSelect().Model(u).Where("public_id = ?", publicID).Scan(ctx)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return u, nil
 }
 
 func (s *userStoreDB) Update(ctx context.Context, u *model.User) error {
