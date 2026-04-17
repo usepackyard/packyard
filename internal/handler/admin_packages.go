@@ -69,7 +69,7 @@ func (h *AdminPackageHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if req.Type == "" {
-		req.Type = "wordpress-plugin"
+		req.Type = "library"
 	}
 
 	existing, _ := h.packages.GetByName(r.Context(), org.ID, req.Name)

@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Upload, Trash2, ArrowLeft, RefreshCw, GitBranch, Copy, Check, ExternalLink, ChevronDown, MoreHorizontal } from "lucide-react";
+import { Upload, Trash2, ArrowLeft, RefreshCw, GitBranch, Copy, Check, ExternalLink, ChevronDown, ChevronRight, MoreHorizontal, CheckCircle2, MinusCircle, AlertTriangle, XCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { formatDate, formatDateTime, formatNumber, relativeTime } from "@/lib/time";
 import {
   DropdownMenu,
@@ -445,13 +446,19 @@ function SourceCard({ pkgId, source, webhookUrl, syncing, activeJob, syncResult,
               <div className="space-y-2">
                 <Label>{t("detail.source.fields.strategy")}</Label>
                 <select className="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm"
-                  value={form.strategy} onChange={(e) => setForm({ ...form, strategy: e.target.value })}>
+                  value={form.strategy}
+                  onChange={(e) => setForm({
+                    ...form,
+                    strategy: e.target.value,
+                    metadata_source: e.target.value === "source_archive" ? "from_zip" : form.metadata_source,
+                  })}>
                   <option value="release_asset">{strategyLabel("release_asset", t)}</option>
                   <option value="source_archive">{strategyLabel("source_archive", t)}</option>
                 </select>
+                <p className="text-xs text-muted-foreground">{t("detail.source.fields.strategyHelp")}</p>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            {form.strategy === "release_asset" && (
               <div className="space-y-2">
                 <Label>{t("detail.source.fields.metadataSource")}</Label>
                 <select className="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm"
@@ -462,14 +469,16 @@ function SourceCard({ pkgId, source, webhookUrl, syncing, activeJob, syncResult,
                     version_source: e.target.value === "manual" ? "git_tag" : form.version_source,
                   })}>
                   <option value="from_zip">{t("detail.source.fields.metadataFromZip")}</option>
-                  <option value="manual" disabled={form.strategy === "source_archive"}>{t("detail.source.fields.metadataManual")}</option>
+                  <option value="manual">{t("detail.source.fields.metadataManual")}</option>
                 </select>
+                <p className="text-xs text-muted-foreground">{t("detail.source.fields.metadataSourceHelp")}</p>
               </div>
+            )}
+            {!isManual && (
               <div className="space-y-2">
                 <Label>{t("detail.source.fields.versionSource")}</Label>
                 <select
-                  className="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm disabled:opacity-60"
-                  disabled={isManual}
+                  className="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm"
                   value={form.version_source}
                   onChange={(e) => setForm({ ...form, version_source: e.target.value })}
                 >
@@ -477,8 +486,9 @@ function SourceCard({ pkgId, source, webhookUrl, syncing, activeJob, syncResult,
                   <option value="git_tag">{t("detail.source.fields.versionGitTag")}</option>
                   <option value="composer_json">{t("detail.source.fields.versionComposerJson")}</option>
                 </select>
+                <p className="text-xs text-muted-foreground">{t("detail.source.fields.versionSourceHelp")}</p>
               </div>
-            </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>{t("detail.source.fields.owner")}</Label>
@@ -668,16 +678,20 @@ function SourceCard({ pkgId, source, webhookUrl, syncing, activeJob, syncResult,
           <InfoChip label={t("detail.source.strategy")}>
             <Badge variant="outline">{strategyLabel(source.strategy, t)}</Badge>
           </InfoChip>
-          <InfoChip label={t("detail.source.metadataSource")}>
-            <Badge variant="outline">
-              {(source.metadata_source ?? "from_zip") === "manual"
-                ? t("detail.source.fields.metadataManual")
-                : t("detail.source.fields.metadataFromZip")}
-            </Badge>
-          </InfoChip>
-          <InfoChip label={t("detail.source.versionSource")}>
-            <Badge variant="outline">{versionSourceLabel(source.version_source ?? "auto", t)}</Badge>
-          </InfoChip>
+          {source.strategy === "release_asset" && (
+            <InfoChip label={t("detail.source.metadataSource")}>
+              <Badge variant="outline">
+                {(source.metadata_source ?? "from_zip") === "manual"
+                  ? t("detail.source.fields.metadataManual")
+                  : t("detail.source.fields.metadataFromZip")}
+              </Badge>
+            </InfoChip>
+          )}
+          {source.metadata_source !== "manual" && (
+            <InfoChip label={t("detail.source.versionSource")}>
+              <Badge variant="outline">{versionSourceLabel(source.version_source ?? "auto", t)}</Badge>
+            </InfoChip>
+          )}
           {source.strategy === "release_asset" && (
             <InfoChip label={t("detail.source.assetPattern")}>
               <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{source.asset_pattern}</code>
@@ -794,94 +808,208 @@ function versionSourceLabel(v: string, t: TFunction<"packages">): string {
 
 // ── Sync Result ──────────────────────────────────────────────────────────────
 
-// SyncResultView displays sync outcomes grouped by category with
-// collapse-on-overflow. A real sync against a mismatched source config
-// can produce 50+ error lines; dumping them flat buries the signal.
+// SyncResultView renders sync outcomes as a status banner + stat tiles
+// with expandable breakdowns. A real sync against a mismatched source
+// config can produce 50+ errors; tiles surface counts at-a-glance and
+// <details> sections let the user drill into root causes on demand.
 function SyncResultView({ result }: { result: SyncResult }) {
   const { t } = useTranslation("packages");
   const imported = result.imported ?? [];
   const refreshed = result.refreshed ?? [];
   const skipped = result.skipped ?? [];
   const errors = result.errors ?? [];
+  const [showFullErrors, setShowFullErrors] = useState(false);
 
-  const [showDetails, setShowDetails] = useState(false);
-
-  const hasAnything = imported.length > 0 || refreshed.length > 0 || skipped.length > 0 || errors.length > 0;
+  const hasAnything = imported.length + refreshed.length + skipped.length + errors.length > 0;
   if (!hasAnything) {
     return (
-      <div className="mt-4 p-3 bg-muted rounded-md text-sm">
+      <div className="mt-4 rounded-lg border bg-muted/40 px-4 py-3 text-sm">
         <p className="font-medium">{t("detail.source.syncResult.title")}</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {t("detail.source.syncResult.statusEmpty")}
+        </p>
       </div>
     );
   }
 
+  // Status tone: failed if only errors, partial if errors alongside
+  // successful work, success otherwise.
+  const didWork = imported.length > 0 || refreshed.length > 0;
+  const tone: "success" | "partial" | "failed" =
+    errors.length > 0 ? (didWork ? "partial" : "failed") : "success";
+
   const skippedByReason = groupBy(skipped, (s) => s.reason);
   const errorsByMessage = groupBy(errors, errorMessagePart);
+  const uniqueErrors = Object.entries(errorsByMessage);
 
   return (
-    <div className="mt-4 p-3 bg-muted rounded-md text-sm space-y-2">
-      <p className="font-medium">{t("detail.source.syncResult.title")}</p>
+    <div className="mt-4 overflow-hidden rounded-lg border bg-card">
+      <div
+        className={cn(
+          "flex items-center gap-2 border-b px-4 py-2.5 text-sm font-medium",
+          tone === "success" && "bg-green-50 text-green-900 dark:bg-green-950/30 dark:text-green-100",
+          tone === "partial" && "bg-amber-50 text-amber-900 dark:bg-amber-950/30 dark:text-amber-100",
+          tone === "failed" && "bg-destructive/10 text-destructive",
+        )}
+      >
+        {tone === "success" && <CheckCircle2 className="h-4 w-4" />}
+        {tone === "partial" && <AlertTriangle className="h-4 w-4" />}
+        {tone === "failed" && <XCircle className="h-4 w-4" />}
+        <span>
+          {tone === "success" && t("detail.source.syncResult.statusSuccess")}
+          {tone === "partial" && t("detail.source.syncResult.statusPartial")}
+          {tone === "failed" && t("detail.source.syncResult.statusFailed")}
+        </span>
+      </div>
 
-      {imported.length > 0 && (
-        <p className="text-green-600 dark:text-green-400">
-          <span className="font-medium">{t("detail.source.syncResult.imported", { count: imported.length })}</span>
-          {imported.length <= 10 && <>: {imported.join(", ")}</>}
-        </p>
-      )}
+      <div className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-4">
+        {imported.length > 0 && (
+          <StatTile
+            tone="success"
+            icon={<CheckCircle2 className="h-5 w-5" />}
+            count={imported.length}
+            label={t("detail.source.syncResult.tileImported")}
+          />
+        )}
+        {skipped.length > 0 && (
+          <StatTile
+            tone="muted"
+            icon={<MinusCircle className="h-5 w-5" />}
+            count={skipped.length}
+            label={t("detail.source.syncResult.tileSkipped")}
+          />
+        )}
+        {errors.length > 0 && (
+          <StatTile
+            tone="destructive"
+            icon={<AlertTriangle className="h-5 w-5" />}
+            count={errors.length}
+            label={t("detail.source.syncResult.tileErrors")}
+          />
+        )}
+        {refreshed.length > 0 && (
+          <StatTile
+            tone="info"
+            icon={<RefreshCw className="h-5 w-5" />}
+            count={refreshed.length}
+            label={t("detail.source.syncResult.tileRefreshed")}
+            tooltip={t("detail.source.syncResult.refreshedTooltip")}
+          />
+        )}
+      </div>
 
-      {refreshed.length > 0 && (
-        <p className="text-muted-foreground" title={t("detail.source.syncResult.refreshedTooltip")}>
-          <span className="font-medium text-foreground">
-            {t("detail.source.syncResult.refreshed", { count: refreshed.length })}
-          </span>
-        </p>
-      )}
-
-      {skipped.length > 0 && (
-        <div className="text-muted-foreground">
-          <p className="font-medium text-foreground">
-            {t("detail.source.syncResult.skipped", { count: skipped.length })}
-          </p>
-          <ul className="text-xs pl-4 list-disc">
-            {Object.entries(skippedByReason).map(([reason, items]) => (
-              <li key={reason}>
-                {formatReason(reason)}: {items.length}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {errors.length > 0 && (
-        <div className="text-destructive">
-          <p className="font-medium">{t("detail.source.syncResult.errors", { count: errors.length })}</p>
-          <ul className="text-xs pl-4 list-disc">
-            {Object.entries(errorsByMessage).map(([msg, items]) => (
-              <li key={msg}>
-                <span className="font-mono">{truncate(msg, 80)}</span> × {items.length}
-              </li>
-            ))}
-          </ul>
-          <button
-            type="button"
-            onClick={() => setShowDetails((v) => !v)}
-            className="text-xs underline mt-1 text-muted-foreground hover:text-foreground"
-          >
-            {showDetails ? t("detail.source.moreActions") : t("detail.source.moreActions")}
-          </button>
-          {showDetails && (
-            <ul className="text-xs pl-4 mt-1 space-y-0.5 font-mono max-h-64 overflow-y-auto">
-              {errors.slice(0, 20).map((e, i) => (
-                <li key={i}>{e}</li>
-              ))}
-              {errors.length > 20 && (
-                <li className="text-muted-foreground italic">… {errors.length - 20}</li>
+      {(skipped.length > 0 || errors.length > 0 || imported.length > 10) && (
+        <div className="space-y-1 border-t px-3 py-2">
+          {errors.length > 0 && (
+            <DisclosureSection label={t("detail.source.syncResult.detailsErrors")} defaultOpen>
+              <ul className="space-y-1 text-xs">
+                {uniqueErrors.map(([msg, items]) => (
+                  <li key={msg} className="flex items-baseline justify-between gap-3">
+                    <span className="break-all font-mono text-destructive">{truncate(msg, 120)}</span>
+                    <span className="shrink-0 tabular-nums text-muted-foreground">× {items.length}</span>
+                  </li>
+                ))}
+              </ul>
+              {errors.length > uniqueErrors.length && (
+                <button
+                  type="button"
+                  onClick={() => setShowFullErrors((v) => !v)}
+                  className="mt-2 text-xs text-muted-foreground underline hover:text-foreground"
+                >
+                  {showFullErrors
+                    ? t("detail.source.syncResult.hideFullList")
+                    : t("detail.source.syncResult.showFullList")}
+                </button>
               )}
-            </ul>
+              {showFullErrors && (
+                <ul className="mt-2 max-h-64 space-y-0.5 overflow-y-auto font-mono text-xs text-muted-foreground">
+                  {errors.slice(0, 100).map((e, i) => (
+                    <li key={i}>{e}</li>
+                  ))}
+                  {errors.length > 100 && (
+                    <li className="italic">… {errors.length - 100}</li>
+                  )}
+                </ul>
+              )}
+            </DisclosureSection>
+          )}
+
+          {skipped.length > 0 && (
+            <DisclosureSection label={t("detail.source.syncResult.detailsSkipped")}>
+              <ul className="space-y-1 text-xs">
+                {Object.entries(skippedByReason).map(([reason, items]) => (
+                  <li key={reason} className="flex items-baseline justify-between gap-3">
+                    <span className="text-foreground">{formatReason(reason)}</span>
+                    <span className="shrink-0 tabular-nums text-muted-foreground">{items.length}</span>
+                  </li>
+                ))}
+              </ul>
+            </DisclosureSection>
+          )}
+
+          {imported.length > 10 && (
+            <DisclosureSection label={t("detail.source.syncResult.detailsImported")}>
+              <p className="break-words font-mono text-xs text-muted-foreground">
+                {imported.join(", ")}
+              </p>
+            </DisclosureSection>
           )}
         </div>
       )}
     </div>
+  );
+}
+
+function StatTile({ tone, icon, count, label, tooltip }: {
+  tone: "success" | "muted" | "destructive" | "info";
+  icon: React.ReactNode;
+  count: number;
+  label: string;
+  tooltip?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-3 rounded-md border px-3 py-2.5",
+        tone === "success" && "border-green-500/20 bg-green-50 dark:bg-green-950/20",
+        tone === "muted" && "border-transparent bg-muted/60",
+        tone === "destructive" && "border-destructive/20 bg-destructive/10",
+        tone === "info" && "border-transparent bg-muted/40",
+      )}
+      title={tooltip}
+    >
+      <div
+        className={cn(
+          "shrink-0",
+          tone === "success" && "text-green-600 dark:text-green-400",
+          tone === "muted" && "text-muted-foreground",
+          tone === "destructive" && "text-destructive",
+          tone === "info" && "text-muted-foreground",
+        )}
+      >
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <div className="text-lg font-semibold leading-tight tabular-nums">{count}</div>
+        <div className="text-xs text-muted-foreground">{label}</div>
+      </div>
+    </div>
+  );
+}
+
+function DisclosureSection({ label, defaultOpen = false, children }: {
+  label: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <details className="group rounded-md" open={defaultOpen}>
+      <summary className="flex cursor-pointer select-none items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium hover:bg-muted/70">
+        <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90" />
+        {label}
+      </summary>
+      <div className="px-2 pb-2 pl-8 pt-1">{children}</div>
+    </details>
   );
 }
 
@@ -932,9 +1060,9 @@ function syncButtonLabel(syncing: boolean, job: SyncJob | null, t: TFunction<"pa
 function strategyLabel(strategy: string, t: TFunction<"packages">): string {
   switch (strategy) {
     case "release_asset":
-      return t("detail.source.fields.metadataFromZip").replace(/\s*\(.*\)/, "") || "Release Asset";
+      return t("detail.source.fields.strategyReleaseAsset");
     case "source_archive":
-      return "Source Archive";
+      return t("detail.source.fields.strategySourceArchive");
     default:
       return strategy;
   }

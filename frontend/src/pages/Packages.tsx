@@ -18,7 +18,7 @@ export default function Packages() {
   const { api } = useAuth();
   const [packages, setPackages] = useState<Package[]>([]);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ name: "", type: "wordpress-plugin", description: "" });
+  const [form, setForm] = useState({ name: "", type: "library", description: "" });
   const [error, setError] = useState("");
 
   const load = useCallback(() => api.listPackages().then((r) => setPackages(r.packages)), [api]);
@@ -39,7 +39,7 @@ export default function Packages() {
     setError("");
     try {
       await api.createPackage(form);
-      setForm({ name: "", type: "wordpress-plugin", description: "" });
+      setForm({ name: "", type: "library", description: "" });
       setOpen(false);
       load();
     } catch (err) {
@@ -70,9 +70,27 @@ export default function Packages() {
                 <Label htmlFor="type">{t("fields.type")}</Label>
                 <select id="type" className="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm"
                   value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
-                  <option value="wordpress-plugin">{t("types.wordpressPlugin")}</option>
-                  <option value="wordpress-theme">{t("types.wordpressTheme")}</option>
-                  <option value="library">{t("types.library")}</option>
+                  <optgroup label={t("types.groupGeneric")}>
+                    <option value="library">{t("types.library")}</option>
+                    <option value="project">{t("types.project")}</option>
+                    <option value="metapackage">{t("types.metapackage")}</option>
+                    <option value="composer-plugin">{t("types.composerPlugin")}</option>
+                  </optgroup>
+                  <optgroup label={t("types.groupWordpress")}>
+                    <option value="wordpress-plugin">{t("types.wordpressPlugin")}</option>
+                    <option value="wordpress-theme">{t("types.wordpressTheme")}</option>
+                    <option value="wordpress-muplugin">{t("types.wordpressMuplugin")}</option>
+                  </optgroup>
+                  <optgroup label={t("types.groupFramework")}>
+                    <option value="symfony-bundle">{t("types.symfonyBundle")}</option>
+                    <option value="laravel-package">{t("types.laravelPackage")}</option>
+                  </optgroup>
+                  <optgroup label={t("types.groupCms")}>
+                    <option value="drupal-module">{t("types.drupalModule")}</option>
+                    <option value="drupal-theme">{t("types.drupalTheme")}</option>
+                    <option value="typo3-cms-extension">{t("types.typo3Extension")}</option>
+                    <option value="magento-module">{t("types.magentoModule")}</option>
+                  </optgroup>
                 </select>
               </div>
               <div className="space-y-2">

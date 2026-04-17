@@ -88,12 +88,13 @@ func ParseZIP(path string) (*ComposerJSON, error) {
 	// Not found — give the caller enough signal to diagnose. Common cause
 	// is a production-build drop (WordPress plugin release asset) that
 	// excluded composer.json; we list a few archive entries so the user
-	// can see what was inside and nudge them toward the hybrid strategy.
+	// can see what was inside and surface both recovery paths.
 	return nil, fmt.Errorf(
 		"composer.json not found in zip archive (found: %s). "+
-			"hint: if this is a production build without dev metadata, "+
-			"configure the source to use strategy \"source_archive\" "+
-			"so composer.json is pulled from the tagged source tree",
+			"hint: either switch strategy to \"source_archive\" "+
+			"(if your repo has composer.json committed), "+
+			"or switch metadata source to \"manual\" "+
+			"(for plugin-style distributions that never ship composer.json)",
 		summarizeZipEntries(r.File, 5),
 	)
 }

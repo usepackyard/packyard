@@ -87,13 +87,18 @@ func TestParseZIP_MissingComposerJSON(t *testing.T) {
 	if !strings.Contains(msg, "not found") {
 		t.Errorf("error should say 'not found': %v", err)
 	}
-	// The error must tell the user what was inside the archive and point
-	// them at the source_archive strategy; otherwise operators are flying blind.
+	// The error must tell the user what was inside the archive and surface
+	// both recovery paths (source_archive when composer.json is committed
+	// to the repo, manual metadata for plugin-style distributions that
+	// never ship one); otherwise operators are flying blind.
 	if !strings.Contains(msg, "README.md") {
 		t.Errorf("error should list archive entries: %v", err)
 	}
 	if !strings.Contains(msg, "source_archive") {
 		t.Errorf("error should suggest the source_archive strategy: %v", err)
+	}
+	if !strings.Contains(msg, "manual") {
+		t.Errorf("error should suggest the manual metadata source: %v", err)
 	}
 }
 

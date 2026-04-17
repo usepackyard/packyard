@@ -710,10 +710,29 @@ func TestSourceStore_CRUD(t *testing.T) {
 		t.Error("GetByRepo missing should be nil")
 	}
 
-	// Update.
+	// Update. All mutable fields must actually be persisted — a prior
+	// version of Update() had a hand-rolled Column() allow-list that
+	// silently dropped metadata_source, version_source, and manual_require,
+	// so UI edits appeared to succeed but the DB kept the old values.
 	src.AssetPattern = "*.tgz"
+	src.MetadataSource = "manual"
+	src.VersionSource = "git_tag"
+	src.ManualRequire = `{"composer/installers":"^2.0"}`
 	if err := stores.Sources.Update(ctx, src); err != nil {
 		t.Fatalf("Update: %v", err)
+	}
+	got, _ = stores.Sources.GetByPackageID(ctx, pkg.ID)
+	if got.AssetPattern != "*.tgz" {
+		t.Errorf("AssetPattern = %q, want *.tgz", got.AssetPattern)
+	}
+	if got.MetadataSource != "manual" {
+		t.Errorf("MetadataSource = %q, want manual", got.MetadataSource)
+	}
+	if got.VersionSource != "git_tag" {
+		t.Errorf("VersionSource = %q, want git_tag", got.VersionSource)
+	}
+	if got.ManualRequire != `{"composer/installers":"^2.0"}` {
+		t.Errorf("ManualRequire = %q, want the updated JSON", got.ManualRequire)
 	}
 
 	// UpdateLastSynced sets a timestamp.

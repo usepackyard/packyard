@@ -61,7 +61,9 @@ func (s *sourceStoreDB) Create(ctx context.Context, src *model.PackageSource) er
 func (s *sourceStoreDB) Update(ctx context.Context, src *model.PackageSource) error {
 	src.UpdatedAt = time.Now()
 	_, err := s.db.NewUpdate().Model(src).
-		Column("provider", "repo_owner", "repo_name", "strategy", "asset_pattern", "auth_token", "webhook_secret", "updated_at").
+		Column("provider", "repo_owner", "repo_name", "strategy", "asset_pattern",
+			"metadata_source", "version_source", "manual_require",
+			"auth_token", "webhook_secret", "updated_at").
 		Where("package_id = ?", src.PackageID).
 		Exec(ctx)
 	return err
