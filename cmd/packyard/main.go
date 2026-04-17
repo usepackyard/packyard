@@ -26,6 +26,7 @@ type command struct {
 
 var commands = map[string]command{
 	"serve":        {run: runServe, help: "Run the HTTP server (default when no subcommand is given)"},
+	"init":         {run: runInit, help: "Interactive installer: configure paths, DB, port, URL, admin; write env file; install service"},
 	"version":      {run: runVersion, help: "Print version, commit, and build metadata"},
 	"healthcheck":  {run: runHealthcheck, help: "Check /healthz on a local or given URL; exits 0 on 200"},
 	"check-config": {run: runCheckConfig, help: "Load + validate environment configuration; no side effects"},

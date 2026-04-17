@@ -87,6 +87,7 @@ The binary supports a few subcommands in addition to the default server mode. Ru
 | Command | Purpose |
 |---|---|
 | `packyard serve` | Run the HTTP server. Default when no subcommand is given. |
+| `packyard init` | Interactive installer (`huh` TUI): paths, mode, database + live connection probe, port + availability check, public URL, storage, admin user, systemd/launchd service install. Supports `--unattended` with flag/env-driven answers for automation. `--uninstall` reverses the install (data dir preserved unless `--purge-data`). |
 | `packyard version [--short]` | Print version, commit SHA, build date, Go version, OS/arch. `--short` prints only the version string. |
 | `packyard healthcheck [--url URL] [--timeout DUR]` | Hit `/healthz` and exit 0 on HTTP 200, non-zero otherwise. Defaults to `http://127.0.0.1:$PACKYARD_PORT/healthz`. Used by the Dockerfile `HEALTHCHECK` directive. |
 | `packyard check-config` | Load env into a Config, run Validate(), exit 0 if healthy. No side effects — no DB connection, no port bind. |
