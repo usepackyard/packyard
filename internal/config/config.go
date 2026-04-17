@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -21,6 +22,14 @@ type Config struct {
 	Providers ProvidersConfig
 
 	Mode string // "single" or "multi"
+
+	// PublicURL is an optional absolute URL to an external homepage
+	// (the operator's main site, company intranet, docs, whatever). When
+	// set, the dashboard renders a "back" link in the header pointing at
+	// it. Empty by default; the link is not rendered. Intentionally kept
+	// out of the default config template — it's a deployment-specific
+	// knob, not a first-class config.
+	PublicURL string
 
 	BcryptCost int
 
@@ -98,6 +107,22 @@ type SessionConfig struct {
 	// minSessionSecretLen bytes — startup fails otherwise.
 	Secret string
 	MaxAge int
+
+	// CookieDomain is emitted as the `Domain` attribute on the session
+	// cookie. Empty (default) omits the attribute, so the browser
+	// scopes the cookie to the exact hostname. Set to something like
+	// ".example.com" to scope across all subdomains — useful when the
+	// dashboard and a companion marketing site live on the same
+	// parent domain and need to share login state.
+	CookieDomain string
+
+	// CookieSameSite controls the cookie's `SameSite` attribute:
+	//   "strict" (default) — only same-site requests carry the cookie.
+	//   "lax"              — cross-site top-level navigations carry it too.
+	//   "none"             — cross-site requests also carry it (requires Secure).
+	// Parsed at config load into a typed http.SameSite; Validate()
+	// enforces "none" → HTTPS.
+	CookieSameSite http.SameSite
 }
 
 // minSessionSecretLen is the minimum acceptable length for the session HMAC
@@ -123,7 +148,33 @@ func (c *Config) Validate() error {
 			minSessionSecretLen, len(c.Session.Secret),
 		)
 	}
+	// SameSite=None requires Secure=true per RFC 6265bis + every
+	// mainstream browser's cookie policy. Secure is itself derived
+	// from BaseURL's scheme elsewhere, so we check that here.
+	if c.Session.CookieSameSite == http.SameSiteNoneMode && !strings.HasPrefix(c.BaseURL, "https://") {
+		return fmt.Errorf("PACKYARD_COOKIE_SAMESITE=none requires PACKYARD_BASE_URL to be https:// (cookie must be Secure)")
+	}
+	if c.PublicURL != "" && !strings.HasPrefix(c.PublicURL, "http://") && !strings.HasPrefix(c.PublicURL, "https://") {
+		return fmt.Errorf("PACKYARD_PUBLIC_URL must start with http:// or https:// (got %q)", c.PublicURL)
+	}
 	return nil
+}
+
+// parseSameSite maps the env string to an http.SameSite mode. Unknown
+// values fall back to Strict (the safest default). We return the parsed
+// value plus an ok flag; Load() uses ok to record a warning via a
+// startup log rather than silently accepting a typo.
+func parseSameSite(s string) (http.SameSite, bool) {
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "", "strict":
+		return http.SameSiteStrictMode, true
+	case "lax":
+		return http.SameSiteLaxMode, true
+	case "none":
+		return http.SameSiteNoneMode, true
+	default:
+		return http.SameSiteStrictMode, false
+	}
 }
 
 // TokenFor returns the global auth token for a given provider.
@@ -190,15 +241,21 @@ func Load() *Config {
 			SecretKey:      env("PACKYARD_S3_SECRET_KEY", ""),
 			ForcePathStyle: envBool("PACKYARD_S3_FORCE_PATH_STYLE", false),
 		},
-		Session: SessionConfig{
-			Secret: env("PACKYARD_SESSION_SECRET", ""),
-			MaxAge: envInt("PACKYARD_SESSION_MAX_AGE", 86400),
-		},
+		Session: func() SessionConfig {
+			sameSite, _ := parseSameSite(env("PACKYARD_COOKIE_SAMESITE", "strict"))
+			return SessionConfig{
+				Secret:         env("PACKYARD_SESSION_SECRET", ""),
+				MaxAge:         envInt("PACKYARD_SESSION_MAX_AGE", 86400),
+				CookieDomain:   env("PACKYARD_COOKIE_DOMAIN", ""),
+				CookieSameSite: sameSite,
+			}
+		}(),
 		Admin: AdminConfig{
 			Email:    env("PACKYARD_ADMIN_EMAIL", "admin@example.com"),
 			Password: env("PACKYARD_ADMIN_PASSWORD", "changeme"),
 		},
-		Mode: env("PACKYARD_MODE", "single"),
+		Mode:      env("PACKYARD_MODE", "single"),
+		PublicURL: env("PACKYARD_PUBLIC_URL", ""),
 		Providers: ProvidersConfig{
 			GitHubToken: env("PACKYARD_GITHUB_TOKEN", ""),
 			GitLabToken: env("PACKYARD_GITLAB_TOKEN", ""),

@@ -68,8 +68,16 @@ func SessionIDFromContext(ctx context.Context) (string, bool) {
 	return id, ok
 }
 
+// CookieOptions bundles the deployment-specific cookie attributes so
+// every call site picks them up from config rather than hardcoding.
+type CookieOptions struct {
+	Secure   bool
+	Domain   string
+	SameSite http.SameSite
+}
+
 // CreateSession creates a new session for a user and sets the signed cookie.
-func CreateSession(w http.ResponseWriter, sessions store.SessionStore, secret string, userID int64, maxAge int, secure bool) error {
+func CreateSession(w http.ResponseWriter, sessions store.SessionStore, secret string, userID int64, maxAge int, opts CookieOptions) error {
 	id, err := generateSessionID()
 	if err != nil {
 		return err
@@ -89,19 +97,22 @@ func CreateSession(w http.ResponseWriter, sessions store.SessionStore, secret st
 		Name:     sessionCookieName,
 		Value:    signCookie(session.ID, secret),
 		Path:     "/",
+		Domain:   opts.Domain,
 		MaxAge:   maxAge,
 		HttpOnly: true,
-		Secure:   secure,
-		SameSite: http.SameSiteStrictMode,
+		Secure:   opts.Secure,
+		SameSite: resolveSameSite(opts.SameSite),
 	})
 
 	return nil
 }
 
-// ClearSession deletes the session and clears the cookie. The secure flag
-// must mirror what was set in CreateSession so the browser correctly
-// matches and replaces the original cookie.
-func ClearSession(w http.ResponseWriter, r *http.Request, sessions store.SessionStore, secret string, secure bool) {
+// ClearSession deletes the session and clears the cookie. The cookie
+// options must mirror what was set in CreateSession so the browser
+// correctly matches and replaces the original cookie — in particular
+// Domain must match, otherwise the browser sets a second cookie rather
+// than clearing the first.
+func ClearSession(w http.ResponseWriter, r *http.Request, sessions store.SessionStore, secret string, opts CookieOptions) {
 	if cookie, err := r.Cookie(sessionCookieName); err == nil {
 		if id, ok := verifyCookie(cookie.Value, secret); ok {
 			_ = sessions.Delete(r.Context(), id)
@@ -112,11 +123,24 @@ func ClearSession(w http.ResponseWriter, r *http.Request, sessions store.Session
 		Name:     sessionCookieName,
 		Value:    "",
 		Path:     "/",
+		Domain:   opts.Domain,
 		MaxAge:   -1,
 		HttpOnly: true,
-		Secure:   secure,
-		SameSite: http.SameSiteStrictMode,
+		Secure:   opts.Secure,
+		SameSite: resolveSameSite(opts.SameSite),
 	})
+}
+
+// resolveSameSite maps Go's zero value to Strict. The stdlib's
+// http.SameSite is iota+1, so the zero value (0) is "unset" and
+// http.SetCookie would skip the attribute entirely — yielding a
+// cookie with no SameSite at all, which browsers then treat as
+// Lax-by-default. We prefer Strict as the safe floor.
+func resolveSameSite(s http.SameSite) http.SameSite {
+	if s == 0 {
+		return http.SameSiteStrictMode
+	}
+	return s
 }
 
 func generateSessionID() (string, error) {

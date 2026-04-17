@@ -1,7 +1,7 @@
 package server
 
 import (
-	"fmt"
+	"encoding/json"
 	"io/fs"
 	"net/http"
 	"time"
@@ -47,10 +47,19 @@ func NewMux(cfg *config.Config, stores *store.Stores, strg storage.Storage, cach
 		w.Write([]byte("ok\n"))
 	})
 
-	// Public config (tells frontend which mode we're in).
+	// Public config (tells frontend which mode we're in, and optionally
+	// a public-facing homepage URL the dashboard can surface as a
+	// "back" link).
 	mux.HandleFunc("GET /api/config", func(w http.ResponseWriter, r *http.Request) {
+		payload := map[string]string{
+			"mode":     cfg.Mode,
+			"base_url": cfg.BaseURL,
+		}
+		if cfg.PublicURL != "" {
+			payload["public_url"] = cfg.PublicURL
+		}
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintf(w, `{"mode":%q,"base_url":%q}`, cfg.Mode, cfg.BaseURL)
+		_ = json.NewEncoder(w).Encode(payload)
 	})
 
 	// Composer protocol. URL shape depends on mode:

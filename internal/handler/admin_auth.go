@@ -54,8 +54,7 @@ func (h *AdminAuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	secure := strings.HasPrefix(h.cfg.BaseURL, "https")
-	if err := auth.CreateSession(w, h.sessions, h.cfg.Session.Secret, user.ID, h.cfg.Session.MaxAge, secure); err != nil {
+	if err := auth.CreateSession(w, h.sessions, h.cfg.Session.Secret, user.ID, h.cfg.Session.MaxAge, cookieOptions(h.cfg)); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed_create_session", "failed to create session")
 		return
 	}
@@ -66,9 +65,21 @@ func (h *AdminAuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AdminAuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	secure := strings.HasPrefix(h.cfg.BaseURL, "https")
-	auth.ClearSession(w, r, h.sessions, h.cfg.Session.Secret, secure)
+	auth.ClearSession(w, r, h.sessions, h.cfg.Session.Secret, cookieOptions(h.cfg))
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// cookieOptions derives the session-cookie attributes from runtime
+// config: Secure from the BaseURL scheme, Domain + SameSite from the
+// two optional env vars. All session-cookie writes in this package
+// funnel through here so deployments opting into shared-parent-domain
+// login get one consistent cookie shape.
+func cookieOptions(cfg *config.Config) auth.CookieOptions {
+	return auth.CookieOptions{
+		Secure:   strings.HasPrefix(cfg.BaseURL, "https"),
+		Domain:   cfg.Session.CookieDomain,
+		SameSite: cfg.Session.CookieSameSite,
+	}
 }
 
 func (h *AdminAuthHandler) Me(w http.ResponseWriter, r *http.Request) {

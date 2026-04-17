@@ -110,8 +110,7 @@ func (h *AdminSSOHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	secure := strings.HasPrefix(h.cfg.BaseURL, "https")
-	if err := auth.CreateSession(w, h.sessions, h.cfg.Session.Secret, user.ID, h.cfg.Session.MaxAge, secure); err != nil {
+	if err := auth.CreateSession(w, h.sessions, h.cfg.Session.Secret, user.ID, h.cfg.Session.MaxAge, cookieOptions(h.cfg)); err != nil {
 		slog.Error("admin sso login: failed to create session", "error", err)
 		http.Error(w, "failed to create session", http.StatusInternalServerError)
 		return

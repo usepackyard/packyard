@@ -186,7 +186,7 @@ Handlers talk to interfaces only — never to `*bun.DB` directly. All handlers f
 ### Auth
 
 - **Composer clients**: HTTP Basic auth. Token is the username, the per-token generated password is the password. Both are generated when creating a token and shown once. Token is SHA256-hashed in the DB (`token_hash`), password is bcrypt-hashed (`password_hash`); neither stored plaintext. Expiration checked on every request. Last-used timestamp updated asynchronously in a background goroutine.
-- **Admin dashboard**: Session cookies (`packyard_session`). Session ID is 32 random bytes hex-encoded, signed with HMAC-SHA256 (`PACKYARD_SESSION_SECRET`, ≥32 chars, fail-fast at startup). Secure flag set based on `PACKYARD_BASE_URL` scheme. SameSite=Strict. Org resolved from URL path (multi mode) or injected as id=1 (single mode).
+- **Admin dashboard**: Session cookies (`packyard_session`). Session ID is 32 random bytes hex-encoded, signed with HMAC-SHA256 (`PACKYARD_SESSION_SECRET`, ≥32 chars, fail-fast at startup). Secure flag set based on `PACKYARD_BASE_URL` scheme. SameSite defaults to Strict — override via `PACKYARD_COOKIE_SAMESITE`. Cookie `Domain` defaults to host-only — set `PACKYARD_COOKIE_DOMAIN` to a parent domain to share login across subdomains. Org resolved from URL path (multi mode) or injected as id=1 (single mode).
 - **Super-admin API** (`/api/admin/*`): Either session-cookie super-admin OR `Authorization: Bearer <admin-token>`. Admin tokens live in `admin_tokens` (separate from org-scoped Composer tokens), prefix `adm_`, SHA-256 hashed in DB. Used for machine-to-machine org lifecycle (suspend/reactivate/archive).
 - **Org lifecycle**: `organizations.status` ∈ {`active`, `suspended`, `archived`}. Suspended → 402, archived → 404 (data preserved either way). Hard delete requires `?force=true` and refuses if packages exist without it.
 
@@ -266,9 +266,19 @@ All prefixed with `PACKYARD_`. Key ones:
 | `PACKYARD_ADMIN_PASSWORD` | changeme | Seeded on first run |
 | `PACKYARD_GITHUB_TOKEN` | (empty) | PAT for private repo sync |
 | `PACKYARD_SESSION_SECRET` | (required, ≥32 chars) | HMAC key for signing session cookies. Server refuses to start without it. |
+| `PACKYARD_COOKIE_DOMAIN` | (empty) | `Domain` attribute on the session cookie. Empty = host-only. Set to a parent domain (e.g. `.example.com`) to share login across subdomains. |
+| `PACKYARD_COOKIE_SAMESITE` | strict | `SameSite` attribute on the session cookie: `strict` \| `lax` \| `none`. Use `lax` when `PACKYARD_COOKIE_DOMAIN` is set so the cookie travels on cross-subdomain redirects. `none` requires HTTPS. |
 | `PACKYARD_TRUSTED_PROXIES` | (empty) | Comma-separated CIDRs of reverse proxies whose X-Forwarded-For is honored. Required when behind a proxy — otherwise rate limiter is bypassable. |
 
 Full list in `.env.example`.
+
+### Optional deployment knobs
+
+These aren't in `.env.example` and most operators don't need them.
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `PACKYARD_PUBLIC_URL` | (empty) | Absolute URL to an external homepage (company site, docs, intranet). When set, the dashboard shows a "back" link in the sidebar footer pointing at it. Must start with `http://` or `https://`. |
 
 ## Default Credentials
 

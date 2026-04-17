@@ -13,6 +13,7 @@
   },
   "enterSuperAdmin": "Entrar no super-admin",
   "backToDashboard": "Voltar ao painel",
+  "backHome": "Voltar à página inicial",
   "contextSwitcher": {
     "superAdmin": "Super-admin",
     "allOrgs": "todas as organizações",

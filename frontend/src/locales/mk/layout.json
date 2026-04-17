@@ -13,6 +13,7 @@
   },
   "enterSuperAdmin": "Влези во Супер-админ",
   "backToDashboard": "Назад на контролната табла",
+  "backHome": "Назад кон почетната",
   "contextSwitcher": {
     "superAdmin": "Супер-админ",
     "allOrgs": "сите организации",

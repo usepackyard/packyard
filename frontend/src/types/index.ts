@@ -184,4 +184,10 @@ export interface APIToken {
 export interface AppConfig {
   mode: "single" | "multi";
   base_url: string;
+  // Optional absolute URL of an external homepage (operator's main
+  // site, docs, intranet). When present, the dashboard renders a
+  // subtle "back" link pointing at it. Emitted by the server only
+  // when PACKYARD_PUBLIC_URL is set, so the property is absent on
+  // deployments that don't opt in.
+  public_url?: string;
 }

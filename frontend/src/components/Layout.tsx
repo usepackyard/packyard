@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
 import {
   ArrowLeft,
   Building2,
+  ExternalLink,
   Key,
   LayoutDashboard,
   LogOut,
@@ -185,6 +186,20 @@ export default function Layout() {
             <LogOut className="h-4 w-4" />
             {t("layout.signOut")}
           </Button>
+          {/* Optional back-link to the operator's public homepage —
+              rendered only when PACKYARD_PUBLIC_URL is set on the
+              server (surfaced via /api/config as `public_url`). Lives
+              at the bottom of the sidebar so it reads as "leave the
+              app", not as part of in-app navigation. */}
+          {config?.public_url && (
+            <a
+              href={config.public_url}
+              className="flex items-center gap-3 px-3 py-2 mt-1 rounded-md text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            >
+              <ExternalLink className="h-4 w-4" />
+              {t("layout:backHome")}
+            </a>
+          )}
         </div>
       </aside>
 
