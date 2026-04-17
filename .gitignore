@@ -1,5 +1,6 @@
-# Binary
-packyard
+# Binary (built at repo root by `make build`). Anchored so it doesn't
+# also ignore cmd/packyard/.
+/packyard
 
 # Database
 *.db

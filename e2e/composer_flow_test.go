@@ -67,7 +67,7 @@ func start(t *testing.T) *fixture {
 	cache2 := composer.NewCache(stores.Packages, stores.Orgs, cfg.BaseURL, cfg.Mode)
 	ts.Config.Handler = server.Wrap(cfg, server.NewMux(cfg, stores, strg, cache2, nil))
 
-	// Seed a super-admin user (mirrors what cmd/server/main.go does on first run).
+	// Seed a super-admin user (mirrors what cmd/packyard/serve.go does on first run).
 	hash, err := auth.HashPassword("admin-password", 4)
 	if err != nil {
 		t.Fatalf("hash: %v", err)

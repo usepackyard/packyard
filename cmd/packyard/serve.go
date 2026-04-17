@@ -28,15 +28,17 @@ import (
 	"github.com/usepackyard/packyard/internal/store"
 )
 
-var version = "dev"
-
-func main() {
+// runServe is the default subcommand: boot config, DB, storage, cache,
+// HTTP server, background workers; block until SIGINT/SIGTERM; graceful
+// shutdown. Takes `args` for back-compat flag passthrough but currently
+// ignores them — the server is configured entirely via env vars.
+func runServe(_ []string) int {
 	cfg := config.Load()
 	setupLogger(cfg.Log.Level)
 
 	if err := cfg.Validate(); err != nil {
 		slog.Error("invalid configuration", "error", err)
-		os.Exit(1)
+		return 1
 	}
 
 	slog.Info("starting packyard", "version", version, "port", cfg.Port, "db_driver", cfg.DB.Driver, "storage", cfg.Storage.Type, "mode", cfg.Mode)
@@ -45,41 +47,41 @@ func main() {
 	db, err := database.Open(cfg.DB)
 	if err != nil {
 		slog.Error("failed to open database", "error", err)
-		os.Exit(1)
+		return 1
 	}
 	defer db.Close()
 
 	if err := database.Migrate(db); err != nil {
 		slog.Error("failed to run migrations", "error", err)
-		os.Exit(1)
+		return 1
 	}
 
 	stores := store.NewStores(db)
 
 	if err := seedDefaults(stores, cfg); err != nil {
 		slog.Error("failed to seed defaults", "error", err)
-		os.Exit(1)
+		return 1
 	}
 
 	// Storage.
 	strg, err := storage.New(cfg)
 	if err != nil {
 		slog.Error("failed to initialize storage", "error", err)
-		os.Exit(1)
+		return 1
 	}
 
 	// Composer metadata cache.
 	cache := composer.NewCache(stores.Packages, stores.Orgs, cfg.BaseURL, cfg.Mode)
 	if err := cache.RebuildAll(context.Background()); err != nil {
 		slog.Error("failed to build initial metadata cache", "error", err)
-		os.Exit(1)
+		return 1
 	}
 
 	// Frontend filesystem (embedded SPA).
 	frontendFS, err := frontend.FS()
 	if err != nil {
 		slog.Error("failed to load embedded frontend", "error", err)
-		os.Exit(1)
+		return 1
 	}
 
 	// HTTP server.
@@ -142,6 +144,7 @@ func main() {
 
 	cancel()
 	slog.Info("server stopped")
+	return 0
 }
 
 // seedDefaults provisions a super-admin user from PACKYARD_ADMIN_EMAIL /

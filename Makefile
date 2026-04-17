@@ -5,13 +5,13 @@ DEV_SESSION_SECRET = devdevdevdevdevdevdevdevdevdev01
 
 # Development: single-tenant mode (self-hosted)
 dev: frontend
-	go build -o packyard ./cmd/server/
+	go build -o packyard ./cmd/packyard/
 	PACKYARD_PORT=9090 PACKYARD_BASE_URL=http://localhost:9090 \
 		PACKYARD_SESSION_SECRET=$(DEV_SESSION_SECRET) ./packyard
 
 # Development: multi-tenant mode
 dev-multi: frontend
-	go build -o packyard ./cmd/server/
+	go build -o packyard ./cmd/packyard/
 	PACKYARD_PORT=9090 PACKYARD_BASE_URL=http://localhost:9090 \
 		PACKYARD_MODE=multi \
 		PACKYARD_SESSION_SECRET=$(DEV_SESSION_SECRET) ./packyard
@@ -24,7 +24,7 @@ frontend:
 
 # Build production Go binary (requires frontend to be built first)
 build: frontend
-	CGO_ENABLED=0 go build -ldflags="-s -w" -o packyard ./cmd/server/
+	CGO_ENABLED=0 go build -ldflags="-s -w" -o packyard ./cmd/packyard/
 
 # Run tests
 test:

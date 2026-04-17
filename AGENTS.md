@@ -36,7 +36,7 @@ Frontend uses **Bun** (not npm/yarn). The dev server proxies API requests to the
 
 ```bash
 # Terminal 1: Run Go backend
-PACKYARD_PORT=8080 go run ./cmd/server/
+PACKYARD_PORT=8080 go run ./cmd/packyard/
 
 # Terminal 2: Run Vite dev server (proxies /api, /packages.json, /p2, /dist → localhost:8080)
 cd frontend && bun install && bun run dev
@@ -80,6 +80,20 @@ This project follows **test-driven development**. Every new feature, bug fix, or
 
 **Never merge code with no tests** — even "trivial" changes. The audit already caught one regression (SHA-256 vs SHA-1 for Composer dist checksums) that existed because the code had never been exercised end-to-end. The E2E suite catches that class of bug in 10 ms; missing tests will cost far more than the time to write them.
 
+## CLI surface
+
+The binary supports a few subcommands in addition to the default server mode. Running `packyard` with no arguments still starts the server (same as pre-subcommand versions), so existing Dockerfiles, systemd units, and k8s manifests keep working untouched.
+
+| Command | Purpose |
+|---|---|
+| `packyard serve` | Run the HTTP server. Default when no subcommand is given. |
+| `packyard version [--short]` | Print version, commit SHA, build date, Go version, OS/arch. `--short` prints only the version string. |
+| `packyard healthcheck [--url URL] [--timeout DUR]` | Hit `/healthz` and exit 0 on HTTP 200, non-zero otherwise. Defaults to `http://127.0.0.1:$PACKYARD_PORT/healthz`. Used by the Dockerfile `HEALTHCHECK` directive. |
+| `packyard check-config` | Load env into a Config, run Validate(), exit 0 if healthy. No side effects — no DB connection, no port bind. |
+| `packyard check-db` | Open the configured DB and run `SELECT 1`. Used by `packyard init` to probe MySQL/Postgres credentials before writing them to the env file. |
+| `packyard migrate` | Run pending migrations. Idempotent (bun tracks applied groups). Designed for k8s init containers. |
+| `packyard admin user create --email E --password P [--name N] [--super-admin]` | Create a new user directly in the DB. Works without the server running. Reads `PACKYARD_ADMIN_PASSWORD` if `--password` is omitted. Useful for install bootstrap and disaster recovery. Exit codes: 0 success, 1 DB error, 2 validation error, 3 email already exists. |
+
 ## Architecture
 
 ### Modes
@@ -111,7 +125,7 @@ curl -X POST http://localhost:9090/api/admin/orgs/acme/members \
 
 ### Startup Lifecycle
 
-`cmd/server/main.go` runs: config load → DB connect (WAL mode for SQLite, pool: 25 open / 5 idle) → migrations → seed default org + admin user (single mode, first run) → warm Composer metadata cache → start session cleanup goroutine (every 1h) → HTTP server with 30s graceful shutdown.
+`cmd/packyard/serve.go` runs: config load → DB connect (WAL mode for SQLite, pool: 25 open / 5 idle) → migrations → seed default org + admin user (single mode, first run) → warm Composer metadata cache → start session cleanup goroutine (every 1h) → HTTP server with 30s graceful shutdown.
 
 ### Request Flow
 
@@ -126,7 +140,7 @@ Permission checks happen **inside handlers** (not as route middleware). Handlers
 ### Directory Structure
 
 ```
-cmd/server/main.go              Entry point
+cmd/packyard/serve.go              Entry point
 internal/
   auth/                         HTTP Basic (API tokens), session cookies, org middleware, permissions
   composer/                     Composer v2 metadata cache + protocol helpers
@@ -188,7 +202,7 @@ Provider-agnostic interface at `internal/provider/provider.go`. Providers self-r
 GitHub implementation at `internal/provider/github/`. Adding a new provider (e.g., GitLab) requires only:
 1. `internal/provider/gitlab/client.go` — implement `Provider` interface
 2. `internal/provider/gitlab/webhook.go` — webhook parsing + validation
-3. Blank import in `cmd/server/main.go`
+3. Blank import in `cmd/packyard/serve.go`
 
 Sync logic at `internal/provider/sync.go` is provider-agnostic.
 
@@ -257,7 +271,7 @@ Full list in `.env.example`.
 
 ## Default Credentials
 
-- **Super-admin**: `PACKYARD_ADMIN_EMAIL` / `PACKYARD_ADMIN_PASSWORD` (default `admin@example.com` / `changeme`). Seeded on first run in **both** modes — `seedDefaults` in `cmd/server/main.go` flips `is_super_admin=true` on this user. Single mode also seeds a "default" org with the admin as owner; multi mode creates only the super-admin (additional orgs are provisioned via `/api/admin/orgs`).
+- **Super-admin**: `PACKYARD_ADMIN_EMAIL` / `PACKYARD_ADMIN_PASSWORD` (default `admin@example.com` / `changeme`). Seeded on first run in **both** modes — `seedDefaults` in `cmd/packyard/serve.go` flips `is_super_admin=true` on this user. Single mode also seeds a "default" org with the admin as owner; multi mode creates only the super-admin (additional orgs are provisioned via `/api/admin/orgs`).
 - **Composer password**: Generated per-token at creation time. Shown once alongside the token, never stored plaintext.
 
 ### Promoting an existing user to super-admin

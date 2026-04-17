@@ -2,7 +2,7 @@
 // SyncJob via the JobStore; workers claim and execute; a sweeper
 // recovers jobs left stuck in "running" by crashed workers.
 //
-// See cmd/server/main.go for boot-time setup and docs/ for operator
+// See cmd/packyard/serve.go for boot-time setup and docs/ for operator
 // notes on workers/retention.
 package jobs
 
