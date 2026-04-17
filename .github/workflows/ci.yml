@@ -73,7 +73,10 @@ jobs:
         with:
           context: .
           push: true
-          platforms: linux/amd64,linux/arm64
+          # Keep in sync with release.yml — dropping arm64 avoids the
+          # ~7× QEMU slowdown on the frontend build, and there's no
+          # arm64 consumer of the main image today.
+          platforms: linux/amd64
           build-args: |
             VERSION=main-${{ github.sha }}
           tags: ${{ steps.meta.outputs.tags }}
