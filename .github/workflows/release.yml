@@ -1,11 +1,11 @@
 # Versioned release workflow. Fires on v* tag push.
 #
 # Produces (per tag):
-#   packyard-<tag>-linux-<arch>.tar.gz   (pinnable — e.g. v1.0.0-beta.1)
-#   packyard-linux-<arch>.tar.gz         (version-less alias; what
-#                                         install.sh downloads via
-#                                         /releases/latest/download/...)
-#   SHA256SUMS                           (covers both)
+#   packyard-<tag>-linux-amd64.tar.gz   (pinnable — e.g. v1.0.0-beta.1)
+#   packyard-linux-amd64.tar.gz         (version-less alias; what
+#                                        install.sh downloads via
+#                                        /releases/latest/download/...)
+#   SHA256SUMS                          (covers both)
 #
 # plus:
 #   - GHCR Docker image tagged with {version}, {major.minor}, {major}
@@ -16,6 +16,10 @@
 # redirect (which install.sh relies on) excludes prereleases. When we
 # ship stable v1.0.0 and start cutting v1.1.0-beta.* etc., re-enable
 # `prerelease: ${{ contains(github.ref_name, '-') }}` below.
+#
+# The build + push happen in a single job so BuildKit's local builder
+# cache serves the second invocation (image push) from state produced
+# by the first (binary extract) — stages 1+2 run once, not twice.
 
 name: Release
 
@@ -29,48 +33,8 @@ permissions:
   packages: write
 
 jobs:
-  build:
-    name: build linux/amd64
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: docker/setup-buildx-action@v3
-
-      - name: Build binary via Dockerfile
-        run: |
-          docker buildx build \
-            --platform linux/amd64 \
-            --target export \
-            --build-arg VERSION=${{ github.ref_name }} \
-            --output type=local,dest=./out \
-            --cache-from type=gha \
-            --cache-to type=gha,mode=max \
-            .
-
-      - name: Package tarballs
-        run: |
-          mkdir -p dist
-          # Binary sits at out/packyard after the export target runs.
-          install -m 0755 out/packyard dist/packyard
-
-          # Version-pinned tarball (users pin with --version <tag>).
-          tar -czf "dist/packyard-${GITHUB_REF_NAME}-linux-amd64.tar.gz" -C dist packyard
-
-          # Version-less alias — install.sh downloads this via
-          # GitHub's /releases/latest/download/ redirect, which
-          # resolves the version transparently.
-          tar -czf "dist/packyard-linux-amd64.tar.gz" -C dist packyard
-
-          rm dist/packyard
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: bin-linux-amd64
-          path: dist/*.tar.gz
-          retention-days: 1
-
-  docker:
+  build-and-push:
+    name: build + push
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -92,6 +56,35 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
 
+      # Pass 1: build through the `export` target and pull the binary
+      # out to a local directory so we can tar it up for the release.
+      - name: Extract binary
+        run: |
+          docker buildx build \
+            --platform linux/amd64 \
+            --target export \
+            --build-arg VERSION=${{ github.ref_name }} \
+            --output type=local,dest=./out \
+            --cache-from type=gha \
+            --cache-to type=gha,mode=max \
+            .
+
+      - name: Package tarballs
+        run: |
+          mkdir -p dist
+          install -m 0755 out/packyard dist/packyard
+          # Version-pinned tarball (users pin with --version <tag>).
+          tar -czf "dist/packyard-${GITHUB_REF_NAME}-linux-amd64.tar.gz" -C dist packyard
+          # Version-less alias — install.sh downloads this via GitHub's
+          # /releases/latest/download/ redirect, which resolves the
+          # version transparently.
+          tar -czf "dist/packyard-linux-amd64.tar.gz" -C dist packyard
+          rm dist/packyard
+
+      # Pass 2: build the full image (runtime stage) and push to GHCR.
+      # Every layer up through `export` is already in BuildKit's local
+      # cache from pass 1, so this step effectively just materialises
+      # the runtime stage + push.
       - uses: docker/build-push-action@v6
         with:
           context: .
@@ -104,13 +97,19 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bin-linux-amd64
+          path: dist/*.tar.gz
+          retention-days: 1
+
   release:
     name: publish release
     runs-on: ubuntu-latest
-    needs: build
+    needs: build-and-push
     steps:
       # Filter so we only pull the binary artifact, not the build-record
-      # metadata the docker job uploads as a side effect.
+      # metadata the docker/build-push-action uploads as a side effect.
       - uses: actions/download-artifact@v4
         with:
           path: dist
