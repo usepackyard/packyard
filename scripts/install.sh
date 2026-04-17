@@ -140,19 +140,20 @@ detect_arch() {
 download_and_verify() {
     local arch="$1" version="$2" tmpdir="$3"
 
-    # Asset URL patterns:
-    #   latest  →  /releases/latest/download/packyard-linux-<arch>.tar.gz
-    #              (GitHub redirects to the most recent release's asset)
-    #   vX.Y.Z  →  /releases/download/<tag>/packyard-<tag>-linux-<arch>.tar.gz
-    #              (version-named for pinning; lives on that exact release)
-    local asset_name base_url checksum_url
+    # Resolve "latest" to an actual tag. We hit the /releases list
+    # endpoint (which includes prereleases) instead of GitHub's
+    # /releases/latest/download redirect (which skips them), so pre-1.0
+    # betas are installable through this script.
     if [ "$version" = "latest" ]; then
-        asset_name="packyard-linux-${arch}.tar.gz"
-        base_url="https://github.com/${PACKYARD_REPO}/releases/latest/download"
-    else
-        asset_name="packyard-${version}-linux-${arch}.tar.gz"
-        base_url="https://github.com/${PACKYARD_REPO}/releases/download/${version}"
+        version="$(resolve_latest_tag "$tmpdir")"
+        info "resolved latest → ${version}"
     fi
+
+    # Single URL pattern for both auto-resolved and --version paths:
+    #   /releases/download/<tag>/packyard-<tag>-linux-<arch>.tar.gz
+    local asset_name base_url checksum_url
+    asset_name="packyard-${version}-linux-${arch}.tar.gz"
+    base_url="https://github.com/${PACKYARD_REPO}/releases/download/${version}"
     checksum_url="${base_url}/SHA256SUMS"
 
     info "downloading ${asset_name}"
@@ -186,6 +187,32 @@ download_and_verify() {
         err "tarball did not contain an executable 'packyard'"
         exit 1
     fi
+}
+
+# resolve_latest_tag fetches the repo's /releases list and returns the
+# first tag_name in the response. Unlike /releases/latest, this endpoint
+# includes prereleases, so pre-1.0 betas are discoverable.
+#
+# Output goes to stdout; failures go to stderr + exit. No jq dependency;
+# we grep the first "tag_name" field, which is always the most recent
+# release in GitHub's default ordering.
+resolve_latest_tag() {
+    local tmpdir="$1"
+    local body tag
+    body="$tmpdir/releases.json"
+    if ! fetch "https://api.github.com/repos/${PACKYARD_REPO}/releases?per_page=1" "$body"; then
+        err "failed to query the GitHub releases API for ${PACKYARD_REPO}"
+        err "Possible causes: repo is private, rate-limited, or offline."
+        err "Workaround: pin a version with --version vX.Y.Z"
+        exit 1
+    fi
+    tag="$(grep -m1 '"tag_name"' "$body" | sed -E 's/.*"tag_name"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/')"
+    if [ -z "$tag" ]; then
+        err "could not parse a tag from the GitHub releases API response"
+        err "first line: $(head -n1 "$body")"
+        exit 1
+    fi
+    printf '%s\n' "$tag"
 }
 
 default_bin_dir() {

@@ -13,7 +13,7 @@ The rest of this page is for everything else: unattended installs, air-gapped ho
 ## What the install script actually does
 
 1. **Preflight** — checks `curl` / `wget`, `tar`, `sha256sum` / `shasum`. Requires Linux amd64 (x86_64). arm64 and macOS build from source — see the repo README.
-2. **Download** — resolves `https://github.com/usepackyard/packyard/releases/latest/download/packyard-linux-amd64.tar.gz` (GitHub redirects to the current release) plus `SHA256SUMS`.
+2. **Download** — queries GitHub's `/releases` API for the most recent release tag (including pre-releases), then downloads `packyard-<tag>-linux-amd64.tar.gz` and `SHA256SUMS` from that release.
 3. **Verify** — hashes the tarball and compares against the expected value in `SHA256SUMS`. Any mismatch is a hard fail.
 4. **Install** — extracts the binary, places it in `/usr/local/bin/packyard` (root install) or `~/.local/bin/packyard` (non-root). `chmod 0755`.
 5. **Handoff** — `exec packyard init` with any arguments you passed after `--`.

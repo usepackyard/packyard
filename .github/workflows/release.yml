@@ -1,21 +1,20 @@
 # Versioned release workflow. Fires on v* tag push.
 #
 # Produces (per tag):
-#   packyard-<tag>-linux-amd64.tar.gz   (pinnable — e.g. v1.0.0-beta.1)
-#   packyard-linux-amd64.tar.gz         (version-less alias; what
-#                                        install.sh downloads via
-#                                        /releases/latest/download/...)
-#   SHA256SUMS                          (covers both)
+#   packyard-<tag>-linux-amd64.tar.gz   (the one and only binary tarball)
+#   SHA256SUMS                          (covers it)
 #
 # plus:
 #   - GHCR Docker image tagged with {version}, {major.minor}, {major}
 #   - GitHub Release with generated notes
 #
-# Prerelease-marker note: during the v1.0.0-beta.* period we DO NOT mark
-# these as prereleases, because GitHub's /releases/latest/download/…
-# redirect (which install.sh relies on) excludes prereleases. When we
-# ship stable v1.0.0 and start cutting v1.1.0-beta.* etc., re-enable
-# `prerelease: ${{ contains(github.ref_name, '-') }}` below.
+# Prerelease detection: any tag containing `-` (semver pre-release
+# identifier — `-alpha`, `-beta`, `-rc`) is flagged as prerelease. Stable
+# `vX.Y.Z` tags ship as full releases. install.sh resolves "latest" via
+# the GitHub `/releases` list API (which includes prereleases) rather
+# than the `/releases/latest/download/…` redirect (which skips them), so
+# pre-1.0 betas can correctly carry the pre-release badge and still be
+# installable through `curl | sh`.
 #
 # The build + push happen in a single job so BuildKit's local builder
 # cache serves the second invocation (image push) from state produced
@@ -69,16 +68,14 @@ jobs:
             --cache-to type=gha,mode=max \
             .
 
-      - name: Package tarballs
+      - name: Package tarball
         run: |
           mkdir -p dist
           install -m 0755 out/packyard dist/packyard
-          # Version-pinned tarball (users pin with --version <tag>).
+          # Version-pinned tarball — install.sh resolves the tag name
+          # via the GitHub API and downloads this exact asset. Users
+          # pinning with --version <tag> hit the same file.
           tar -czf "dist/packyard-${GITHUB_REF_NAME}-linux-amd64.tar.gz" -C dist packyard
-          # Version-less alias — install.sh downloads this via GitHub's
-          # /releases/latest/download/ redirect, which resolves the
-          # version transparently.
-          tar -czf "dist/packyard-linux-amd64.tar.gz" -C dist packyard
           rm dist/packyard
 
       # Pass 2: build the full image (runtime stage) and push to GHCR.
@@ -124,8 +121,8 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
-          # See file header for why we don't mark betas as prereleases.
-          prerelease: false
+          # Any tag containing `-` is a semver pre-release identifier.
+          prerelease: ${{ contains(github.ref_name, '-') }}
           files: |
             dist/*.tar.gz
             dist/SHA256SUMS
