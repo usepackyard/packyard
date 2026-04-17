@@ -21,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useConfirm } from "@/hooks/useConfirm";
+import { ManualUploadDialog } from "@/components/ManualUploadDialog";
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -39,6 +40,11 @@ export default function PackageDetail() {
   const [webhookUrl, setWebhookUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  // Manual-mode upload intercept: when the source is upload+manual we
+  // can't just POST the zip — the backend needs a version (and
+  // optional require override) that the zip can't supply. Stash the
+  // file here, open the modal, then submit once the user fills in.
+  const [manualUploadFile, setManualUploadFile] = useState<File | null>(null);
   // Sync state. `activeJob` drives the progress UI while a job is
   // queued/running; `syncResult` renders the categorized Sync Result card
   // once the job reaches terminal status.
@@ -66,9 +72,30 @@ export default function PackageDetail() {
   useEffect(() => { load(); }, [load]);
 
   const handleUpload = async (file: File) => {
+    // Manual metadata can't be inferred from the zip — route to the
+    // dialog instead so the user supplies version + optional
+    // require override. Any other combination goes straight to POST.
+    if (source?.provider === "upload" && source.metadata_source === "manual") {
+      setManualUploadFile(file);
+      return;
+    }
     setUploading(true);
     try {
       await api.uploadVersion(pkgId, file);
+      load();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : t("detail.upload.failed"));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleManualUpload = async (args: { version: string; requireOverride: string }) => {
+    if (!manualUploadFile) return;
+    setUploading(true);
+    try {
+      await api.uploadVersion(pkgId, manualUploadFile, args);
+      setManualUploadFile(null);
       load();
     } catch (err) {
       alert(err instanceof Error ? err.message : t("detail.upload.failed"));
@@ -168,6 +195,14 @@ export default function PackageDetail() {
   return (
     <div>
       {confirmDialog}
+      <ManualUploadDialog
+        open={manualUploadFile !== null}
+        filename={manualUploadFile?.name ?? null}
+        baselineRequire={source?.manual_require ?? ""}
+        submitting={uploading}
+        onSubmit={handleManualUpload}
+        onCancel={() => setManualUploadFile(null)}
+      />
       <Button variant="ghost" size="sm" className="mb-4" onClick={() => navigate("/packages")}>
         <ArrowLeft className="h-4 w-4 mr-2" />{t("detail.back")}
       </Button>
@@ -374,7 +409,8 @@ function SourceCard({ pkgId, source, webhookUrl, syncing, activeJob, syncResult,
   const [preview, setPreview] = useState<ReleasePreview[] | null>(null);
   const [previewError, setPreviewError] = useState("");
 
-  const needsAssetPattern = form.strategy === "release_asset";
+  const isGitHub = form.provider === "github";
+  const needsAssetPattern = isGitHub && form.strategy === "release_asset";
   const isManual = form.metadata_source === "manual";
 
   const handlePreview = async () => {
@@ -414,14 +450,12 @@ function SourceCard({ pkgId, source, webhookUrl, syncing, activeJob, syncResult,
     }
   };
 
+  // Every package has a source (auto-provisioned on create). The
+  // "add a source" empty state is obsolete — if `source` is null here
+  // we're waiting on the initial fetch; render nothing rather than
+  // flashing stale affordances.
   if (!source && !editing) {
-    return (
-      <div className="mb-6">
-        <Button variant="outline" size="sm" className="text-muted-foreground" onClick={() => setEditing(true)}>
-          <GitBranch className="h-4 w-4 mr-2" />{t("detail.source.addSource")}
-        </Button>
-      </div>
-    );
+    return null;
   }
 
   if (editing) {
@@ -439,42 +473,90 @@ function SourceCard({ pkgId, source, webhookUrl, syncing, activeJob, syncResult,
               <div className="space-y-2">
                 <Label>{t("detail.source.fields.provider")}</Label>
                 <select className="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm"
-                  value={form.provider} onChange={(e) => setForm({ ...form, provider: e.target.value })}>
-                  <option value="github">GitHub</option>
+                  value={form.provider}
+                  onChange={(e) => {
+                    // Switching providers resets provider-specific
+                    // fields so the saved row doesn't carry stale
+                    // repo/strategy leftovers from the previous mode.
+                    const nextProvider = e.target.value;
+                    if (nextProvider === "upload") {
+                      setForm({
+                        ...form,
+                        provider: nextProvider,
+                        repo_owner: "",
+                        repo_name: "",
+                        strategy: "",
+                        asset_pattern: "",
+                        auth_token: "",
+                        version_source: form.metadata_source === "manual" ? "manual" : "composer_json",
+                      });
+                    } else {
+                      setForm({
+                        ...form,
+                        provider: nextProvider,
+                        strategy: form.strategy || "release_asset",
+                        asset_pattern: form.asset_pattern || "*.zip",
+                        version_source: form.metadata_source === "manual" ? "git_tag" : "auto",
+                      });
+                    }
+                  }}>
+                  <option value="upload">{t("detail.source.fields.providerUpload")}</option>
+                  <option value="github">{t("detail.source.fields.providerGithub")}</option>
                 </select>
+                <p className="text-xs text-muted-foreground">{t("detail.source.fields.providerHelp")}</p>
               </div>
-              <div className="space-y-2">
-                <Label>{t("detail.source.fields.strategy")}</Label>
-                <select className="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm"
-                  value={form.strategy}
-                  onChange={(e) => setForm({
-                    ...form,
-                    strategy: e.target.value,
-                    metadata_source: e.target.value === "source_archive" ? "from_zip" : form.metadata_source,
-                  })}>
-                  <option value="release_asset">{strategyLabel("release_asset", t)}</option>
-                  <option value="source_archive">{strategyLabel("source_archive", t)}</option>
-                </select>
-                <p className="text-xs text-muted-foreground">{t("detail.source.fields.strategyHelp")}</p>
-              </div>
+              {isGitHub && (
+                <div className="space-y-2">
+                  <Label>{t("detail.source.fields.strategy")}</Label>
+                  <select className="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm"
+                    value={form.strategy}
+                    onChange={(e) => setForm({
+                      ...form,
+                      strategy: e.target.value,
+                      metadata_source: e.target.value === "source_archive" ? "from_zip" : form.metadata_source,
+                    })}>
+                    <option value="release_asset">{strategyLabel("release_asset", t)}</option>
+                    <option value="source_archive">{strategyLabel("source_archive", t)}</option>
+                  </select>
+                  <p className="text-xs text-muted-foreground">{t("detail.source.fields.strategyHelp")}</p>
+                </div>
+              )}
             </div>
-            {form.strategy === "release_asset" && (
+            {/* Metadata source — visible for upload (both modes make
+                sense) and for github+release_asset (manual doesn't
+                apply to source_archive). */}
+            {(form.provider === "upload" || form.strategy === "release_asset") && (
               <div className="space-y-2">
                 <Label>{t("detail.source.fields.metadataSource")}</Label>
                 <select className="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm"
                   value={form.metadata_source}
-                  onChange={(e) => setForm({
-                    ...form,
-                    metadata_source: e.target.value,
-                    version_source: e.target.value === "manual" ? "git_tag" : form.version_source,
-                  })}>
+                  onChange={(e) => {
+                    const nextMetadata = e.target.value;
+                    // Per-provider version-source coercion on metadata
+                    // change keeps invalid pairs out of the form state.
+                    let nextVersion = form.version_source;
+                    if (nextMetadata === "manual") {
+                      nextVersion = form.provider === "github" ? "git_tag" : "manual";
+                    } else if (form.provider === "upload") {
+                      nextVersion = "composer_json";
+                    }
+                    setForm({
+                      ...form,
+                      metadata_source: nextMetadata,
+                      version_source: nextVersion,
+                    });
+                  }}>
                   <option value="from_zip">{t("detail.source.fields.metadataFromZip")}</option>
                   <option value="manual">{t("detail.source.fields.metadataManual")}</option>
                 </select>
                 <p className="text-xs text-muted-foreground">{t("detail.source.fields.metadataSourceHelp")}</p>
               </div>
             )}
-            {!isManual && (
+            {/* Version source — choices depend on provider. For
+                github+manual and upload+manual we don't render a
+                dropdown since the value is forced by the metadata
+                choice. */}
+            {isGitHub && !isManual && (
               <div className="space-y-2">
                 <Label>{t("detail.source.fields.versionSource")}</Label>
                 <select
@@ -489,18 +571,20 @@ function SourceCard({ pkgId, source, webhookUrl, syncing, activeJob, syncResult,
                 <p className="text-xs text-muted-foreground">{t("detail.source.fields.versionSourceHelp")}</p>
               </div>
             )}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>{t("detail.source.fields.owner")}</Label>
-                <Input placeholder="ideologix" value={form.repo_owner}
-                  onChange={(e) => setForm({ ...form, repo_owner: e.target.value })} required />
+            {isGitHub && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>{t("detail.source.fields.owner")}</Label>
+                  <Input placeholder="ideologix" value={form.repo_owner}
+                    onChange={(e) => setForm({ ...form, repo_owner: e.target.value })} required />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t("detail.source.fields.repo")}</Label>
+                  <Input placeholder="digital-license-manager-pro" value={form.repo_name}
+                    onChange={(e) => setForm({ ...form, repo_name: e.target.value })} required />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>{t("detail.source.fields.repo")}</Label>
-                <Input placeholder="digital-license-manager-pro" value={form.repo_name}
-                  onChange={(e) => setForm({ ...form, repo_name: e.target.value })} required />
-              </div>
-            </div>
+            )}
             {needsAssetPattern && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -526,41 +610,89 @@ function SourceCard({ pkgId, source, webhookUrl, syncing, activeJob, syncResult,
                 {preview && preview.length === 0 && (
                   <div className="text-xs text-muted-foreground">{t("detail.source.preview.empty")}</div>
                 )}
-                {preview && preview.length > 0 && (
-                  <div className="space-y-2 rounded-md border bg-muted/30 p-3">
-                    <p className="text-xs font-medium text-muted-foreground">{t("detail.source.preview.title")}</p>
-                    {preview.map((rel) => (
-                      <div key={rel.tag} className="space-y-1">
-                        <p className="text-xs font-mono text-muted-foreground">{rel.tag}</p>
-                        {rel.assets.length === 0 ? (
-                          <p className="text-xs text-muted-foreground italic pl-2">{t("detail.source.preview.noAssets")}</p>
-                        ) : (
-                          <ul className="space-y-1 pl-2">
-                            {rel.assets.map((a) => {
-                              const globs = suggestPatterns(a.name);
-                              return (
-                                <li key={a.name} className="flex items-center gap-2 text-xs">
-                                  <code className="flex-1 truncate bg-background rounded px-1.5 py-0.5">{a.name}</code>
-                                  {globs.map((g) => (
-                                    <button
-                                      key={g}
-                                      type="button"
-                                      className="rounded-md border bg-background px-2 py-0.5 font-mono text-xs hover:bg-muted"
-                                      onClick={() => setForm({ ...form, asset_pattern: g })}
-                                      title={`Use as pattern: ${g}`}
-                                    >
-                                      {g}
-                                    </button>
-                                  ))}
-                                </li>
-                              );
-                            })}
-                          </ul>
+                {preview && preview.length > 0 && (() => {
+                  const pattern = form.asset_pattern.trim();
+                  const allAssets = preview.flatMap((r) => r.assets);
+                  const matchCount = pattern
+                    ? allAssets.filter((a) => matchesGlob(pattern, a.name)).length
+                    : 0;
+                  return (
+                    <div className="space-y-2 rounded-md border bg-muted/30 p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-xs font-medium text-muted-foreground">
+                          {t("detail.source.preview.title")}
+                        </p>
+                        {pattern && allAssets.length > 0 && (
+                          <p className="text-xs">
+                            <span
+                              className={cn(
+                                "font-medium tabular-nums",
+                                matchCount === 0
+                                  ? "text-destructive"
+                                  : "text-green-600 dark:text-green-400",
+                              )}
+                            >
+                              {matchCount} / {allAssets.length}
+                            </span>
+                            <span className="text-muted-foreground">
+                              {" "}{t("detail.source.preview.matchCount")}
+                            </span>
+                          </p>
                         )}
                       </div>
-                    ))}
-                  </div>
-                )}
+                      {preview.map((rel) => (
+                        <div key={rel.tag} className="space-y-1">
+                          <p className="text-xs font-mono text-muted-foreground">{rel.tag}</p>
+                          {rel.assets.length === 0 ? (
+                            <p className="text-xs text-muted-foreground italic pl-2">{t("detail.source.preview.noAssets")}</p>
+                          ) : (
+                            <ul className="space-y-1 pl-2">
+                              {rel.assets.map((a) => {
+                                const globs = suggestPatterns(a.name);
+                                const matches = pattern ? matchesGlob(pattern, a.name) : null;
+                                return (
+                                  <li key={a.name} className="flex items-center gap-2 text-xs">
+                                    {matches === true && (
+                                      <CheckCircle2
+                                        className="h-3.5 w-3.5 shrink-0 text-green-600 dark:text-green-400"
+                                        aria-label={t("detail.source.preview.matches")}
+                                      />
+                                    )}
+                                    {matches === false && (
+                                      <XCircle
+                                        className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+                                        aria-label={t("detail.source.preview.doesNotMatch")}
+                                      />
+                                    )}
+                                    <code
+                                      className={cn(
+                                        "flex-1 truncate bg-background rounded px-1.5 py-0.5",
+                                        matches === false && "text-muted-foreground",
+                                      )}
+                                    >
+                                      {a.name}
+                                    </code>
+                                    {globs.map((g) => (
+                                      <button
+                                        key={g}
+                                        type="button"
+                                        className="rounded-md border bg-background px-2 py-0.5 font-mono text-xs hover:bg-muted"
+                                        onClick={() => setForm({ ...form, asset_pattern: g })}
+                                        title={`Use as pattern: ${g}`}
+                                      >
+                                        {g}
+                                      </button>
+                                    ))}
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
             )}
             {isManual && (
@@ -577,11 +709,13 @@ function SourceCard({ pkgId, source, webhookUrl, syncing, activeJob, syncResult,
                 </p>
               </div>
             )}
-            <div className="space-y-2">
-              <Label>{t("detail.source.fields.authToken")}</Label>
-              <Input type="password" placeholder={t("detail.source.fields.authTokenHelp")} value={form.auth_token}
-                onChange={(e) => setForm({ ...form, auth_token: e.target.value })} />
-            </div>
+            {isGitHub && (
+              <div className="space-y-2">
+                <Label>{t("detail.source.fields.authToken")}</Label>
+                <Input type="password" placeholder={t("detail.source.fields.authTokenHelp")} value={form.auth_token}
+                  onChange={(e) => setForm({ ...form, auth_token: e.target.value })} />
+              </div>
+            )}
             <div className="flex gap-2">
               <Button type="submit" disabled={saving}>{saving ? t("common:loading", { defaultValue: "Saving…" }) : t("detail.source.save")}</Button>
               <Button type="button" variant="outline" onClick={() => setEditing(false)}>{t("detail.source.cancel")}</Button>
@@ -644,10 +778,14 @@ function SourceCard({ pkgId, source, webhookUrl, syncing, activeJob, syncResult,
             </div>
           </div>
           <div className="flex items-center gap-1 shrink-0">
-            <Button variant="outline" size="sm" onClick={onSync} disabled={syncing}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
-              {syncButtonLabel(syncing, activeJob, t)}
-            </Button>
+            {/* Sync-now only applies to GitHub — upload-provider
+                packages have no upstream to poll. */}
+            {source.provider === "github" && (
+              <Button variant="outline" size="sm" onClick={onSync} disabled={syncing}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
+                {syncButtonLabel(syncing, activeJob, t)}
+              </Button>
+            )}
             <Button variant="ghost" size="sm" onClick={startEdit}>{t("detail.source.editSource")}</Button>
             <DropdownMenu>
               <DropdownMenuTrigger
@@ -675,10 +813,19 @@ function SourceCard({ pkgId, source, webhookUrl, syncing, activeJob, syncResult,
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-          <InfoChip label={t("detail.source.strategy")}>
-            <Badge variant="outline">{strategyLabel(source.strategy, t)}</Badge>
+          <InfoChip label={t("detail.source.provider")}>
+            <Badge variant="outline">
+              {source.provider === "upload"
+                ? t("detail.source.fields.providerUpload")
+                : t("detail.source.fields.providerGithub")}
+            </Badge>
           </InfoChip>
-          {source.strategy === "release_asset" && (
+          {source.provider === "github" && (
+            <InfoChip label={t("detail.source.strategy")}>
+              <Badge variant="outline">{strategyLabel(source.strategy, t)}</Badge>
+            </InfoChip>
+          )}
+          {(source.provider === "upload" || source.strategy === "release_asset") && (
             <InfoChip label={t("detail.source.metadataSource")}>
               <Badge variant="outline">
                 {(source.metadata_source ?? "from_zip") === "manual"
@@ -692,7 +839,7 @@ function SourceCard({ pkgId, source, webhookUrl, syncing, activeJob, syncResult,
               <Badge variant="outline">{versionSourceLabel(source.version_source ?? "auto", t)}</Badge>
             </InfoChip>
           )}
-          {source.strategy === "release_asset" && (
+          {source.provider === "github" && source.strategy === "release_asset" && (
             <InfoChip label={t("detail.source.assetPattern")}>
               <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{source.asset_pattern}</code>
             </InfoChip>
@@ -1073,6 +1220,50 @@ function strategyLabel(strategy: string, t: TFunction<"packages">): string {
 // extension match (e.g. "*.zip") plus, when the name has an obvious
 // version-like suffix, a stem-based pattern that matches all releases
 // of the same artifact (e.g. "dlm-pro-*.zip").
+// matchesGlob mirrors Go's `path/filepath.Match` semantics for the
+// subset the backend actually uses against release asset names: `*`
+// (any run of chars), `?` (single char), and `[...]` / `[!...]`
+// character classes. Asset names don't contain path separators so the
+// Go behaviour of `*` not crossing `/` is irrelevant here.
+//
+// Keep this in sync with `filepath.Match` in `internal/provider/sync.go`.
+// If the glob is syntactically invalid (e.g. unclosed `[`), we return
+// false rather than throw — the backend treats malformed patterns the
+// same way, so the preview stays consistent with the real sync.
+function matchesGlob(pattern: string, name: string): boolean {
+  try {
+    const re = globToRegex(pattern);
+    return re.test(name);
+  } catch {
+    return false;
+  }
+}
+
+function globToRegex(glob: string): RegExp {
+  let out = "^";
+  for (let i = 0; i < glob.length; i++) {
+    const c = glob[i];
+    if (c === "*") {
+      out += ".*";
+    } else if (c === "?") {
+      out += ".";
+    } else if (c === "[") {
+      const end = glob.indexOf("]", i + 1);
+      if (end < 0) {
+        throw new Error("unclosed character class");
+      }
+      let cls = glob.slice(i + 1, end);
+      if (cls.startsWith("!")) cls = "^" + cls.slice(1);
+      out += "[" + cls + "]";
+      i = end;
+    } else {
+      out += c.replace(/[.+^${}()|\\]/g, "\\$&");
+    }
+  }
+  out += "$";
+  return new RegExp(out);
+}
+
 function suggestPatterns(name: string): string[] {
   const patterns: string[] = [];
   const ext = extOf(name);

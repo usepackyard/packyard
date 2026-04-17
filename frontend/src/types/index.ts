@@ -93,9 +93,14 @@ export interface PackageStats {
   daily_series_30d: DailyCount[];
 }
 
+// Where a package gets its versions from.
+//   github — sync from GitHub releases (webhook/poll, repo coordinates required).
+//   upload — user drops zips directly; no repo, no sync.
+export type SourceProvider = "github" | "upload";
+
 export interface PackageSource {
   id: string;
-  provider: string;
+  provider: SourceProvider;
   repo_owner: string;
   repo_name: string;
   strategy: SourceStrategy;
@@ -144,7 +149,8 @@ export interface SyncJob {
   finished_at?: string;
 }
 
-export type SourceStrategy = "release_asset" | "source_archive";
+// SourceStrategy: only meaningful for provider=github.
+export type SourceStrategy = "release_asset" | "source_archive" | "";
 
 // Where composer.json content comes from on each sync.
 //   from_zip — read composer.json from the dist zip (the default Composer flow).
@@ -153,11 +159,10 @@ export type SourceStrategy = "release_asset" | "source_archive";
 //              plugin distributions).
 export type MetadataSource = "from_zip" | "manual";
 
-// Where the version string comes from.
-//   auto          — composer.json if set, else git tag (current behavior).
-//   git_tag       — always the git tag; rewrites composer.json's version field.
-//   composer_json — require composer.json to declare a version; skip otherwise.
-export type VersionSource = "auto" | "git_tag" | "composer_json";
+// Where the version string comes from. Valid values differ per provider:
+//   github: auto | git_tag | composer_json
+//   upload: composer_json | manual (user types the version per upload)
+export type VersionSource = "auto" | "git_tag" | "composer_json" | "manual";
 
 // One release surfaced by the /sources/preview endpoint — just enough
 // for the UI to help the user build an asset_pattern.

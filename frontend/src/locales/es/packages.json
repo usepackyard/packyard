@@ -54,7 +54,21 @@
       "dragOrClick": "Arrastra un .zip o haz clic para seleccionar",
       "selectFile": "Seleccionar archivo",
       "uploading": "Subiendo…",
-      "failed": "Subida fallida"
+      "failed": "Subida fallida",
+      "manualDialog": {
+        "title": "Completar los detalles de la versión",
+        "file": "Archivo",
+        "versionLabel": "Versión",
+        "versionHelp": "Cadena de versión de Composer — p. ej. 1.0.0, 2.0.0-rc.1, 3.1.4-beta.2.",
+        "versionRequired": "La versión es obligatoria.",
+        "requireOverrideLabel": "Sobrescritura de require (opcional)",
+        "requireOverrideHelp": "Se fusiona con el require base de la fuente. Las claves aquí ganan.",
+        "requireOverrideInvalid": "La sobrescritura de require debe ser un objeto JSON como {\"php\":\">=8.0\"}.",
+        "baselineLabel": "Base",
+        "submit": "Subir versión",
+        "submitting": "Subiendo…",
+        "cancel": "Cancelar"
+      }
     },
     "version": {
       "title": "Versiones",
@@ -111,6 +125,9 @@
       "cancel": "Cancelar",
       "fields": {
         "provider": "Proveedor",
+        "providerUpload": "Subida",
+        "providerGithub": "GitHub",
+        "providerHelp": "Cómo entran las nuevas versiones a este paquete. Subida = tú subes los ZIP. GitHub = sincronizamos desde las releases etiquetadas.",
         "owner": "Propietario",
         "repo": "Repo",
         "strategy": "Estrategia",
@@ -118,7 +135,7 @@
         "strategySourceArchive": "Archivo source (zipball de Git)",
         "strategyHelp": "El artefacto que descargarán los clientes de Composer. Asset de release = un ZIP adjunto a una release de GitHub. Archivo source = el zipball autogenerado por GitHub en el tag.",
         "assetPattern": "Patrón de asset",
-        "assetPatternHelp": "Regex que coincide con los nombres de asset. Déjalo vacío para usar archivos source.",
+        "assetPatternHelp": "Comodín tipo shell (`*` cualquier secuencia, `?` un carácter) que coincide con los nombres de asset. Ejemplo: `myplugin-*.zip`. Déjalo vacío para usar archivos source.",
         "metadataSource": "Fuente de metadatos",
         "metadataFromZip": "Leer composer.json desde el ZIP de la release",
         "metadataManual": "Usar require manual (sin composer.json en el ZIP)",
@@ -137,7 +154,10 @@
       "preview": {
         "title": "Previsualización de releases",
         "empty": "No se encontraron releases para este repositorio.",
-        "noAssets": "(sin assets)"
+        "noAssets": "(sin assets)",
+        "matchCount": "coinciden",
+        "matches": "coincide con el patrón",
+        "doesNotMatch": "no coincide con el patrón"
       },
       "syncResult": {
         "title": "Resultado de sincronización",

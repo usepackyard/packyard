@@ -14,12 +14,13 @@ import (
 
 type AdminPackageHandler struct {
 	packages store.PackageStore
+	sources  store.SourceStore
 	storage  storage.Storage
 	cache    *composer.Cache
 }
 
-func NewAdminPackageHandler(packages store.PackageStore, storage storage.Storage, cache *composer.Cache) *AdminPackageHandler {
-	return &AdminPackageHandler{packages: packages, storage: storage, cache: cache}
+func NewAdminPackageHandler(packages store.PackageStore, sources store.SourceStore, storage storage.Storage, cache *composer.Cache) *AdminPackageHandler {
+	return &AdminPackageHandler{packages: packages, sources: sources, storage: storage, cache: cache}
 }
 
 func (h *AdminPackageHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -92,8 +93,26 @@ func (h *AdminPackageHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Every package gets a default upload-provider source at creation
+	// time. That's how the upload endpoint knows how to parse
+	// incoming zips — it reads the source's metadata_source. Users
+	// can edit the source afterwards to switch to GitHub or to
+	// manual metadata.
+	defaultSource := &model.PackageSource{
+		PackageID:      pkg.ID,
+		Provider:       "upload",
+		MetadataSource: "from_zip",
+		VersionSource:  "composer_json",
+	}
+	if err := h.sources.Create(r.Context(), defaultSource); err != nil {
+		slog.Error("create default source error", "error", err)
+		writeError(w, http.StatusInternalServerError, "failed_create_source", "failed to create package source")
+		return
+	}
+
 	writeJSON(w, http.StatusCreated, map[string]interface{}{
 		"package": pkg,
+		"source":  defaultSource,
 	})
 }
 

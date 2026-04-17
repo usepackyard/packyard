@@ -54,7 +54,21 @@
       "dragOrClick": "Повлечете .zip или кликнете за избор",
       "selectFile": "Избери датотека",
       "uploading": "Се прикачува…",
-      "failed": "Прикачувањето не успеа"
+      "failed": "Прикачувањето не успеа",
+      "manualDialog": {
+        "title": "Пополнете ги деталите на верзијата",
+        "file": "Датотека",
+        "versionLabel": "Верзија",
+        "versionHelp": "Composer верзиски стринг — на пр. 1.0.0, 2.0.0-rc.1, 3.1.4-beta.2.",
+        "versionRequired": "Верзијата е задолжителна.",
+        "requireOverrideLabel": "Презапишување на require (незадолжително)",
+        "requireOverrideHelp": "Се спојува со базичниот require на изворот. Клучевите овде победуваат.",
+        "requireOverrideInvalid": "Презапишувањето на require мора да биде JSON објект како {\"php\":\">=8.0\"}.",
+        "baselineLabel": "Основа",
+        "submit": "Прикачи верзија",
+        "submitting": "Се прикачува…",
+        "cancel": "Откажи"
+      }
     },
     "version": {
       "title": "Верзии",
@@ -111,6 +125,9 @@
       "cancel": "Откажи",
       "fields": {
         "provider": "Провајдер",
+        "providerUpload": "Прикачување",
+        "providerGithub": "GitHub",
+        "providerHelp": "Како новите верзии влегуваат во овој пакет. Прикачување = вие ги прикачувате ZIP-овите. GitHub = ние синхронизираме од обележаните изданија.",
         "owner": "Сопственик",
         "repo": "Складиште",
         "strategy": "Стратегија",
@@ -118,7 +135,7 @@
         "strategySourceArchive": "Source архива (git zipball)",
         "strategyHelp": "Артефактот што Composer клиентите ќе го преземат. Asset од издание = ZIP прикачен на GitHub издание. Source архива = автоматски генериран zipball од GitHub на тагот.",
         "assetPattern": "Asset образец",
-        "assetPatternHelp": "Регекс што ги совпаѓа имињата на asset. Оставете празно за да се користат source архиви.",
+        "assetPatternHelp": "Шел-стил wildcard (`*` било која низа знаци, `?` еден знак) што ги совпаѓа имињата на asset. Пример: `myplugin-*.zip`. Оставете празно за да се користат source архиви.",
         "metadataSource": "Извор на метаподатоци",
         "metadataFromZip": "Прочитај composer.json од ZIP изданието",
         "metadataManual": "Користи рачен require (нема composer.json во ZIP)",
@@ -137,7 +154,10 @@
       "preview": {
         "title": "Преглед на изданија",
         "empty": "Не се пронајдени изданија за ова складиште.",
-        "noAssets": "(без asset)"
+        "noAssets": "(без asset)",
+        "matchCount": "совпаѓаат",
+        "matches": "го исполнува шаблонот",
+        "doesNotMatch": "не го исполнува шаблонот"
       },
       "syncResult": {
         "title": "Резултат од синхронизација",

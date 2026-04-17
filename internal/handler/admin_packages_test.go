@@ -1,6 +1,8 @@
 package handler_test
 
 import (
+	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -31,7 +33,7 @@ func newPkgSetup(t *testing.T) pkgSetup {
 		t.Fatalf("storage.NewLocal: %v", err)
 	}
 	c := composer.NewCache(stores.Packages, stores.Orgs, "http://test", "single")
-	h := handler.NewAdminPackageHandler(stores.Packages, st, c)
+	h := handler.NewAdminPackageHandler(stores.Packages, stores.Sources, st, c)
 	org := testutil.MakeOrg(t, stores, "default", "Default")
 	return pkgSetup{stores, st, c, h, org}
 }
@@ -58,6 +60,62 @@ func TestAdminPackageHandler_Create_HappyPath(t *testing.T) {
 	}
 	if !strings.Contains(rec.Body.String(), `"name":"vendor/pkg"`) {
 		t.Errorf("body should contain new package: %s", rec.Body.String())
+	}
+}
+
+// Every package-create auto-provisions a default upload source so the
+// upload handler always has a source to read from. The response also
+// includes it so the frontend can render the configured state without
+// a second round-trip.
+func TestAdminPackageHandler_Create_AutoProvisionsUploadSource(t *testing.T) {
+	s := newPkgSetup(t)
+
+	req := httptest.NewRequest("POST", "/api/packages", strings.NewReader(
+		`{"name":"vendor/plugin","type":"wordpress-plugin"}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	s.handler.Create(rec, s.withOrg(req))
+
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d; body=%s", rec.Code, rec.Body.String())
+	}
+
+	var resp struct {
+		Package struct {
+			ID int64 `json:"-"`
+		} `json:"package"`
+		Source struct {
+			Provider       string `json:"provider"`
+			MetadataSource string `json:"metadata_source"`
+			VersionSource  string `json:"version_source"`
+		} `json:"source"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if resp.Source.Provider != "upload" {
+		t.Errorf("default source.provider = %q, want upload", resp.Source.Provider)
+	}
+	if resp.Source.MetadataSource != "from_zip" {
+		t.Errorf("default metadata_source = %q, want from_zip", resp.Source.MetadataSource)
+	}
+	if resp.Source.VersionSource != "composer_json" {
+		t.Errorf("default version_source = %q, want composer_json", resp.Source.VersionSource)
+	}
+
+	// Round-trip through the DB to prove it's actually persisted, not
+	// just echoed — a future refactor that drops the INSERT would be
+	// caught here.
+	pkg, _ := s.stores.Packages.GetByName(context.Background(), s.org.ID, "vendor/plugin")
+	if pkg == nil {
+		t.Fatal("package not persisted")
+	}
+	got, _ := s.stores.Sources.GetByPackageID(context.Background(), pkg.ID)
+	if got == nil {
+		t.Fatal("default source not persisted")
+	}
+	if got.Provider != "upload" {
+		t.Errorf("persisted provider = %q, want upload", got.Provider)
 	}
 }
 

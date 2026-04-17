@@ -83,6 +83,26 @@ func MakePackage(t *testing.T, stores *store.Stores, orgID int64, name string) *
 	return p
 }
 
+// MakeDefaultUploadSource attaches the default upload+from_zip source
+// to a package, mirroring what the AdminPackageHandler.Create flow
+// auto-provisions. Tests that hit the upload handler or expect the
+// "every package has a source" invariant call this after
+// MakePackage — tests exercising the "no source yet" transitional
+// states skip it.
+func MakeDefaultUploadSource(t *testing.T, stores *store.Stores, packageID int64) *model.PackageSource {
+	t.Helper()
+	src := &model.PackageSource{
+		PackageID:      packageID,
+		Provider:       "upload",
+		MetadataSource: "from_zip",
+		VersionSource:  "composer_json",
+	}
+	if err := stores.Sources.Create(context.Background(), src); err != nil {
+		t.Fatalf("create default upload source: %v", err)
+	}
+	return src
+}
+
 // MakeVersion inserts a version row for an existing package.
 func MakeVersion(t *testing.T, stores *store.Stores, packageID int64, version, sha1Hex string, fileSize int64) *model.Version {
 	t.Helper()

@@ -26,8 +26,8 @@ func NewMux(cfg *config.Config, stores *store.Stores, strg storage.Storage, cach
 	// Handlers.
 	composerH := handler.NewComposerHandler(cache, strg, stores.Packages, stores.Downloads)
 	adminAuthH := handler.NewAdminAuthHandler(stores.Users, stores.Sessions, stores.Orgs, cfg, cfg.BcryptCost)
-	adminPkgH := handler.NewAdminPackageHandler(stores.Packages, strg, cache)
-	adminVerH := handler.NewAdminVersionHandler(stores.Packages, strg, cache)
+	adminPkgH := handler.NewAdminPackageHandler(stores.Packages, stores.Sources, strg, cache)
+	adminVerH := handler.NewAdminVersionHandler(stores.Packages, stores.Sources, strg, cache)
 	adminTokH := handler.NewAdminTokenHandler(stores.Tokens, cfg.BcryptCost)
 	adminUserH := handler.NewAdminUserHandler(stores.Users, cfg.BcryptCost)
 	adminSrcH := handler.NewAdminSourceHandler(stores.Sources, stores.Packages, stores.Jobs, strg, cache, cfg)

@@ -81,10 +81,23 @@ export function createApi(mode: string, orgSlug: string) {
     deletePackage: (id: string) => request(`${prefix}/packages/${id}`, { method: "DELETE" }),
 
     // Versions
-    uploadVersion: (packageId: string, file: File, version?: string) => {
+    //
+    // `version` is optional when the source's metadata_source is
+    // from_zip (the backend reads it from composer.json) and required
+    // when metadata_source is manual (no composer.json to read from).
+    //
+    // `requireOverride` is a JSON string {"pkg":"constraint",...} that
+    // the backend merges onto the source's baseline ManualRequire. Only
+    // meaningful in manual mode; harmless extra field otherwise.
+    uploadVersion: (
+      packageId: string,
+      file: File,
+      opts: { version?: string; requireOverride?: string } = {},
+    ) => {
       const form = new FormData();
       form.append("file", file);
-      if (version) form.append("version", version);
+      if (opts.version) form.append("version", opts.version);
+      if (opts.requireOverride) form.append("require_override", opts.requireOverride);
       return request<{ version: Version }>(`${prefix}/packages/${packageId}/versions`, {
         method: "POST", body: form,
       });

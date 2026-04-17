@@ -54,7 +54,21 @@
       "dragOrClick": "Arraste um .zip ou clique para selecionar",
       "selectFile": "Selecionar arquivo",
       "uploading": "Enviando…",
-      "failed": "Falha no envio"
+      "failed": "Falha no envio",
+      "manualDialog": {
+        "title": "Complete os detalhes da versão",
+        "file": "Arquivo",
+        "versionLabel": "Versão",
+        "versionHelp": "String de versão do Composer — por ex. 1.0.0, 2.0.0-rc.1, 3.1.4-beta.2.",
+        "versionRequired": "A versão é obrigatória.",
+        "requireOverrideLabel": "Sobrescrita de require (opcional)",
+        "requireOverrideHelp": "Mesclada sobre o require base da fonte. Chaves aqui prevalecem.",
+        "requireOverrideInvalid": "A sobrescrita de require deve ser um objeto JSON como {\"php\":\">=8.0\"}.",
+        "baselineLabel": "Base",
+        "submit": "Enviar versão",
+        "submitting": "Enviando…",
+        "cancel": "Cancelar"
+      }
     },
     "version": {
       "title": "Versões",
@@ -111,6 +125,9 @@
       "cancel": "Cancelar",
       "fields": {
         "provider": "Provedor",
+        "providerUpload": "Upload",
+        "providerGithub": "GitHub",
+        "providerHelp": "Como novas versões entram neste pacote. Upload = você envia os ZIPs. GitHub = sincronizamos a partir das releases marcadas.",
         "owner": "Proprietário",
         "repo": "Repo",
         "strategy": "Estratégia",
@@ -118,7 +135,7 @@
         "strategySourceArchive": "Source archive (zipball Git)",
         "strategyHelp": "O artefato que os clientes Composer irão baixar. Asset do release = um ZIP anexado a um release do GitHub. Source archive = o zipball gerado automaticamente pelo GitHub na tag.",
         "assetPattern": "Padrão de asset",
-        "assetPatternHelp": "Regex que combina nomes de asset. Deixe em branco para usar source archives.",
+        "assetPatternHelp": "Curinga tipo shell (`*` qualquer sequência, `?` um caractere) que combina nomes de asset. Exemplo: `myplugin-*.zip`. Deixe em branco para usar source archives.",
         "metadataSource": "Fonte de metadados",
         "metadataFromZip": "Ler composer.json do ZIP do release",
         "metadataManual": "Usar require manual (sem composer.json no ZIP)",
@@ -137,7 +154,10 @@
       "preview": {
         "title": "Pré-visualização de releases",
         "empty": "Nenhum release encontrado para este repositório.",
-        "noAssets": "(sem assets)"
+        "noAssets": "(sem assets)",
+        "matchCount": "correspondem",
+        "matches": "corresponde ao padrão",
+        "doesNotMatch": "não corresponde ao padrão"
       },
       "syncResult": {
         "title": "Resultado da sincronização",

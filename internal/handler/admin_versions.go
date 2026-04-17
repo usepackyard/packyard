@@ -22,12 +22,13 @@ const maxUploadSize = 100 << 20 // 100MB
 
 type AdminVersionHandler struct {
 	packages store.PackageStore
+	sources  store.SourceStore
 	storage  storage.Storage
 	cache    *composer.Cache
 }
 
-func NewAdminVersionHandler(packages store.PackageStore, storage storage.Storage, cache *composer.Cache) *AdminVersionHandler {
-	return &AdminVersionHandler{packages: packages, storage: storage, cache: cache}
+func NewAdminVersionHandler(packages store.PackageStore, sources store.SourceStore, storage storage.Storage, cache *composer.Cache) *AdminVersionHandler {
+	return &AdminVersionHandler{packages: packages, sources: sources, storage: storage, cache: cache}
 }
 
 func (h *AdminVersionHandler) Upload(w http.ResponseWriter, r *http.Request) {
@@ -46,6 +47,31 @@ func (h *AdminVersionHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	pkg, err := h.packages.GetByPublicID(r.Context(), org.ID, pkgPublicID)
 	if err != nil || pkg == nil {
 		writeError(w, http.StatusNotFound, "package_not_found", "package not found")
+		return
+	}
+
+	// Uploads always flow through the package's source — it tells us
+	// whether composer.json is expected inside the zip or whether we
+	// need to synthesize one from the package + manual_require.
+	src, err := h.sources.GetByPackageID(r.Context(), pkg.ID)
+	if err != nil {
+		slog.Error("source lookup error", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal_error", "internal error")
+		return
+	}
+	if src == nil {
+		// Shouldn't happen — package create always provisions a default
+		// source — but fail loudly rather than silently parsing a zip
+		// with no config to honour.
+		writeError(w, http.StatusInternalServerError, "package_missing_source", "package is missing its source configuration")
+		return
+	}
+	if src.Provider == "github" {
+		// Packages synced from GitHub must not accept manual uploads.
+		// Mixing provenance would make "where did this version come
+		// from?" a per-row question and break the Sync-now flow.
+		writeError(w, http.StatusConflict, "upload_forbidden_for_github_source",
+			"this package receives versions via GitHub sync; remove the GitHub source to upload manually")
 		return
 	}
 
@@ -70,26 +96,66 @@ func (h *AdminVersionHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	}
 	defer os.Remove(tmpPath)
 
-	// Parse composer.json from ZIP.
-	cj, err := composer.ParseZIP(tmpPath)
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_package_zip", fmt.Sprintf("invalid package: %s", err))
-		return
-	}
+	// Two paths diverge here:
+	//   from_zip — parse composer.json out of the uploaded zip (today's
+	//              flow; the zip must contain composer.json).
+	//   manual  — synthesize composer.json from the Package row +
+	//              manual_require (+ optional per-upload override),
+	//              with the version coming from the multipart `version`
+	//              field. Used for plugin-style zips that don't ship
+	//              composer.json (WordPress plugins, mu-plugins, etc.).
+	var cj *composer.ComposerJSON
+	switch src.MetadataSource {
+	case "manual":
+		version := r.FormValue("version")
+		if err := composer.ValidateVersion(version); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_version", err.Error())
+			return
+		}
+		baseRequire, err := composer.ParseRequireJSON(src.ManualRequire)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_manual_require", err.Error())
+			return
+		}
+		// require_override is optional; when supplied it merges onto the
+		// source's baseline with override keys winning per-key. Empty
+		// string is treated the same as absent.
+		overrideRequire, err := composer.ParseRequireJSON(r.FormValue("require_override"))
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_require_override", err.Error())
+			return
+		}
+		cj, err = composer.Synthesize(composer.SynthesizeInput{
+			Name:        pkg.Name,
+			Type:        pkg.Type,
+			Description: pkg.Description,
+			Homepage:    pkg.Homepage,
+			Version:     version,
+			Require:     composer.MergeRequire(baseRequire, overrideRequire),
+		})
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed_synthesize_composer_json", err.Error())
+			return
+		}
 
-	// Validate package name matches.
-	if cj.Name != pkg.Name {
-		writeError(w, http.StatusBadRequest, "package_name_mismatch",
-			fmt.Sprintf("composer.json name %q does not match package %q", cj.Name, pkg.Name))
-		return
-	}
-
-	if cj.Version == "" {
-		cj.Version = r.FormValue("version")
-	}
-	if err := composer.ValidateVersion(cj.Version); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_version", err.Error())
-		return
+	default: // "from_zip" or empty (older rows)
+		cj, err = composer.ParseZIP(tmpPath)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_package_zip", fmt.Sprintf("invalid package: %s", err))
+			return
+		}
+		if cj.Name != pkg.Name {
+			writeError(w, http.StatusBadRequest, "package_name_mismatch",
+				fmt.Sprintf("composer.json name %q does not match package %q", cj.Name, pkg.Name))
+			return
+		}
+		if cj.Version == "" {
+			cj.Version = r.FormValue("version")
+		}
+		if err := composer.ValidateVersion(cj.Version); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_version", err.Error())
+			return
+		}
 	}
 
 	// Check for duplicate version.

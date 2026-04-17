@@ -307,49 +307,24 @@ func resolveMetadata(src *model.PackageSource, pkg *model.Package, distPath, fal
 // synthesizeComposerJSON builds a composer.json stub from the Package's
 // own fields (name, type, description, homepage) plus the configured
 // ManualRequire. Used when the release zip legitimately has no
-// composer.json (WordPress plugin distributions, for example).
+// composer.json (WordPress plugin distributions, for example). Thin
+// wrapper around composer.Synthesize — the same helper the upload
+// handler uses for upload-provider + manual metadata packages, so
+// GitHub-synced and manually-uploaded plugins produce identical
+// composer.json output.
 func synthesizeComposerJSON(src *model.PackageSource, pkg *model.Package, tagVersion string) (*composer.ComposerJSON, error) {
-	cj := &composer.ComposerJSON{
+	require, err := composer.ParseRequireJSON(src.ManualRequire)
+	if err != nil {
+		return nil, fmt.Errorf("manual_require: %w", err)
+	}
+	return composer.Synthesize(composer.SynthesizeInput{
 		Name:        pkg.Name,
-		Version:     tagVersion,
 		Type:        pkg.Type,
 		Description: pkg.Description,
 		Homepage:    pkg.Homepage,
-	}
-	if strings.TrimSpace(src.ManualRequire) != "" {
-		var req map[string]string
-		if err := json.Unmarshal([]byte(src.ManualRequire), &req); err != nil {
-			return nil, fmt.Errorf("manual_require is not a valid JSON object: %w", err)
-		}
-		if len(req) > 0 {
-			cj.Require = req
-		}
-	}
-	raw, err := json.Marshal(synthesizedComposerJSON{
-		Name:        cj.Name,
-		Version:     cj.Version,
-		Type:        cj.Type,
-		Description: cj.Description,
-		Homepage:    cj.Homepage,
-		Require:     cj.Require,
+		Version:     tagVersion,
+		Require:     require,
 	})
-	if err != nil {
-		return nil, fmt.Errorf("marshal synthesized composer.json: %w", err)
-	}
-	cj.RawJSON = string(raw)
-	return cj, nil
-}
-
-// synthesizedComposerJSON is the shape we serialize into the stored
-// composer_json column when metadata_source=manual. Fields are emitted
-// only when non-empty so the stored JSON stays readable.
-type synthesizedComposerJSON struct {
-	Name        string            `json:"name"`
-	Version     string            `json:"version"`
-	Type        string            `json:"type,omitempty"`
-	Description string            `json:"description,omitempty"`
-	Homepage    string            `json:"homepage,omitempty"`
-	Require     map[string]string `json:"require,omitempty"`
 }
 
 // skipSentinelError carries a Skipped reason back up through sync. Used

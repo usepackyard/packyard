@@ -3,11 +3,9 @@ package handler
 import (
 	"crypto/rand"
 	"encoding/hex"
-	"encoding/json"
 	"log/slog"
 	"net/http"
 	"path/filepath"
-	"strings"
 
 	"github.com/usepackyard/packyard/internal/auth"
 	"github.com/usepackyard/packyard/internal/composer"
@@ -112,33 +110,20 @@ func (h *AdminSourceHandler) Set(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.Provider == "" {
-		req.Provider = "github"
+		req.Provider = "upload"
 	}
-	if _, err := provider.NewProvider(req.Provider, ""); err != nil {
-		writeError(w, http.StatusBadRequest, "unsupported_provider", err.Error())
-		return
-	}
-	if req.RepoOwner == "" || req.RepoName == "" {
-		writeError(w, http.StatusBadRequest, "repo_owner_and_name_required", "repo_owner and repo_name are required")
-		return
-	}
-	if req.Strategy == "" {
-		req.Strategy = "release_asset"
-	}
-	switch req.Strategy {
-	case "release_asset", "source_archive":
+	// Two first-class providers: `upload` (user drops zips) and
+	// `github` (webhook/sync from releases). Each has its own set of
+	// valid fields; validate per-provider below.
+	switch req.Provider {
+	case "upload", "github":
 		// valid
 	default:
-		writeError(w, http.StatusBadRequest, "invalid_strategy", "strategy must be release_asset or source_archive")
+		writeError(w, http.StatusBadRequest, "unsupported_provider", "provider must be upload or github")
 		return
 	}
-	if req.AssetPattern == "" {
-		req.AssetPattern = "*.zip"
-	}
-	if _, err := filepath.Match(req.AssetPattern, "test.zip"); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_asset_pattern", "invalid asset_pattern glob")
-		return
-	}
+
+	// MetadataSource is shared across providers.
 	if req.MetadataSource == "" {
 		req.MetadataSource = "from_zip"
 	}
@@ -149,35 +134,92 @@ func (h *AdminSourceHandler) Set(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid_metadata_source", "metadata_source must be from_zip or manual")
 		return
 	}
-	// manual metadata with source_archive is pointless — the source zipball
-	// always has composer.json. Reject so users don't footgun themselves.
-	if req.MetadataSource == "manual" && req.Strategy == "source_archive" {
-		writeError(w, http.StatusBadRequest, "manual_metadata_requires_release_asset", "manual metadata only applies to release_asset strategy")
-		return
-	}
-	if req.VersionSource == "" {
-		req.VersionSource = "auto"
-	}
-	switch req.VersionSource {
-	case "auto", "git_tag", "composer_json":
-		// valid
-	default:
-		writeError(w, http.StatusBadRequest, "invalid_version_source", "version_source must be auto, git_tag, or composer_json")
-		return
-	}
-	// manual metadata can only use git_tag — there's no composer.json to
-	// read from. Silently coerce so the frontend's disabled select matches
-	// backend behavior exactly.
+
+	// Validate ManualRequire parses when supplied. Empty = no require.
 	if req.MetadataSource == "manual" {
-		req.VersionSource = "git_tag"
-	}
-	// Validate ManualRequire parses as a JSON object of string→string when
-	// supplied. Empty is allowed (no require).
-	if req.MetadataSource == "manual" && strings.TrimSpace(req.ManualRequire) != "" {
-		var tmp map[string]string
-		if err := json.Unmarshal([]byte(req.ManualRequire), &tmp); err != nil {
+		if _, err := composer.ParseRequireJSON(req.ManualRequire); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid_manual_require", "manual_require must be a JSON object mapping package names to version constraints")
 			return
+		}
+	}
+
+	// Provider-specific validation + normalisation.
+	switch req.Provider {
+	case "github":
+		if req.RepoOwner == "" || req.RepoName == "" {
+			writeError(w, http.StatusBadRequest, "repo_owner_and_name_required", "repo_owner and repo_name are required")
+			return
+		}
+		if req.Strategy == "" {
+			req.Strategy = "release_asset"
+		}
+		switch req.Strategy {
+		case "release_asset", "source_archive":
+			// valid
+		default:
+			writeError(w, http.StatusBadRequest, "invalid_strategy", "strategy must be release_asset or source_archive")
+			return
+		}
+		if req.AssetPattern == "" {
+			req.AssetPattern = "*.zip"
+		}
+		if _, err := filepath.Match(req.AssetPattern, "test.zip"); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_asset_pattern", "invalid asset_pattern glob")
+			return
+		}
+		// manual metadata with source_archive is pointless — the
+		// source zipball always has composer.json. Reject so users
+		// don't footgun themselves.
+		if req.MetadataSource == "manual" && req.Strategy == "source_archive" {
+			writeError(w, http.StatusBadRequest, "manual_metadata_requires_release_asset", "manual metadata only applies to release_asset strategy")
+			return
+		}
+		if req.VersionSource == "" {
+			req.VersionSource = "auto"
+		}
+		switch req.VersionSource {
+		case "auto", "git_tag", "composer_json":
+			// valid
+		default:
+			writeError(w, http.StatusBadRequest, "invalid_version_source", "version_source must be auto, git_tag, or composer_json")
+			return
+		}
+		// manual metadata can only use git_tag — there's no
+		// composer.json to read from. Silently coerce so the
+		// frontend's disabled select matches backend behavior.
+		if req.MetadataSource == "manual" {
+			req.VersionSource = "git_tag"
+		}
+
+	case "upload":
+		// Upload sources don't have a repo, strategy, or asset
+		// pattern; blank those to keep the row tidy even if the
+		// client sent them.
+		req.RepoOwner = ""
+		req.RepoName = ""
+		req.Strategy = ""
+		req.AssetPattern = ""
+		req.AuthToken = ""
+
+		// Upload's version_source options are a narrower set.
+		if req.VersionSource == "" {
+			if req.MetadataSource == "manual" {
+				req.VersionSource = "manual"
+			} else {
+				req.VersionSource = "composer_json"
+			}
+		}
+		switch req.VersionSource {
+		case "composer_json", "manual":
+			// valid
+		default:
+			writeError(w, http.StatusBadRequest, "invalid_version_source", "version_source for upload must be composer_json or manual")
+			return
+		}
+		// manual metadata on upload → user types the version per
+		// upload. Coerce to keep the pair consistent.
+		if req.MetadataSource == "manual" {
+			req.VersionSource = "manual"
 		}
 	}
 
@@ -191,13 +233,18 @@ func (h *AdminSourceHandler) Set(w http.ResponseWriter, r *http.Request) {
 	isNew := existing == nil
 	var webhookSecret string
 
+	// Only GitHub has inbound webhooks, so only GitHub sources carry a
+	// webhook secret. Switching from github → upload later clears it
+	// in the update branch below so stale secrets don't linger.
 	if isNew {
-		secret, err := generateWebhookSecret()
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "failed_generate_webhook_secret", "failed to generate webhook secret")
-			return
+		if req.Provider == "github" {
+			secret, err := generateWebhookSecret()
+			if err != nil {
+				writeError(w, http.StatusInternalServerError, "failed_generate_webhook_secret", "failed to generate webhook secret")
+				return
+			}
+			webhookSecret = secret
 		}
-		webhookSecret = secret
 
 		src := &model.PackageSource{
 			PackageID:      pkg.ID,
@@ -229,6 +276,19 @@ func (h *AdminSourceHandler) Set(w http.ResponseWriter, r *http.Request) {
 		if req.AuthToken != "" {
 			existing.AuthToken = req.AuthToken
 		}
+		// If the user switched to upload, the webhook secret is no
+		// longer meaningful. Keep any existing GitHub secret if they
+		// switch back, though, since re-minting invalidates the URL
+		// they've already configured on GitHub.
+		if req.Provider == "github" && existing.WebhookSecret == "" {
+			secret, err := generateWebhookSecret()
+			if err != nil {
+				writeError(w, http.StatusInternalServerError, "failed_generate_webhook_secret", "failed to generate webhook secret")
+				return
+			}
+			existing.WebhookSecret = secret
+			webhookSecret = secret
+		}
 		if err := h.sources.Update(r.Context(), existing); err != nil {
 			slog.Error("update source error", "error", err)
 			writeError(w, http.StatusInternalServerError, "failed_update_source", "failed to update source")
@@ -239,10 +299,14 @@ func (h *AdminSourceHandler) Set(w http.ResponseWriter, r *http.Request) {
 	src, _ := h.sources.GetByPackageID(r.Context(), pkg.ID)
 
 	resp := map[string]interface{}{
-		"source":      src,
-		"webhook_url": h.cfg.BaseURL + "/hooks/" + src.Provider,
+		"source": src,
 	}
-	if isNew {
+	// Webhook URL only applies to github. Upload sources don't accept
+	// webhooks, so don't advertise a URL the server won't route.
+	if src.Provider == "github" {
+		resp["webhook_url"] = h.cfg.BaseURL + "/hooks/" + src.Provider
+	}
+	if webhookSecret != "" {
 		resp["webhook_secret"] = webhookSecret
 	}
 
@@ -273,9 +337,36 @@ func (h *AdminSourceHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.sources.Delete(r.Context(), pkg.ID); err != nil {
-		slog.Error("delete source error", "error", err)
-		writeError(w, http.StatusInternalServerError, "failed_delete_source", "failed to delete source")
+	// Every package has exactly one source, so "Delete" is really
+	// "reset to the default upload+from_zip config" — the natural
+	// user intent is "stop syncing from GitHub, switch me back to
+	// uploading zips myself." Row stays, fields reset. Existing
+	// versions stored on the package are untouched.
+	existing, err := h.sources.GetByPackageID(r.Context(), pkg.ID)
+	if err != nil {
+		slog.Error("source lookup error", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal_error", "internal error")
+		return
+	}
+	if existing == nil {
+		// Should never happen (Create inserts a default source), but
+		// keep behaviour idempotent for callers that retry.
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	existing.Provider = "upload"
+	existing.RepoOwner = ""
+	existing.RepoName = ""
+	existing.Strategy = ""
+	existing.AssetPattern = ""
+	existing.MetadataSource = "from_zip"
+	existing.VersionSource = "composer_json"
+	existing.ManualRequire = ""
+	existing.AuthToken = ""
+	existing.WebhookSecret = ""
+	if err := h.sources.Update(r.Context(), existing); err != nil {
+		slog.Error("reset source error", "error", err)
+		writeError(w, http.StatusInternalServerError, "failed_reset_source", "failed to reset source")
 		return
 	}
 

@@ -71,7 +71,7 @@ func TestAdminSourceHandler_Set_RequiresRepoFields(t *testing.T) {
 	mux.HandleFunc("PUT /api/packages/{id}/source", h.Set)
 
 	req := httptest.NewRequest("PUT", "/api/packages/"+ctx.pkg.PublicID+"/source",
-		strings.NewReader(`{"repo_owner":"","repo_name":""}`))
+		strings.NewReader(`{"provider":"github","repo_owner":"","repo_name":""}`))
 	req.Header.Set("Content-Type", "application/json")
 	req = req.WithContext(auth.SetOrgInContext(req.Context(), ctx.org, nil))
 	rec := httptest.NewRecorder()
@@ -155,7 +155,7 @@ func TestAdminSourceHandler_Set_ValidatesStrategy(t *testing.T) {
 	mux.HandleFunc("PUT /api/packages/{id}/source", h.Set)
 
 	req := httptest.NewRequest("PUT", "/api/packages/"+ctx.pkg.PublicID+"/source",
-		strings.NewReader(`{"repo_owner":"o","repo_name":"r","strategy":"clown"}`))
+		strings.NewReader(`{"provider":"github","repo_owner":"o","repo_name":"r","strategy":"clown"}`))
 	req.Header.Set("Content-Type", "application/json")
 	req = req.WithContext(auth.SetOrgInContext(req.Context(), ctx.org, nil))
 	rec := httptest.NewRecorder()
@@ -348,11 +348,11 @@ func TestAdminSourceHandler_Set_ValidatesMetadataAndVersionSources(t *testing.T)
 		name string
 		body string
 	}{
-		{"unknown metadata_source", `{"repo_owner":"o","repo_name":"r","metadata_source":"wat"}`},
-		{"unknown version_source", `{"repo_owner":"o","repo_name":"r","version_source":"wat"}`},
-		{"manual+source_archive rejected", `{"repo_owner":"o","repo_name":"r","strategy":"source_archive","metadata_source":"manual"}`},
-		{"manual_require invalid JSON", `{"repo_owner":"o","repo_name":"r","metadata_source":"manual","manual_require":"not-json"}`},
-		{"manual_require not an object", `{"repo_owner":"o","repo_name":"r","metadata_source":"manual","manual_require":"[1,2,3]"}`},
+		{"unknown metadata_source", `{"provider":"github","repo_owner":"o","repo_name":"r","metadata_source":"wat"}`},
+		{"unknown version_source", `{"provider":"github","repo_owner":"o","repo_name":"r","version_source":"wat"}`},
+		{"manual+source_archive rejected", `{"provider":"github","repo_owner":"o","repo_name":"r","strategy":"source_archive","metadata_source":"manual"}`},
+		{"manual_require invalid JSON", `{"provider":"github","repo_owner":"o","repo_name":"r","metadata_source":"manual","manual_require":"not-json"}`},
+		{"manual_require not an object", `{"provider":"github","repo_owner":"o","repo_name":"r","metadata_source":"manual","manual_require":"[1,2,3]"}`},
 	}
 
 	mux := http.NewServeMux()
@@ -386,7 +386,7 @@ func TestAdminSourceHandler_Set_ManualMetadata_CoercesVersionSource(t *testing.T
 
 	// Send metadata_source=manual with version_source=composer_json (nonsense
 	// in manual mode) — backend must coerce to git_tag, not reject.
-	body := `{"repo_owner":"o","repo_name":"r","strategy":"release_asset","metadata_source":"manual","version_source":"composer_json","manual_require":"{\"composer/installers\":\"^2.0\"}"}`
+	body := `{"provider":"github","repo_owner":"o","repo_name":"r","strategy":"release_asset","metadata_source":"manual","version_source":"composer_json","manual_require":"{\"composer/installers\":\"^2.0\"}"}`
 	setReq := httptest.NewRequest("PUT", "/api/packages/"+ctx.pkg.PublicID+"/source",
 		strings.NewReader(body))
 	setReq.Header.Set("Content-Type", "application/json")
@@ -394,8 +394,8 @@ func TestAdminSourceHandler_Set_ManualMetadata_CoercesVersionSource(t *testing.T
 	setRec := httptest.NewRecorder()
 	mux.ServeHTTP(setRec, setReq)
 
-	if setRec.Code != http.StatusCreated {
-		t.Fatalf("PUT status = %d, want 201; body=%s", setRec.Code, setRec.Body.String())
+	if setRec.Code != http.StatusCreated && setRec.Code != http.StatusOK {
+		t.Fatalf("PUT status = %d; body=%s", setRec.Code, setRec.Body.String())
 	}
 
 	// Round-trip through GET to confirm persisted shape matches backend rules.
@@ -425,6 +425,103 @@ func TestAdminSourceHandler_Set_ManualMetadata_CoercesVersionSource(t *testing.T
 	}
 	if !strings.Contains(resp.Source.ManualRequire, "composer/installers") {
 		t.Errorf("manual_require not persisted: %q", resp.Source.ManualRequire)
+	}
+}
+
+// Upload provider: valid with only metadata+version configured; no
+// repo fields needed. Mirrors what the frontend will send for the
+// default package source created on `POST /packages`.
+func TestAdminSourceHandler_Set_UploadProvider_HappyPath(t *testing.T) {
+	h, ctx := newSourceHandler(t)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("PUT /api/packages/{id}/source", h.Set)
+
+	body := `{"provider":"upload","metadata_source":"from_zip","version_source":"composer_json"}`
+	req := httptest.NewRequest("PUT", "/api/packages/"+ctx.pkg.PublicID+"/source",
+		strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req = req.WithContext(auth.SetOrgInContext(req.Context(), ctx.org, nil))
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusCreated && rec.Code != http.StatusOK {
+		t.Fatalf("status = %d; body=%s", rec.Code, rec.Body.String())
+	}
+	if strings.Contains(rec.Body.String(), "webhook_url") {
+		t.Errorf("upload provider should not emit webhook_url (response=%s)", rec.Body.String())
+	}
+	if strings.Contains(rec.Body.String(), "webhook_secret") {
+		t.Errorf("upload provider should not mint a webhook_secret (response=%s)", rec.Body.String())
+	}
+}
+
+// Upload + version_source=git_tag is nonsense (no tags exist in the
+// upload flow). Must be rejected outright.
+func TestAdminSourceHandler_Set_UploadProvider_RejectsGitTagVersionSource(t *testing.T) {
+	h, ctx := newSourceHandler(t)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("PUT /api/packages/{id}/source", h.Set)
+
+	body := `{"provider":"upload","metadata_source":"from_zip","version_source":"git_tag"}`
+	req := httptest.NewRequest("PUT", "/api/packages/"+ctx.pkg.PublicID+"/source",
+		strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req = req.WithContext(auth.SetOrgInContext(req.Context(), ctx.org, nil))
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400", rec.Code)
+	}
+}
+
+// Upload + metadata=manual must coerce version_source to "manual" (the
+// only meaningful value in that branch — the user types the version per
+// upload). Mirrors GitHub's "manual metadata coerces to git_tag".
+func TestAdminSourceHandler_Set_UploadProvider_ManualMetadataCoercesVersionSource(t *testing.T) {
+	h, ctx := newSourceHandler(t)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("PUT /api/packages/{id}/source", h.Set)
+	mux.HandleFunc("GET /api/packages/{id}/source", h.Get)
+
+	// Intentionally send the wrong version_source; server must coerce.
+	body := `{"provider":"upload","metadata_source":"manual","version_source":"composer_json","manual_require":"{\"composer/installers\":\"^2.0\"}"}`
+	setReq := httptest.NewRequest("PUT", "/api/packages/"+ctx.pkg.PublicID+"/source",
+		strings.NewReader(body))
+	setReq.Header.Set("Content-Type", "application/json")
+	setReq = setReq.WithContext(auth.SetOrgInContext(setReq.Context(), ctx.org, nil))
+	setRec := httptest.NewRecorder()
+	mux.ServeHTTP(setRec, setReq)
+	if setRec.Code != http.StatusCreated {
+		t.Fatalf("PUT status = %d; body=%s", setRec.Code, setRec.Body.String())
+	}
+
+	getReq := httptest.NewRequest("GET", "/api/packages/"+ctx.pkg.PublicID+"/source", nil)
+	getReq = getReq.WithContext(auth.SetOrgInContext(getReq.Context(), ctx.org, nil))
+	getRec := httptest.NewRecorder()
+	mux.ServeHTTP(getRec, getReq)
+	if getRec.Code != http.StatusOK {
+		t.Fatalf("GET status = %d", getRec.Code)
+	}
+
+	var resp struct {
+		Source struct {
+			Provider       string `json:"provider"`
+			MetadataSource string `json:"metadata_source"`
+			VersionSource  string `json:"version_source"`
+		} `json:"source"`
+	}
+	if err := json.NewDecoder(getRec.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if resp.Source.Provider != "upload" {
+		t.Errorf("provider = %q, want upload", resp.Source.Provider)
+	}
+	if resp.Source.VersionSource != "manual" {
+		t.Errorf("version_source = %q, want manual (coerced)", resp.Source.VersionSource)
 	}
 }
 
