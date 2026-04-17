@@ -20,6 +20,28 @@ Private Composer v2 package registry. Single binary, embedded admin dashboard, S
 
 ## 🚀 Quick start
 
+On a fresh Linux or macOS host:
+
+```bash
+curl -sSf https://get.packyard.dev/install.sh | sh
+```
+
+The installer downloads the right binary, verifies its SHA-256, places it in `/usr/local/bin` (or `~/.local/bin` for non-root), then runs `packyard init` — an interactive wizard that configures paths, database, port, public URL, storage, admin user, and an optional systemd/launchd service.
+
+Unattended / automation variant:
+
+```bash
+curl -sSf https://get.packyard.dev/install.sh | sh -s -- \
+  -- --unattended \
+     --port 9090 \
+     --url https://repo.example.com \
+     --admin-email admin@example.com
+```
+
+See the [installation guide](docs/installation.md) for air-gapped installs, reverse-proxy recipes (Caddy / nginx / Traefik), unattended flags, and upgrades.
+
+### From source (contributors)
+
 Prerequisites: [Go 1.25+](https://go.dev/dl/), [Bun](https://bun.sh).
 
 ```bash

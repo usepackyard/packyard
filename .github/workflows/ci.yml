@@ -39,6 +39,13 @@ jobs:
       - name: Go test
         run: go test ./...
 
+      # Sanity-check the install script: syntax parses, --help runs.
+      # Catches typos before someone pipes them to sh.
+      - name: install.sh syntax
+        run: |
+          bash -n docs/install.sh
+          bash docs/install.sh --help >/dev/null
+
   docker:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     needs: test
