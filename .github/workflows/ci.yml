@@ -43,8 +43,8 @@ jobs:
       # Catches typos before someone pipes them to sh.
       - name: install.sh syntax
         run: |
-          bash -n docs/install.sh
-          bash docs/install.sh --help >/dev/null
+          bash -n scripts/install.sh
+          bash scripts/install.sh --help >/dev/null
 
   docker:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
