@@ -11,8 +11,9 @@
 # real prompts, DB probes, and port checks). This script is deliberately
 # small — its job is to get the binary on disk, nothing more.
 #
-# Platform: Linux only (amd64 or arm64). Packyard is a server-side
-# product; macOS installs are expected to go through the source path
+# Platform: Linux amd64 only. Packyard is a server-side product and
+# the overwhelming majority of target hosts are x86_64 VPS / bare
+# metal. arm64 and macOS installs go through the source path
 # documented in the repo README.
 #
 # Flags (before the double-dash) are handled by this script:
@@ -128,9 +129,9 @@ preflight() {
 detect_arch() {
     case "$(uname -m)" in
         x86_64|amd64) echo "amd64" ;;
-        aarch64|arm64) echo "arm64" ;;
         *)
-            err "unsupported architecture: $(uname -m). Packyard ships amd64 and arm64."
+            err "unsupported architecture: $(uname -m). Packyard ships amd64 binaries only."
+            err "For arm64 or other architectures, build from source: https://github.com/${PACKYARD_REPO}#from-source-contributors"
             exit 1
             ;;
     esac
@@ -253,7 +254,7 @@ err()  { printf 'install.sh: %s\n' "$*" >&2; }
 
 usage() {
     cat <<'EOF'
-Packyard installer (Linux amd64/arm64).
+Packyard installer (Linux amd64).
 
 Usage:
   curl -sSf https://get.packyard.dev/install.sh | sh [-- INIT_ARGS...]
