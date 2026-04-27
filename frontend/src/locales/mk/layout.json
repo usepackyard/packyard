@@ -9,7 +9,8 @@
     "members": "Членови",
     "users": "Корисници",
     "orgs": "Организации",
-    "adminTokens": "Админ токени"
+    "adminTokens": "Админ токени",
+    "connections": "Врски"
   },
   "enterSuperAdmin": "Влези во Супер-админ",
   "backToDashboard": "Назад на контролната табла",

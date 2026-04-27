@@ -25,11 +25,12 @@ func NewMux(cfg *config.Config, stores *store.Stores, strg storage.Storage, cach
 	// Handlers.
 	composerH := handler.NewComposerHandler(cache, strg, stores.Packages, stores.Downloads)
 	adminAuthH := handler.NewAdminAuthHandler(stores.Users, stores.Sessions, stores.Orgs, cfg, cfg.BcryptCost)
-	adminPkgH := handler.NewAdminPackageHandler(stores.Packages, stores.Sources, strg, cache)
+	adminPkgH := handler.NewAdminPackageHandler(stores.Packages, stores.Sources, stores.Connections, strg, cache)
 	adminVerH := handler.NewAdminVersionHandler(stores.Packages, stores.Sources, strg, cache)
 	adminTokH := handler.NewAdminTokenHandler(stores.Tokens, cfg.BcryptCost)
 	adminUserH := handler.NewAdminUserHandler(stores.Users, cfg.BcryptCost)
-	adminSrcH := handler.NewAdminSourceHandler(stores.Sources, stores.Packages, stores.Jobs, strg, cache, cfg)
+	adminSrcH := handler.NewAdminSourceHandler(stores.Sources, stores.Connections, stores.Packages, stores.Jobs, strg, cache, cfg)
+	providerConnH := handler.NewProviderConnectionHandler(stores.Connections, cfg)
 	adminMemH := handler.NewAdminMemberHandler(stores.Orgs, stores.Users, cfg.BcryptCost)
 	adminSSOH := handler.NewAdminSSOHandler(stores.Users, stores.SSOTickets, stores.Sessions, cfg)
 	webhookH := handler.NewWebhookHandler(stores.Sources, stores.Packages, stores.Jobs, cfg)
@@ -96,7 +97,7 @@ func NewMux(cfg *config.Config, stores *store.Stores, strg storage.Storage, cach
 	mux.Handle("GET /api/orgs", sessionAuthMw(http.HandlerFunc(adminAuthH.ListOrgs)))
 
 	// Webhook (no auth — validated per-provider).
-	mux.HandleFunc("POST /hooks/{provider}", webhookH.Handle)
+	mux.HandleFunc("POST /hooks/{provider}/{source_id}", webhookH.Handle)
 	mux.Handle("GET /sso/login", http.HandlerFunc(adminSSOH.Login))
 
 	// Admin API. Auth: session-cookie super-admin OR Authorization: Bearer
@@ -186,6 +187,11 @@ func NewMux(cfg *config.Config, stores *store.Stores, strg storage.Storage, cach
 	mux.Handle("GET /api/orgs/{org}/tokens", orgAuthPerm("tokens:manage", adminTokH.List))
 	mux.Handle("POST /api/orgs/{org}/tokens", orgAuthPerm("tokens:manage", adminTokH.Create))
 	mux.Handle("DELETE /api/orgs/{org}/tokens/{id}", orgAuthPerm("tokens:manage", adminTokH.Delete))
+
+	mux.Handle("GET /api/orgs/{org}/provider-connections", orgAuthPerm("sources:manage", providerConnH.List))
+	mux.Handle("POST /api/orgs/{org}/provider-connections", orgAuthPerm("sources:manage", providerConnH.Create))
+	mux.Handle("PUT /api/orgs/{org}/provider-connections/{id}", orgAuthPerm("sources:manage", providerConnH.Update))
+	mux.Handle("DELETE /api/orgs/{org}/provider-connections/{id}", orgAuthPerm("sources:manage", providerConnH.Delete))
 
 	// Members: list is visible to any org member; writes require members:manage.
 	mux.Handle("GET /api/orgs/{org}/members", orgAuth(adminMemH.List))

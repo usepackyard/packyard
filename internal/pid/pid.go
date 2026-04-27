@@ -28,6 +28,7 @@ const (
 	AdminToken    = "atk"
 	SyncJob       = "job"
 	PackageSource = "src"
+	ProviderConnection = "conn"
 )
 
 // entropy must be monotonic so IDs minted in the same millisecond still

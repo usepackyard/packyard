@@ -43,6 +43,11 @@
   "detail": {
     "back": "Retour",
     "delete": "Supprimer le paquet",
+    "install": {
+      "title": "Installer",
+      "copy": "Copier dans le presse-papiers",
+      "repoHint": "Première fois ? Ajoutez le dépôt à votre projet :"
+    },
     "confirmDelete": {
       "title": "Supprimer {{name}} ?",
       "description": "Cela supprime définitivement le paquet, toutes les versions et tous les fichiers téléversés.",
@@ -127,7 +132,7 @@
         "provider": "Fournisseur",
         "providerUpload": "Téléversement",
         "providerGithub": "GitHub",
-        "providerHelp": "Comment les nouvelles versions arrivent dans ce paquet. Téléversement = vous déposez les ZIP vous-même. GitHub = nous synchronisons depuis les releases taguées.",
+        "providerHelp": "Comment les nouvelles versions entrent dans ce paquet. Upload = déposer les ZIP vous-même. GitHub/GitLab = synchroniser depuis des releases taguées.",
         "owner": "Propriétaire",
         "ownerPlaceholder": "acme",
         "repo": "Dépôt",
@@ -135,7 +140,7 @@
         "strategy": "Stratégie",
         "strategyReleaseAsset": "Asset de release (ZIP téléversé)",
         "strategySourceArchive": "Archive source (zipball Git)",
-        "strategyHelp": "L'artefact que les clients Composer téléchargeront. Asset de release = un ZIP attaché à une release GitHub. Archive source = le zipball généré automatiquement par GitHub au tag.",
+        "strategyHelp": "L’artefact que les clients Composer téléchargeront. Asset de release = ZIP attaché à une release fournisseur. Archive source = zipball généré par le fournisseur au tag.",
         "assetPattern": "Motif d'asset",
         "assetPatternHelp": "Joker type shell (`*` toute séquence, `?` un caractère) qui correspond aux noms d'asset. Exemple: `myplugin-*.zip`. Laissez vide pour utiliser les archives source.",
         "metadataSource": "Source des métadonnées",
@@ -151,7 +156,11 @@
         "manualRequireHelp": "Entrées composer require utilisées lorsque la source de métadonnées est « manual ».",
         "authToken": "Jeton d'authentification (optionnel)",
         "authTokenHelp": "Personal Access Token GitHub pour les dépôts privés. Non stocké sur le serveur.",
-        "preview": "Aperçu des releases"
+        "preview": "Aperçu des releases",
+        "providerGitlab": "GitLab",
+        "connection": "Connexion",
+        "connectionNone": "Aucune connexion (dépôt public)",
+        "connectionHelp": "Sélectionnez des identifiants enregistrés pour les dépôts privés ou GitLab auto-hébergé."
       },
       "preview": {
         "title": "Aperçu des releases",
@@ -188,9 +197,51 @@
       },
       "confirmRemove": {
         "title": "Retirer la source ?",
-        "description": "Arrête la synchronisation GitHub pour ce paquet. Les versions existantes sont conservées.",
+        "description": "Arrête la synchronisation du dépôt pour ce paquet. Les versions existantes restent.",
         "confirm": "Retirer"
-      }
+      },
+      "connection": "Connexion"
+    }
+  },
+  "connections": {
+    "title": "Connexions fournisseur",
+    "subtitle": "Identifiants Git réutilisables pour les sources de paquets.",
+    "add": "Ajouter une connexion",
+    "createTitle": "Créer une connexion fournisseur",
+    "editTitle": "Modifier la connexion fournisseur",
+    "sectionTitle": "Connexions",
+    "empty": "Aucune connexion fournisseur pour le moment.",
+    "create": "Créer la connexion",
+    "save": "Enregistrer la connexion",
+    "failedSave": "Impossible d’enregistrer la connexion fournisseur.",
+    "failedDelete": "Impossible de supprimer la connexion fournisseur.",
+    "tokenConfigured": "Jeton configuré",
+    "noAuth": "Aucune authentification",
+    "inUse": "La connexion est utilisée par une source de paquet.",
+    "table": {
+      "name": "Nom",
+      "provider": "Fournisseur",
+      "auth": "Auth",
+      "usedBy": "Utilisée par",
+      "created": "Créée"
+    },
+    "fields": {
+      "name": "Nom",
+      "namePlaceholder": "GitHub production",
+      "provider": "Fournisseur",
+      "authType": "Authentification",
+      "authToken": "Jeton",
+      "authNone": "Aucune authentification",
+      "token": "Jeton",
+      "tokenPlaceholder": "Collez un jeton fournisseur",
+      "tokenEditPlaceholder": "Laisser vide pour conserver le jeton existant",
+      "host": "Hôte GitLab",
+      "hostHelp": "Utilisez gitlab.com pour GitLab SaaS, ou le nom d’hôte de votre GitLab auto-hébergé."
+    },
+    "confirmDelete": {
+      "title": "Supprimer {{name}} ?",
+      "description": "Les paquets utilisant cette connexion doivent d’abord être déplacés.",
+      "confirm": "Supprimer"
     }
   }
 }

@@ -15,10 +15,10 @@ import (
 // what users and external callers see (e.g. pkg_01JHZ...).
 //
 // The migration is idempotent and dialect-portable:
-//   1. ALTER TABLE ADD COLUMN (ignore "already exists" — fresh DBs get the
-//      column in 001 via the updated model tags).
-//   2. Backfill any row whose public_id is NULL or empty.
-//   3. CREATE UNIQUE INDEX (ignore "already exists").
+//  1. ALTER TABLE ADD COLUMN (ignore "already exists" — fresh DBs get the
+//     column in 001 via the updated model tags).
+//  2. Backfill any row whose public_id is NULL or empty.
+//  3. CREATE UNIQUE INDEX (ignore "already exists").
 //
 // We don't try to ALTER the column to NOT NULL on existing tables because
 // SQLite doesn't support it without table recreation, and the store layer
@@ -36,6 +36,7 @@ func init() {
 			{"org_members", pid.OrgMember},
 			{"api_tokens", pid.APIToken},
 			{"admin_tokens", pid.AdminToken},
+			{"provider_connections", pid.ProviderConnection},
 			{"package_sources", pid.PackageSource},
 			{"sync_jobs", pid.SyncJob},
 		}
@@ -56,6 +57,7 @@ func init() {
 		tables := []string{
 			"sync_jobs",
 			"package_sources",
+			"provider_connections",
 			"admin_tokens",
 			"api_tokens",
 			"org_members",

@@ -1,4 +1,22 @@
-import type { AdminToken, AppConfig, Organization, OrgMember, OrgStatus, Package, PackageStats, ReleasePreview, Version, APIToken, PackageSource, SyncJob, User } from "@/types";
+import type {
+  AdminToken,
+  AppConfig,
+  ConnectionConfig,
+  Organization,
+  OrgMember,
+  OrgStatus,
+  Package,
+  PackageStats,
+  ProviderAuthType,
+  ProviderConnection,
+  ReleasePreview,
+  SourceConfig,
+  Version,
+  APIToken,
+  PackageSource,
+  SyncJob,
+  User,
+} from "@/types";
 import i18n from "@/i18n";
 
 // ApiError carries both the machine code and the raw English fallback
@@ -74,8 +92,14 @@ export function createApi(orgSlug: string) {
     listPackages: () => request<{ packages: Package[] }>(`${prefix}/packages`),
     getPackageStats: () => request<PackageStats>(`${prefix}/packages/stats`),
     getPackage: (id: string) => request<{ package: Package }>(`${prefix}/packages/${id}`),
-    createPackage: (data: { name: string; type: string; description: string }) =>
-      request<{ package: Package }>(`${prefix}/packages`, {
+    createPackage: (data: {
+      name: string; type: string; description: string;
+      source?: {
+        provider: string; connection_id?: string; config?: Partial<SourceConfig>;
+        metadata_source?: string; version_source?: string; manual_require?: string;
+      };
+    }) =>
+      request<{ package: Package; source?: PackageSource; webhook_secret?: string }>(`${prefix}/packages`, {
         method: "POST", body: JSON.stringify(data),
       }),
     deletePackage: (id: string) => request(`${prefix}/packages/${id}`, { method: "DELETE" }),
@@ -116,10 +140,8 @@ export function createApi(orgSlug: string) {
     getSource: (packageId: string) =>
       request<{ source: PackageSource; webhook_url: string }>(`${prefix}/packages/${packageId}/source`).catch(() => null),
     setSource: (packageId: string, data: {
-      provider: string; repo_owner: string; repo_name: string;
-      strategy: string; asset_pattern?: string;
+      provider: string; connection_id?: string; config?: Partial<SourceConfig>;
       metadata_source?: string; version_source?: string; manual_require?: string;
-      auth_token?: string;
     }) =>
       request<{ source: PackageSource; webhook_url: string; webhook_secret?: string }>(
         `${prefix}/packages/${packageId}/source`, { method: "PUT", body: JSON.stringify(data) }
@@ -154,11 +176,31 @@ export function createApi(orgSlug: string) {
       request<{ job: SyncJob }>(`${prefix}/packages/${packageId}/sync/${jobId}`),
     listSyncJobs: (packageId: string) =>
       request<{ jobs: SyncJob[] }>(`${prefix}/packages/${packageId}/sync`),
-    previewSource: (provider: string, owner: string, repo: string, authToken?: string) =>
+    previewSource: (provider: string, connectionId: string, config: Partial<SourceConfig>) =>
       request<{ releases: ReleasePreview[] }>(`${prefix}/sources/preview`, {
         method: "POST",
-        body: JSON.stringify({ provider, owner, repo, auth_token: authToken ?? "" }),
+        body: JSON.stringify({ provider, connection_id: connectionId, config }),
       }),
+
+    // Provider connections
+    listProviderConnections: () =>
+      request<{ connections: ProviderConnection[] }>(`${prefix}/provider-connections`),
+    createProviderConnection: (data: {
+      name: string; provider: "github" | "gitlab"; auth_type: ProviderAuthType;
+      token?: string; config?: ConnectionConfig;
+    }) =>
+      request<{ connection: ProviderConnection }>(`${prefix}/provider-connections`, {
+        method: "POST", body: JSON.stringify(data),
+      }),
+    updateProviderConnection: (id: string, data: {
+      name: string; provider: "github" | "gitlab"; auth_type: ProviderAuthType;
+      token?: string; config?: ConnectionConfig;
+    }) =>
+      request<{ connection: ProviderConnection }>(`${prefix}/provider-connections/${id}`, {
+        method: "PUT", body: JSON.stringify(data),
+      }),
+    deleteProviderConnection: (id: string) =>
+      request(`${prefix}/provider-connections/${id}`, { method: "DELETE" }),
 
     // Members
     listMembers: () => request<{ members: OrgMember[] }>(`${prefix}/members`),

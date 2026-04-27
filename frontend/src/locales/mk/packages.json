@@ -43,6 +43,11 @@
   "detail": {
     "back": "Назад",
     "delete": "Избриши пакет",
+    "install": {
+      "title": "Инсталирај",
+      "copy": "Копирај во табла за копирање",
+      "repoHint": "Прв пат? Додади го складиштето во твојот проект:"
+    },
     "confirmDelete": {
       "title": "Да се избрише {{name}}?",
       "description": "Ова трајно го брише пакетот, сите верзии и сите прикачени датотеки.",
@@ -127,7 +132,7 @@
         "provider": "Провајдер",
         "providerUpload": "Прикачување",
         "providerGithub": "GitHub",
-        "providerHelp": "Како новите верзии влегуваат во овој пакет. Прикачување = вие ги прикачувате ZIP-овите. GitHub = ние синхронизираме од обележаните изданија.",
+        "providerHelp": "Како влегуваат нови верзии во овој пакет. Upload = самостојно прикачување ZIP. GitHub/GitLab = синхронизација од tag releases.",
         "owner": "Сопственик",
         "ownerPlaceholder": "acme",
         "repo": "Складиште",
@@ -135,7 +140,7 @@
         "strategy": "Стратегија",
         "strategyReleaseAsset": "Asset од издание (прикачен ZIP)",
         "strategySourceArchive": "Source архива (git zipball)",
-        "strategyHelp": "Артефактот што Composer клиентите ќе го преземат. Asset од издание = ZIP прикачен на GitHub издание. Source архива = автоматски генериран zipball од GitHub на тагот.",
+        "strategyHelp": "Артефактот што ќе го преземаат Composer клиентите. Release asset = ZIP прикачен на provider release. Source archive = zipball генериран од провајдерот на tag.",
         "assetPattern": "Asset образец",
         "assetPatternHelp": "Шел-стил wildcard (`*` било која низа знаци, `?` еден знак) што ги совпаѓа имињата на asset. Пример: `myplugin-*.zip`. Оставете празно за да се користат source архиви.",
         "metadataSource": "Извор на метаподатоци",
@@ -151,7 +156,11 @@
         "manualRequireHelp": "Composer require ставки кога изворот на метаподатоци е „manual“.",
         "authToken": "Токен за автентикација (незадолжително)",
         "authTokenHelp": "GitHub Personal Access Token за приватни складишта. Не се чува на серверот.",
-        "preview": "Преглед на изданија"
+        "preview": "Преглед на изданија",
+        "providerGitlab": "GitLab",
+        "connection": "Врска",
+        "connectionNone": "Без врска (јавно складиште)",
+        "connectionHelp": "Изберете зачувани креденцијали за приватни складишта или self-hosted GitLab."
       },
       "preview": {
         "title": "Преглед на изданија",
@@ -188,9 +197,51 @@
       },
       "confirmRemove": {
         "title": "Да се отстрани изворот?",
-        "description": "Ја запира GitHub синхронизацијата за овој пакет. Постоечките верзии остануваат.",
+        "description": "Ја запира синхронизацијата со складиштето за овој пакет. Постојните верзии остануваат.",
         "confirm": "Отстрани"
-      }
+      },
+      "connection": "Врска"
+    }
+  },
+  "connections": {
+    "title": "Провајдерски врски",
+    "subtitle": "Повторно употребливи Git креденцијали за извори на пакети.",
+    "add": "Додај врска",
+    "createTitle": "Креирај провајдерска врска",
+    "editTitle": "Уреди провајдерска врска",
+    "sectionTitle": "Врски",
+    "empty": "Сè уште нема провајдерски врски.",
+    "create": "Креирај врска",
+    "save": "Зачувај врска",
+    "failedSave": "Не успеа зачувувањето на провајдерската врска.",
+    "failedDelete": "Не успеа бришењето на провајдерската врска.",
+    "tokenConfigured": "Токенот е конфигуриран",
+    "noAuth": "Без автентикација",
+    "inUse": "Врската ја користи извор на пакет.",
+    "table": {
+      "name": "Име",
+      "provider": "Провајдер",
+      "auth": "Авт.",
+      "usedBy": "Се користи од",
+      "created": "Креирано"
+    },
+    "fields": {
+      "name": "Име",
+      "namePlaceholder": "Продукциски GitHub",
+      "provider": "Провајдер",
+      "authType": "Автентикација",
+      "authToken": "Токен",
+      "authNone": "Без автентикација",
+      "token": "Токен",
+      "tokenPlaceholder": "Внесете провајдерски токен",
+      "tokenEditPlaceholder": "Оставете празно за да се задржи постојниот токен",
+      "host": "GitLab хост",
+      "hostHelp": "Користете gitlab.com за GitLab SaaS или hostname од вашиот self-hosted GitLab."
+    },
+    "confirmDelete": {
+      "title": "Да се избрише {{name}}?",
+      "description": "Пакетите што ја користат оваа врска прво мора да се преместат.",
+      "confirm": "Избриши"
     }
   }
 }

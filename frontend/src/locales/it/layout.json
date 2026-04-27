@@ -9,7 +9,8 @@
     "members": "Membri",
     "users": "Utenti",
     "orgs": "Organizzazioni",
-    "adminTokens": "Token admin"
+    "adminTokens": "Token admin",
+    "connections": "Connessioni"
   },
   "enterSuperAdmin": "Entra in super-admin",
   "backToDashboard": "Torna alla dashboard",

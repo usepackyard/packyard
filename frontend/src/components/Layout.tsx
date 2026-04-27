@@ -8,6 +8,7 @@ import {
   LogOut,
   Menu,
   Package,
+  Plug,
   UserCircle,
   Users,
   UsersRound,
@@ -42,6 +43,7 @@ export default function Layout() {
   const orgNav: NavItem[] = [
     { to: "/", label: t("layout:nav.dashboard"), icon: LayoutDashboard },
     { to: "/packages", label: t("layout:nav.packages"), icon: Package },
+    { to: "/connections", label: t("layout:nav.connections"), icon: Plug },
     { to: "/tokens", label: t("layout:nav.tokens"), icon: Key },
     { to: "/members", label: t("layout:nav.members"), icon: UsersRound },
   ];

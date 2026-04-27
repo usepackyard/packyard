@@ -15,6 +15,7 @@ import (
 	_ "modernc.org/sqlite"
 
 	_ "github.com/usepackyard/packyard/internal/provider/github"
+	_ "github.com/usepackyard/packyard/internal/provider/gitlab"
 
 	"github.com/usepackyard/packyard/internal/auth"
 	"github.com/usepackyard/packyard/internal/composer"

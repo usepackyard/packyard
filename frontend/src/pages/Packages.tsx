@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback, type FormEvent } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
-import type { Package } from "@/types";
+import { useConfirm } from "@/hooks/useConfirm";
+import type { Package, ProviderConnection, SourceProvider, SourceStrategy } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,20 +11,38 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Download, Plus } from "lucide-react";
+import { Download, Pencil, Plus, Trash2 } from "lucide-react";
 import { formatDateTime, formatNumber, relativeTime } from "@/lib/time";
 
 export default function Packages() {
   const { t } = useTranslation("packages");
   const { api } = useAuth();
+  const { confirm, dialog: confirmDialog } = useConfirm();
+  const navigate = useNavigate();
   const [packages, setPackages] = useState<Package[]>([]);
+  const [connections, setConnections] = useState<ProviderConnection[]>([]);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ name: "", type: "library", description: "" });
+  const [form, setForm] = useState({
+    name: "",
+    type: "library",
+    description: "",
+    source_provider: "upload" as SourceProvider,
+    connection_id: "",
+    repo_owner: "",
+    repo_name: "",
+    strategy: "release_asset" as SourceStrategy,
+    asset_pattern: "*.zip",
+  });
   const [error, setError] = useState("");
 
   const load = useCallback(() => api.listPackages().then((r) => setPackages(r.packages)), [api]);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    api.listProviderConnections()
+      .then((r) => setConnections(r.connections))
+      .catch(() => setConnections([]));
+  }, [api]);
 
   const [searchParams, setSearchParams] = useSearchParams();
   useEffect(() => {
@@ -38,8 +57,38 @@ export default function Packages() {
     e.preventDefault();
     setError("");
     try {
-      await api.createPackage(form);
-      setForm({ name: "", type: "library", description: "" });
+      const source = form.source_provider === "upload"
+        ? { provider: "upload" }
+        : {
+            provider: form.source_provider,
+            connection_id: form.connection_id,
+            config: {
+              owner: form.repo_owner,
+              repo: form.repo_name,
+              strategy: form.strategy,
+              asset_pattern: form.asset_pattern,
+            },
+          };
+      const resp = await api.createPackage({
+        name: form.name,
+        type: form.type,
+        description: form.description,
+        source,
+      });
+      if (resp.webhook_secret) {
+        window.alert(`${t("detail.source.webhookSecret")}: ${resp.webhook_secret}`);
+      }
+      setForm({
+        name: "",
+        type: "library",
+        description: "",
+        source_provider: "upload",
+        connection_id: "",
+        repo_owner: "",
+        repo_name: "",
+        strategy: "release_asset",
+        asset_pattern: "*.zip",
+      });
       setOpen(false);
       load();
     } catch (err) {
@@ -49,6 +98,7 @@ export default function Packages() {
 
   return (
     <div>
+      {confirmDialog}
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold tracking-tight">{t("title")}</h2>
         <Dialog open={open} onOpenChange={setOpen}>
@@ -98,6 +148,95 @@ export default function Packages() {
                 <Input id="desc" value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })} />
               </div>
+              <div className="rounded-md border bg-muted/20 p-3 space-y-3">
+                <div className="space-y-2">
+                  <Label>{t("detail.source.fields.provider")}</Label>
+                  <select
+                    className="flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm"
+                    value={form.source_provider}
+                    onChange={(e) => {
+                      const provider = e.target.value as SourceProvider;
+                      setForm({
+                        ...form,
+                        source_provider: provider,
+                        connection_id: "",
+                        repo_owner: provider === "upload" ? "" : form.repo_owner,
+                        repo_name: provider === "upload" ? "" : form.repo_name,
+                        strategy: provider === "upload" ? "" : (form.strategy || "release_asset"),
+                        asset_pattern: provider === "upload" ? "" : (form.asset_pattern || "*.zip"),
+                      });
+                    }}
+                  >
+                    <option value="upload">{t("detail.source.fields.providerUpload")}</option>
+                    <option value="github">{t("detail.source.fields.providerGithub")}</option>
+                    <option value="gitlab">{t("detail.source.fields.providerGitlab")}</option>
+                  </select>
+                </div>
+                {form.source_provider !== "upload" && (
+                  <>
+                    <div className="space-y-2">
+                      <Label>{t("detail.source.fields.connection")}</Label>
+                      <select
+                        className="flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm"
+                        value={form.connection_id}
+                        onChange={(e) => setForm({ ...form, connection_id: e.target.value })}
+                      >
+                        <option value="">{t("detail.source.fields.connectionNone")}</option>
+                        {connections
+                          .filter((conn) => conn.provider === form.source_provider)
+                          .map((conn) => (
+                            <option key={conn.id} value={conn.id}>
+                              {conn.name}{conn.config?.host ? ` (${conn.config.host})` : ""}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>{t("detail.source.fields.owner")}</Label>
+                        <Input
+                          placeholder={t("detail.source.fields.ownerPlaceholder")}
+                          value={form.repo_owner}
+                          onChange={(e) => setForm({ ...form, repo_owner: e.target.value })}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>{t("detail.source.fields.repo")}</Label>
+                        <Input
+                          placeholder={t("detail.source.fields.repoPlaceholder")}
+                          value={form.repo_name}
+                          onChange={(e) => setForm({ ...form, repo_name: e.target.value })}
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>{t("detail.source.fields.strategy")}</Label>
+                        <select
+                          className="flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm"
+                          value={form.strategy}
+                          onChange={(e) => setForm({ ...form, strategy: e.target.value as SourceStrategy })}
+                        >
+                          <option value="release_asset">{t("detail.source.fields.strategyReleaseAsset")}</option>
+                          <option value="source_archive">{t("detail.source.fields.strategySourceArchive")}</option>
+                        </select>
+                      </div>
+                      {form.strategy === "release_asset" && (
+                        <div className="space-y-2">
+                          <Label>{t("detail.source.fields.assetPattern")}</Label>
+                          <Input
+                            value={form.asset_pattern}
+                            onChange={(e) => setForm({ ...form, asset_pattern: e.target.value })}
+                            placeholder="*.zip"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
               <Button type="submit" className="w-full">{t("create")}</Button>
             </form>
           </DialogContent>
@@ -118,6 +257,7 @@ export default function Packages() {
                   <TableHead>{t("table.latest")}</TableHead>
                   <TableHead className="text-right">{t("table.downloads")}</TableHead>
                   <TableHead>{t("table.lastReleased")}</TableHead>
+                  <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -125,7 +265,19 @@ export default function Packages() {
                   const versions = pkg.versions ?? [];
                   const totalDl = versions.reduce((sum, v) => sum + (v.download_count ?? 0), 0);
                   const latest = versions[0];
-                  return (
+  const handleDelete = async (pkg: Package) => {
+    const ok = await confirm({
+      title: t("detail.confirmDelete.title", { name: pkg.name }),
+      description: t("detail.confirmDelete.description"),
+      confirmLabel: t("detail.confirmDelete.confirm"),
+      variant: "destructive",
+    });
+    if (!ok) return;
+    await api.deletePackage(pkg.id);
+    load();
+  };
+
+  return (
                     <TableRow key={pkg.id}>
                       <TableCell>
                         <Link
@@ -168,6 +320,16 @@ export default function Packages() {
                         title={latest ? formatDateTime(latest.created_at) : ""}
                       >
                         {latest ? relativeTime(latest.created_at) : t("dash")}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => navigate(`/packages/${pkg.id}`)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleDelete(pkg)}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );

@@ -17,6 +17,7 @@ import (
 
 	"github.com/usepackyard/packyard/internal/composer"
 	"github.com/usepackyard/packyard/internal/config"
+	"github.com/usepackyard/packyard/internal/credentials"
 	"github.com/usepackyard/packyard/internal/model"
 	"github.com/usepackyard/packyard/internal/provider"
 	"github.com/usepackyard/packyard/internal/storage"
@@ -166,11 +167,31 @@ func (p *Pool) runJob(ctx context.Context, job *model.SyncJob) {
 		return
 	}
 
-	token := src.AuthToken
-	if token == "" {
-		token = p.cfg.Providers.TokenFor(src.Provider)
+	var token, connectionConfig string
+	if src.ConnectionID != nil {
+		conn, err := p.stores.Connections.GetByID(ctx, job.OrgID, *src.ConnectionID)
+		if err != nil {
+			p.fail(ctx, job, fmt.Sprintf("load provider connection: %s", err))
+			return
+		}
+		if conn == nil {
+			p.fail(ctx, job, "provider connection not found")
+			return
+		}
+		if conn.Provider != src.Provider {
+			p.fail(ctx, job, "provider connection does not match source provider")
+			return
+		}
+		connectionConfig = conn.Config
+		if conn.AuthType == model.ProviderAuthToken {
+			token, err = credentials.DecryptString(conn.SecretEncrypted, p.cfg.CredentialsKey)
+			if err != nil {
+				p.fail(ctx, job, fmt.Sprintf("decrypt provider connection: %s", err))
+				return
+			}
+		}
 	}
-	prov, err := provider.NewProvider(src.Provider, token)
+	prov, err := provider.NewProvider(src.Provider, token, connectionConfig)
 	if err != nil {
 		p.fail(ctx, job, fmt.Sprintf("provider %q: %s", src.Provider, err))
 		return

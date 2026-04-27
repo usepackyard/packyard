@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 
@@ -8,20 +10,35 @@ import (
 	"github.com/usepackyard/packyard/internal/composer"
 	"github.com/usepackyard/packyard/internal/model"
 	"github.com/usepackyard/packyard/internal/pid"
+	"github.com/usepackyard/packyard/internal/provider"
 	"github.com/usepackyard/packyard/internal/storage"
 	"github.com/usepackyard/packyard/internal/store"
 )
 
 type AdminPackageHandler struct {
-	packages store.PackageStore
-	sources  store.SourceStore
-	storage  storage.Storage
-	cache    *composer.Cache
+	packages    store.PackageStore
+	sources     store.SourceStore
+	connections store.ProviderConnectionStore
+	storage     storage.Storage
+	cache       *composer.Cache
 }
 
-func NewAdminPackageHandler(packages store.PackageStore, sources store.SourceStore, storage storage.Storage, cache *composer.Cache) *AdminPackageHandler {
-	return &AdminPackageHandler{packages: packages, sources: sources, storage: storage, cache: cache}
+func NewAdminPackageHandler(packages store.PackageStore, sources store.SourceStore, connections store.ProviderConnectionStore, storage storage.Storage, cache *composer.Cache) *AdminPackageHandler {
+	return &AdminPackageHandler{packages: packages, sources: sources, connections: connections, storage: storage, cache: cache}
 }
+
+var (
+	errInvalidMetadataSource              = errors.New("invalid metadata source")
+	errInvalidManualRequire               = errors.New("invalid manual require")
+	errInvalidUploadVersionSource         = errors.New("invalid upload version source")
+	errInvalidVersionSource               = errors.New("invalid version source")
+	errInvalidSourceConfig                = errors.New("invalid source config")
+	errProviderConnectionNotFound         = errors.New("provider connection not found")
+	errProviderConnectionMismatch         = errors.New("provider connection mismatch")
+	errManualMetadataRequiresReleaseAsset = errors.New("manual metadata requires release asset")
+	errUnsupportedProvider                = errors.New("unsupported provider")
+	errGenerateWebhookSecret              = errors.New("generate webhook secret")
+)
 
 func (h *AdminPackageHandler) List(w http.ResponseWriter, r *http.Request) {
 	org := auth.OrgFromContext(r.Context())
@@ -60,6 +77,14 @@ func (h *AdminPackageHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Type        string `json:"type"`
 		Description string `json:"description"`
 		Homepage    string `json:"homepage"`
+		Source      *struct {
+			Provider       string          `json:"provider"`
+			ConnectionID   string          `json:"connection_id"`
+			Config         json.RawMessage `json:"config"`
+			MetadataSource string          `json:"metadata_source"`
+			VersionSource  string          `json:"version_source"`
+			ManualRequire  string          `json:"manual_require"`
+		} `json:"source"`
 	}
 	if err := decodeJSON(w, r, &req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid_request_body", "invalid request body")
@@ -79,6 +104,12 @@ func (h *AdminPackageHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	source, err := h.sourceFromCreateRequest(r, org.ID, req.Source)
+	if err != nil {
+		writePackageSourceCreateError(w, err)
+		return
+	}
+
 	pkg := &model.Package{
 		OrgID:       org.ID,
 		Name:        req.Name,
@@ -93,27 +124,165 @@ func (h *AdminPackageHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Every package gets a default upload-provider source at creation
-	// time. That's how the upload endpoint knows how to parse
-	// incoming zips — it reads the source's metadata_source. Users
-	// can edit the source afterwards to switch to GitHub or to
-	// manual metadata.
-	defaultSource := &model.PackageSource{
-		PackageID:      pkg.ID,
-		Provider:       "upload",
-		MetadataSource: "from_zip",
-		VersionSource:  "composer_json",
-	}
-	if err := h.sources.Create(r.Context(), defaultSource); err != nil {
+	source.PackageID = pkg.ID
+	if err := h.sources.Create(r.Context(), source); err != nil {
 		slog.Error("create default source error", "error", err)
 		writeError(w, http.StatusInternalServerError, "failed_create_source", "failed to create package source")
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, map[string]interface{}{
+	resp := map[string]interface{}{
 		"package": pkg,
-		"source":  defaultSource,
-	})
+		"source":  source,
+	}
+	if source.WebhookSecret != "" {
+		resp["webhook_secret"] = source.WebhookSecret
+	}
+	writeJSON(w, http.StatusCreated, resp)
+}
+
+func (h *AdminPackageHandler) sourceFromCreateRequest(r *http.Request, orgID int64, req *struct {
+	Provider       string          `json:"provider"`
+	ConnectionID   string          `json:"connection_id"`
+	Config         json.RawMessage `json:"config"`
+	MetadataSource string          `json:"metadata_source"`
+	VersionSource  string          `json:"version_source"`
+	ManualRequire  string          `json:"manual_require"`
+}) (*model.PackageSource, error) {
+	if req == nil {
+		return &model.PackageSource{
+			Provider:       provider.ProviderUpload,
+			MetadataSource: "from_zip",
+			VersionSource:  "composer_json",
+		}, nil
+	}
+	if req.Provider == "" {
+		req.Provider = provider.ProviderUpload
+	}
+	if req.MetadataSource == "" {
+		req.MetadataSource = "from_zip"
+	}
+	switch req.MetadataSource {
+	case "from_zip", "manual":
+	default:
+		return nil, errInvalidMetadataSource
+	}
+	if req.MetadataSource == "manual" {
+		if _, err := composer.ParseRequireJSON(req.ManualRequire); err != nil {
+			return nil, errInvalidManualRequire
+		}
+	}
+
+	src := &model.PackageSource{
+		Provider:       req.Provider,
+		MetadataSource: req.MetadataSource,
+		ManualRequire:  req.ManualRequire,
+	}
+
+	switch req.Provider {
+	case provider.ProviderUpload:
+		if req.VersionSource == "" {
+			if req.MetadataSource == "manual" {
+				req.VersionSource = "manual"
+			} else {
+				req.VersionSource = "composer_json"
+			}
+		}
+		if req.VersionSource != "composer_json" && req.VersionSource != "manual" {
+			return nil, errInvalidUploadVersionSource
+		}
+		if req.MetadataSource == "manual" {
+			req.VersionSource = "manual"
+		}
+		src.VersionSource = req.VersionSource
+		return src, nil
+
+	case provider.ProviderGitHub, provider.ProviderGitLab:
+		var sourceConfig provider.SourceConfig
+		if len(req.Config) > 0 && string(req.Config) != "null" {
+			if err := json.Unmarshal(req.Config, &sourceConfig); err != nil {
+				return nil, errInvalidSourceConfig
+			}
+		}
+		raw, _, err := provider.MarshalSourceConfig(req.Provider, sourceConfig)
+		if err != nil {
+			return nil, err
+		}
+		sourceConfig, _ = provider.ParseSourceConfig(req.Provider, raw)
+
+		var connectionConfig string
+		if req.ConnectionID != "" {
+			conn, err := h.connections.GetByPublicID(r.Context(), orgID, req.ConnectionID)
+			if err != nil {
+				return nil, err
+			}
+			if conn == nil {
+				return nil, errProviderConnectionNotFound
+			}
+			if conn.Provider != req.Provider {
+				return nil, errProviderConnectionMismatch
+			}
+			src.ConnectionID = &conn.ID
+			connectionConfig = conn.Config
+		}
+		if req.MetadataSource == "manual" && sourceConfig.Strategy == provider.StrategySourceArchive {
+			return nil, errManualMetadataRequiresReleaseAsset
+		}
+		if req.VersionSource == "" {
+			req.VersionSource = "auto"
+		}
+		switch req.VersionSource {
+		case "auto", "git_tag", "composer_json":
+		default:
+			return nil, errInvalidVersionSource
+		}
+		if req.MetadataSource == "manual" {
+			req.VersionSource = "git_tag"
+		}
+		secret, err := generateWebhookSecret()
+		if err != nil {
+			return nil, errGenerateWebhookSecret
+		}
+		src.ProviderConfig = raw
+		src.RepoKey = provider.RepoKey(req.Provider, connectionConfig, sourceConfig)
+		src.VersionSource = req.VersionSource
+		src.WebhookSecret = secret
+		return src, nil
+
+	default:
+		return nil, errUnsupportedProvider
+	}
+}
+
+func writePackageSourceCreateError(w http.ResponseWriter, err error) {
+	switch {
+	case errors.Is(err, errInvalidMetadataSource):
+		writeError(w, http.StatusBadRequest, "invalid_metadata_source", "metadata_source must be from_zip or manual")
+	case errors.Is(err, errInvalidManualRequire):
+		writeError(w, http.StatusBadRequest, "invalid_manual_require", "manual_require must be a JSON object mapping package names to version constraints")
+	case errors.Is(err, errInvalidUploadVersionSource), errors.Is(err, errInvalidVersionSource):
+		writeError(w, http.StatusBadRequest, "invalid_version_source", "invalid version_source")
+	case errors.Is(err, errInvalidSourceConfig):
+		writeError(w, http.StatusBadRequest, "invalid_source_config", "invalid source config")
+	case errors.Is(err, errProviderConnectionNotFound):
+		writeError(w, http.StatusBadRequest, "provider_connection_not_found", "provider connection not found")
+	case errors.Is(err, errProviderConnectionMismatch):
+		writeError(w, http.StatusBadRequest, "provider_connection_mismatch", "provider connection does not match source provider")
+	case errors.Is(err, errManualMetadataRequiresReleaseAsset):
+		writeError(w, http.StatusBadRequest, "manual_metadata_requires_release_asset", "manual metadata only applies to release_asset strategy")
+	case errors.Is(err, errUnsupportedProvider):
+		writeError(w, http.StatusBadRequest, "unsupported_provider", "unsupported provider")
+	case errors.Is(err, errGenerateWebhookSecret):
+		writeError(w, http.StatusInternalServerError, "failed_generate_webhook_secret", "failed to generate webhook secret")
+	default:
+		switch err.Error() {
+		case "repo owner and name are required", "strategy must be release_asset or source_archive", "invalid asset_pattern glob":
+			writeSourceConfigError(w, err)
+		default:
+			slog.Error("build package source error", "error", err)
+			writeError(w, http.StatusInternalServerError, "internal_error", "internal error")
+		}
+	}
 }
 
 func (h *AdminPackageHandler) Get(w http.ResponseWriter, r *http.Request) {

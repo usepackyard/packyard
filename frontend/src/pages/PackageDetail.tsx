@@ -3,21 +3,20 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { useAuth } from "@/hooks/useAuth";
-import type { Package, PackageSource, ReleasePreview, SyncJob, SyncResult, Version } from "@/types";
+import type { Package, PackageSource, ProviderConnection, ReleasePreview, SourceProvider, SourceStrategy, SyncJob, SyncResult, Version } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Upload, Trash2, ArrowLeft, RefreshCw, GitBranch, Copy, Check, ExternalLink, ChevronDown, ChevronRight, MoreHorizontal, CheckCircle2, MinusCircle, AlertTriangle, XCircle } from "lucide-react";
+import { Upload, Trash2, ArrowLeft, RefreshCw, GitBranch, Copy, Check, ExternalLink, ChevronRight, MoreHorizontal, CheckCircle2, MinusCircle, AlertTriangle, XCircle, Terminal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDate, formatDateTime, formatNumber, relativeTime } from "@/lib/time";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useConfirm } from "@/hooks/useConfirm";
@@ -31,7 +30,7 @@ function formatSize(bytes: number): string {
 
 export default function PackageDetail() {
   const { t } = useTranslation("packages");
-  const { api } = useAuth();
+  const { api, org, config } = useAuth();
   const { confirm, dialog: confirmDialog } = useConfirm();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -53,6 +52,7 @@ export default function PackageDetail() {
   const syncing = activeJob !== null &&
     (activeJob.status === "queued" || activeJob.status === "running");
   const fileRef = useRef<HTMLInputElement>(null);
+  const [copiedCmd, setCopiedCmd] = useState("");
 
   const pkgId = id ?? "";
 
@@ -67,7 +67,7 @@ export default function PackageDetail() {
         setWebhookUrl("");
       }
     });
-  }, [pkgId]);
+  }, [api, pkgId]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -208,15 +208,36 @@ export default function PackageDetail() {
       </Button>
 
       <div className="flex items-start justify-between mb-6">
-        <div>
+        <div className="min-w-0">
           <h2 className="text-2xl font-bold tracking-tight">{pkg.name}</h2>
-          <p className="text-muted-foreground mt-1">{pkg.description}</p>
-          <Badge variant="secondary" className="mt-2">{pkg.type}</Badge>
+          {pkg.description && (
+            <p className="text-muted-foreground mt-1">{pkg.description}</p>
+          )}
+          <div className="flex items-center gap-2 mt-2">
+            <Badge variant="secondary">{pkg.type}</Badge>
+            {pkg.versions && pkg.versions.length > 0 && (
+              <span className="text-xs text-muted-foreground">
+                {t("detail.version.total", { count: pkg.versions.length })}
+              </span>
+            )}
+          </div>
         </div>
         <Button variant="destructive" size="sm" onClick={handleDeletePackage}>
           <Trash2 className="h-4 w-4 mr-2" />{t("detail.delete")}
         </Button>
       </div>
+
+      <InstallCard
+        pkgName={pkg.name}
+        orgSlug={org?.slug ?? ""}
+        baseUrl={config?.base_url ?? ""}
+        copiedCmd={copiedCmd}
+        onCopy={(text) => {
+          navigator.clipboard.writeText(text);
+          setCopiedCmd(text);
+          setTimeout(() => setCopiedCmd(""), 2000);
+        }}
+      />
 
       {/* Source configuration */}
       <SourceCard
@@ -374,6 +395,75 @@ function VersionsTable({ versions, onDelete }: { versions: Version[]; onDelete: 
   );
 }
 
+// ── Install Card ──────────────────────────────────────────────────────────────
+
+function InstallCard({ pkgName, orgSlug, baseUrl, copiedCmd, onCopy }: {
+  pkgName: string;
+  orgSlug: string;
+  baseUrl: string;
+  copiedCmd: string;
+  onCopy: (text: string) => void;
+}) {
+  const { t } = useTranslation("packages");
+
+  const composerRequire = `composer require ${pkgName}`;
+  const repoUrl = baseUrl && orgSlug ? `${baseUrl}/${orgSlug}` : "";
+
+  const composerRepo = repoUrl
+    ? `composer config repo.packyard composer ${repoUrl}`
+    : "";
+
+  return (
+    <Card className="mb-6">
+      <CardContent className="pt-5 space-y-3">
+        <h3 className="text-sm font-semibold flex items-center gap-2">
+          <Terminal className="h-4 w-4 text-muted-foreground" />
+          {t("detail.install.title")}
+        </h3>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <code className="flex-1 rounded-md bg-muted px-3 py-2 text-sm font-mono">
+              {composerRequire}
+            </code>
+            <Button
+              variant="outline"
+              size="icon"
+              className="shrink-0"
+              onClick={() => onCopy(composerRequire)}
+              title={t("detail.install.copy")}
+            >
+              {copiedCmd === composerRequire
+                ? <Check className="h-4 w-4 text-green-600" />
+                : <Copy className="h-4 w-4" />}
+            </Button>
+          </div>
+          {composerRepo && (
+            <>
+              <p className="text-xs text-muted-foreground">{t("detail.install.repoHint")}</p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 rounded-md bg-muted px-3 py-2 text-xs font-mono text-muted-foreground">
+                  {composerRepo}
+                </code>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0"
+                  onClick={() => onCopy(composerRepo)}
+                  title={t("detail.install.copy")}
+                >
+                  {copiedCmd === composerRepo
+                    ? <Check className="h-4 w-4 text-green-600" />
+                    : <Copy className="h-4 w-4" />}
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ── Source Card ──────────────────────────────────────────────────────────────
 
 interface SourceCardProps {
@@ -392,22 +482,22 @@ function SourceCard({ pkgId, source, webhookUrl, syncing, activeJob, syncResult,
   const { t } = useTranslation("packages");
   const { api } = useAuth();
   const [editing, setEditing] = useState(false);
+  const [connections, setConnections] = useState<ProviderConnection[]>([]);
   const [form, setForm] = useState({
-    provider: "github",
+    provider: "github" as SourceProvider,
+    connection_id: "",
     repo_owner: "",
     repo_name: "",
-    strategy: "release_asset",
+    strategy: "release_asset" as SourceStrategy,
     asset_pattern: "*.zip",
     metadata_source: "from_zip",
     version_source: "auto",
     manual_require: "",
-    auth_token: "",
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [newSecret, setNewSecret] = useState("");
   const [copied, setCopied] = useState("");
-  const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Asset preview: fetch recent releases so the user can see real asset
   // names and pick a sensible pattern instead of guessing.
@@ -415,15 +505,27 @@ function SourceCard({ pkgId, source, webhookUrl, syncing, activeJob, syncResult,
   const [preview, setPreview] = useState<ReleasePreview[] | null>(null);
   const [previewError, setPreviewError] = useState("");
 
-  const isGitHub = form.provider === "github";
-  const needsAssetPattern = isGitHub && form.strategy === "release_asset";
+  useEffect(() => {
+    api.listProviderConnections()
+      .then((r) => setConnections(r.connections))
+      .catch(() => setConnections([]));
+  }, [api]);
+
+  const isGitProvider = form.provider === "github" || form.provider === "gitlab";
+  const providerConnections = connections.filter((conn) => conn.provider === form.provider);
+  const needsAssetPattern = isGitProvider && form.strategy === "release_asset";
   const isManual = form.metadata_source === "manual";
 
   const handlePreview = async () => {
     setPreviewError("");
     setPreviewing(true);
     try {
-      const res = await api.previewSource(form.provider, form.repo_owner, form.repo_name, form.auth_token);
+      const res = await api.previewSource(form.provider, form.connection_id, {
+        owner: form.repo_owner,
+        repo: form.repo_name,
+        strategy: form.strategy,
+        asset_pattern: form.asset_pattern,
+      });
       setPreview(res.releases);
     } catch (err) {
       setPreviewError(err instanceof Error ? err.message : t("detail.source.failed"));
@@ -443,7 +545,19 @@ function SourceCard({ pkgId, source, webhookUrl, syncing, activeJob, syncResult,
     setError("");
     setSaving(true);
     try {
-      const res = await api.setSource(pkgId, form);
+      const res = await api.setSource(pkgId, {
+        provider: form.provider,
+        connection_id: form.connection_id,
+        config: isGitProvider ? {
+          owner: form.repo_owner,
+          repo: form.repo_name,
+          strategy: form.strategy,
+          asset_pattern: form.asset_pattern,
+        } : undefined,
+        metadata_source: form.metadata_source,
+        version_source: form.version_source,
+        manual_require: form.manual_require,
+      });
       if (res.webhook_secret) {
         setNewSecret(res.webhook_secret);
       }
@@ -484,22 +598,23 @@ function SourceCard({ pkgId, source, webhookUrl, syncing, activeJob, syncResult,
                     // Switching providers resets provider-specific
                     // fields so the saved row doesn't carry stale
                     // repo/strategy leftovers from the previous mode.
-                    const nextProvider = e.target.value;
+                    const nextProvider = e.target.value as SourceProvider;
                     if (nextProvider === "upload") {
                       setForm({
                         ...form,
                         provider: nextProvider,
+                        connection_id: "",
                         repo_owner: "",
                         repo_name: "",
                         strategy: "",
                         asset_pattern: "",
-                        auth_token: "",
                         version_source: form.metadata_source === "manual" ? "manual" : "composer_json",
                       });
                     } else {
                       setForm({
                         ...form,
                         provider: nextProvider,
+                        connection_id: "",
                         strategy: form.strategy || "release_asset",
                         asset_pattern: form.asset_pattern || "*.zip",
                         version_source: form.metadata_source === "manual" ? "git_tag" : "auto",
@@ -508,17 +623,18 @@ function SourceCard({ pkgId, source, webhookUrl, syncing, activeJob, syncResult,
                   }}>
                   <option value="upload">{t("detail.source.fields.providerUpload")}</option>
                   <option value="github">{t("detail.source.fields.providerGithub")}</option>
+                  <option value="gitlab">{t("detail.source.fields.providerGitlab")}</option>
                 </select>
                 <p className="text-xs text-muted-foreground">{t("detail.source.fields.providerHelp")}</p>
               </div>
-              {isGitHub && (
+              {isGitProvider && (
                 <div className="space-y-2">
                   <Label>{t("detail.source.fields.strategy")}</Label>
                   <select className="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm"
                     value={form.strategy}
                     onChange={(e) => setForm({
                       ...form,
-                      strategy: e.target.value,
+                      strategy: e.target.value as SourceStrategy,
                       metadata_source: e.target.value === "source_archive" ? "from_zip" : form.metadata_source,
                     })}>
                     <option value="release_asset">{strategyLabel("release_asset", t)}</option>
@@ -528,6 +644,24 @@ function SourceCard({ pkgId, source, webhookUrl, syncing, activeJob, syncResult,
                 </div>
               )}
             </div>
+            {isGitProvider && (
+              <div className="space-y-2">
+                <Label>{t("detail.source.fields.connection")}</Label>
+                <select
+                  className="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm"
+                  value={form.connection_id}
+                  onChange={(e) => setForm({ ...form, connection_id: e.target.value })}
+                >
+                  <option value="">{t("detail.source.fields.connectionNone")}</option>
+                  {providerConnections.map((conn) => (
+                    <option key={conn.id} value={conn.id}>
+                      {conn.name}{conn.config?.host ? ` (${conn.config.host})` : ""}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground">{t("detail.source.fields.connectionHelp")}</p>
+              </div>
+            )}
             {/* Metadata source — visible for upload (both modes make
                 sense) and for github+release_asset (manual doesn't
                 apply to source_archive). */}
@@ -542,7 +676,7 @@ function SourceCard({ pkgId, source, webhookUrl, syncing, activeJob, syncResult,
                     // change keeps invalid pairs out of the form state.
                     let nextVersion = form.version_source;
                     if (nextMetadata === "manual") {
-                      nextVersion = form.provider === "github" ? "git_tag" : "manual";
+                      nextVersion = isGitProvider ? "git_tag" : "manual";
                     } else if (form.provider === "upload") {
                       nextVersion = "composer_json";
                     }
@@ -562,7 +696,7 @@ function SourceCard({ pkgId, source, webhookUrl, syncing, activeJob, syncResult,
                 github+manual and upload+manual we don't render a
                 dropdown since the value is forced by the metadata
                 choice. */}
-            {isGitHub && !isManual && (
+            {isGitProvider && !isManual && (
               <div className="space-y-2">
                 <Label>{t("detail.source.fields.versionSource")}</Label>
                 <select
@@ -577,7 +711,7 @@ function SourceCard({ pkgId, source, webhookUrl, syncing, activeJob, syncResult,
                 <p className="text-xs text-muted-foreground">{t("detail.source.fields.versionSourceHelp")}</p>
               </div>
             )}
-            {isGitHub && (
+            {isGitProvider && (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>{t("detail.source.fields.owner")}</Label>
@@ -715,13 +849,6 @@ function SourceCard({ pkgId, source, webhookUrl, syncing, activeJob, syncResult,
                 </p>
               </div>
             )}
-            {isGitHub && (
-              <div className="space-y-2">
-                <Label>{t("detail.source.fields.authToken")}</Label>
-                <Input type="password" placeholder={t("detail.source.fields.authTokenHelp")} value={form.auth_token}
-                  onChange={(e) => setForm({ ...form, auth_token: e.target.value })} />
-              </div>
-            )}
             <div className="flex gap-2">
               <Button type="submit" disabled={saving}>{saving ? t("common:loading", { defaultValue: "Saving…" }) : t("detail.source.save")}</Button>
               <Button type="button" variant="outline" onClick={() => setEditing(false)}>{t("detail.source.cancel")}</Button>
@@ -735,21 +862,27 @@ function SourceCard({ pkgId, source, webhookUrl, syncing, activeJob, syncResult,
   // Show configured source (source is guaranteed non-null here)
   if (!source) return null;
 
-  const repoURL = source.provider === "github"
-    ? `https://github.com/${source.repo_owner}/${source.repo_name}`
+  const sourceConfig = source.config ?? { owner: "", repo: "", strategy: "", asset_pattern: "" };
+  const sourceIsGit = source.provider === "github" || source.provider === "gitlab";
+  const repoURL = source.repo_url || null;
+  const repoLabel = sourceIsGit
+    ? `${sourceConfig.owner}/${sourceConfig.repo}`
+    : t("detail.source.fields.providerUpload");
+  const selectedConnection = source.connection_id
+    ? connections.find((conn) => conn.id === source.connection_id)
     : null;
 
   const startEdit = () => {
     setForm({
       provider: source.provider,
-      repo_owner: source.repo_owner,
-      repo_name: source.repo_name,
-      strategy: source.strategy,
-      asset_pattern: source.asset_pattern,
+      connection_id: source.connection_id ?? "",
+      repo_owner: sourceConfig.owner,
+      repo_name: sourceConfig.repo,
+      strategy: sourceConfig.strategy || "release_asset",
+      asset_pattern: sourceConfig.asset_pattern || "*.zip",
       metadata_source: source.metadata_source ?? "from_zip",
       version_source: source.version_source ?? "auto",
       manual_require: source.manual_require ?? "",
-      auth_token: "",
     });
     setEditing(true);
   };
@@ -769,11 +902,11 @@ function SourceCard({ pkgId, source, webhookUrl, syncing, activeJob, syncResult,
                     rel="noopener noreferrer"
                     className="hover:underline inline-flex items-center gap-1"
                   >
-                    {source.repo_owner}/{source.repo_name}
+                    {repoLabel}
                     <ExternalLink className="h-3 w-3 text-muted-foreground" />
                   </a>
                 ) : (
-                  <span>{source.repo_owner}/{source.repo_name}</span>
+                  <span>{repoLabel}</span>
                 )}
               </CardTitle>
               <p className="text-xs text-muted-foreground">
@@ -784,9 +917,9 @@ function SourceCard({ pkgId, source, webhookUrl, syncing, activeJob, syncResult,
             </div>
           </div>
           <div className="flex items-center gap-1 shrink-0">
-            {/* Sync-now only applies to GitHub — upload-provider
+            {/* Sync-now only applies to repository providers — upload-provider
                 packages have no upstream to poll. */}
-            {source.provider === "github" && (
+            {sourceIsGit && (
               <Button variant="outline" size="sm" onClick={onSync} disabled={syncing}>
                 <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
                 {syncButtonLabel(syncing, activeJob, t)}
@@ -802,12 +935,6 @@ function SourceCard({ pkgId, source, webhookUrl, syncing, activeJob, syncResult,
                 }
               />
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setShowAdvanced((v) => !v)}>
-                  {showAdvanced
-                    ? t("detail.source.moreActions") + " —"
-                    : t("detail.source.moreActions")}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
                 <DropdownMenuItem variant="destructive" onClick={onRemove}>
                   <Trash2 className="h-3.5 w-3.5 mr-2" />
                   {t("detail.source.remove")}
@@ -818,39 +945,46 @@ function SourceCard({ pkgId, source, webhookUrl, syncing, activeJob, syncResult,
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-          <InfoChip label={t("detail.source.provider")}>
-            <Badge variant="outline">
-              {source.provider === "upload"
-                ? t("detail.source.fields.providerUpload")
-                : t("detail.source.fields.providerGithub")}
-            </Badge>
-          </InfoChip>
-          {source.provider === "github" && (
-            <InfoChip label={t("detail.source.strategy")}>
-              <Badge variant="outline">{strategyLabel(source.strategy, t)}</Badge>
-            </InfoChip>
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+          <div className="flex items-center gap-2 min-w-0">
+            <dt className="text-xs text-muted-foreground shrink-0">{t("detail.source.provider")}</dt>
+            <dd className="min-w-0"><Badge variant="outline" className="text-xs">{providerLabel(source.provider, t)}</Badge></dd>
+          </div>
+          {selectedConnection && (
+            <div className="flex items-center gap-2 min-w-0">
+              <dt className="text-xs text-muted-foreground shrink-0">{t("detail.source.connection")}</dt>
+              <dd className="min-w-0"><Badge variant="outline" className="text-xs">{selectedConnection.name}</Badge></dd>
+            </div>
           )}
-          {(source.provider === "upload" || source.strategy === "release_asset") && (
-            <InfoChip label={t("detail.source.metadataSource")}>
-              <Badge variant="outline">
+          {sourceIsGit && (
+            <div className="flex items-center gap-2 min-w-0">
+              <dt className="text-xs text-muted-foreground shrink-0">{t("detail.source.strategy")}</dt>
+              <dd className="min-w-0"><Badge variant="outline" className="text-xs">{strategyLabel(sourceConfig.strategy, t)}</Badge></dd>
+            </div>
+          )}
+          {(source.provider === "upload" || sourceConfig.strategy === "release_asset") && (
+            <div className="flex items-center gap-2 min-w-0">
+              <dt className="text-xs text-muted-foreground shrink-0">{t("detail.source.metadataSource")}</dt>
+              <dd className="min-w-0"><Badge variant="outline" className="text-xs">
                 {(source.metadata_source ?? "from_zip") === "manual"
                   ? t("detail.source.fields.metadataManual")
                   : t("detail.source.fields.metadataFromZip")}
-              </Badge>
-            </InfoChip>
+              </Badge></dd>
+            </div>
           )}
           {source.metadata_source !== "manual" && (
-            <InfoChip label={t("detail.source.versionSource")}>
-              <Badge variant="outline">{versionSourceLabel(source.version_source ?? "auto", t)}</Badge>
-            </InfoChip>
+            <div className="flex items-center gap-2 min-w-0">
+              <dt className="text-xs text-muted-foreground shrink-0">{t("detail.source.versionSource")}</dt>
+              <dd className="min-w-0"><Badge variant="outline" className="text-xs">{versionSourceLabel(source.version_source ?? "auto", t)}</Badge></dd>
+            </div>
           )}
-          {source.provider === "github" && source.strategy === "release_asset" && (
-            <InfoChip label={t("detail.source.assetPattern")}>
-              <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{source.asset_pattern}</code>
-            </InfoChip>
+          {sourceIsGit && sourceConfig.strategy === "release_asset" && (
+            <div className="flex items-center gap-2 min-w-0">
+              <dt className="text-xs text-muted-foreground shrink-0">{t("detail.source.assetPattern")}</dt>
+              <dd className="min-w-0"><code className="text-xs bg-muted px-1.5 py-0.5 rounded">{sourceConfig.asset_pattern}</code></dd>
+            </div>
           )}
-        </div>
+        </dl>
 
         {source.metadata_source === "manual" && source.manual_require && (
           <div className="text-xs text-muted-foreground">
@@ -861,52 +995,37 @@ function SourceCard({ pkgId, source, webhookUrl, syncing, activeJob, syncResult,
           </div>
         )}
 
-        {(webhookUrl || newSecret) && (
-          <div>
-            <button
-              type="button"
-              onClick={() => setShowAdvanced((v) => !v)}
-              className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
-            >
-              <ChevronDown className={`h-3 w-3 transition-transform ${showAdvanced ? "rotate-180" : ""}`} />
-              {t("detail.source.moreActions")}
-            </button>
-            {showAdvanced && (
-              <div className="mt-2 space-y-2">
-                {webhookUrl && (
-                  <div className="rounded-md border bg-muted/30 p-2.5">
-                    <div className="flex items-center justify-between gap-2 mb-1">
-                      <span className="text-xs font-medium text-muted-foreground">{t("detail.source.webhookUrl")}</span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 px-2"
-                        onClick={() => handleCopy(webhookUrl, "url")}
-                      >
-                        {copied === "url" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                      </Button>
-                    </div>
-                    <code className="text-xs font-mono text-muted-foreground break-all">{webhookUrl}</code>
-                  </div>
-                )}
-                {newSecret && (
-                  <div className="rounded-md border border-amber-500/40 bg-amber-50/50 dark:bg-amber-500/5 p-2.5">
-                    <div className="flex items-center justify-between gap-2 mb-1">
-                      <span className="text-xs font-medium">{t("detail.source.webhookSecret")}</span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 px-2"
-                        onClick={() => handleCopy(newSecret, "secret")}
-                      >
-                        {copied === "secret" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                      </Button>
-                    </div>
-                    <code className="text-xs font-mono break-all">{newSecret}</code>
-                  </div>
-                )}
-              </div>
-            )}
+        {webhookUrl && (
+          <div className="rounded-md border bg-muted/30 p-2.5">
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <span className="text-xs font-medium text-muted-foreground">{t("detail.source.webhookUrl")}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2"
+                onClick={() => handleCopy(webhookUrl, "url")}
+              >
+                {copied === "url" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+              </Button>
+            </div>
+            <code className="text-xs font-mono text-muted-foreground break-all">{webhookUrl}</code>
+          </div>
+        )}
+
+        {newSecret && (
+          <div className="rounded-md border border-amber-500/40 bg-amber-50/50 dark:bg-amber-500/5 p-2.5">
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <span className="text-xs font-medium">{t("detail.source.webhookSecret")}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2"
+                onClick={() => handleCopy(newSecret, "secret")}
+              >
+                {copied === "secret" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+              </Button>
+            </div>
+            <code className="text-xs font-mono break-all">{newSecret}</code>
           </div>
         )}
 
@@ -916,10 +1035,20 @@ function SourceCard({ pkgId, source, webhookUrl, syncing, activeJob, syncResult,
   );
 }
 
-// ProviderIcon renders a small icon for the configured provider. Today only
-// GitHub is supported; the switch makes it obvious where to add GitLab etc.
-// Lucide dropped its GitHub glyph upstream — using a small inline SVG keeps
-// brand recognition without chasing version churn.
+function providerLabel(provider: string, t: TFunction<"packages">): string {
+  switch (provider) {
+    case "gitlab":
+      return t("detail.source.fields.providerGitlab");
+    case "upload":
+      return t("detail.source.fields.providerUpload");
+    default:
+      return t("detail.source.fields.providerGithub");
+  }
+}
+
+// ProviderIcon renders a small icon for the configured provider. Lucide
+// dropped its GitHub glyph upstream — using a small inline SVG keeps brand
+// recognition without chasing version churn.
 function ProviderIcon({ provider }: { provider: string }) {
   if (provider === "github") {
     return (
@@ -935,17 +1064,6 @@ function ProviderIcon({ provider }: { provider: string }) {
     );
   }
   return <GitBranch className="h-5 w-5 text-muted-foreground" />;
-}
-
-// InfoChip pairs a muted label with its value in a compact inline layout —
-// cheaper vertical real estate than the old grid when there are many props.
-function InfoChip({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <span className="inline-flex items-center gap-1.5">
-      <span className="text-xs text-muted-foreground">{label}:</span>
-      {children}
-    </span>
-  );
 }
 
 function versionSourceLabel(v: string, t: TFunction<"packages">): string {

@@ -684,13 +684,11 @@ func TestSourceStore_CRUD(t *testing.T) {
 	pkg := testutil.MakePackage(t, stores, org.ID, "vendor/pkg")
 
 	src := &model.PackageSource{
-		PackageID:     pkg.ID,
-		Provider:      "github",
-		RepoOwner:     "octo",
-		RepoName:      "hello",
-		Strategy:      "release_asset",
-		AssetPattern:  "*.zip",
-		WebhookSecret: "shhh",
+		PackageID:      pkg.ID,
+		Provider:       "github",
+		ProviderConfig: testutil.SourceConfigJSON(t, "octo", "hello", "release_asset", "*.zip"),
+		RepoKey:        "octo/hello",
+		WebhookSecret:  "shhh",
 	}
 	if err := stores.Sources.Create(ctx, src); err != nil {
 		t.Fatalf("Create: %v", err)
@@ -701,20 +699,20 @@ func TestSourceStore_CRUD(t *testing.T) {
 		t.Fatalf("GetByPackageID: %v / %+v", err, got)
 	}
 
-	gotByRepo, err := stores.Sources.GetByRepo(ctx, "github", "octo", "hello")
+	gotByRepo, err := stores.Sources.GetByProviderRepoKey(ctx, "github", "octo/hello")
 	if err != nil || gotByRepo == nil {
-		t.Fatalf("GetByRepo: %v / %+v", err, gotByRepo)
+		t.Fatalf("GetByProviderRepoKey: %v / %+v", err, gotByRepo)
 	}
-	missByRepo, _ := stores.Sources.GetByRepo(ctx, "github", "nobody", "nothing")
+	missByRepo, _ := stores.Sources.GetByProviderRepoKey(ctx, "github", "nobody/nothing")
 	if missByRepo != nil {
-		t.Error("GetByRepo missing should be nil")
+		t.Error("GetByProviderRepoKey missing should be nil")
 	}
 
 	// Update. All mutable fields must actually be persisted — a prior
 	// version of Update() had a hand-rolled Column() allow-list that
 	// silently dropped metadata_source, version_source, and manual_require,
 	// so UI edits appeared to succeed but the DB kept the old values.
-	src.AssetPattern = "*.tgz"
+	src.ProviderConfig = testutil.SourceConfigJSON(t, "octo", "hello", "release_asset", "*.tgz")
 	src.MetadataSource = "manual"
 	src.VersionSource = "git_tag"
 	src.ManualRequire = `{"composer/installers":"^2.0"}`
@@ -722,8 +720,8 @@ func TestSourceStore_CRUD(t *testing.T) {
 		t.Fatalf("Update: %v", err)
 	}
 	got, _ = stores.Sources.GetByPackageID(ctx, pkg.ID)
-	if got.AssetPattern != "*.tgz" {
-		t.Errorf("AssetPattern = %q, want *.tgz", got.AssetPattern)
+	if got.ProviderConfig != src.ProviderConfig {
+		t.Errorf("ProviderConfig = %q, want updated source config", got.ProviderConfig)
 	}
 	if got.MetadataSource != "manual" {
 		t.Errorf("MetadataSource = %q, want manual", got.MetadataSource)

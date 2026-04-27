@@ -9,14 +9,13 @@ import (
 type PackageSource struct {
 	bun.BaseModel `bun:"table:package_sources,alias:ps" json:"-"`
 
-	ID           int64  `bun:"id,pk,autoincrement" json:"-"`
-	PublicID     string `bun:"public_id,notnull,unique" json:"id"`
-	PackageID    int64  `bun:"package_id,notnull,unique" json:"-"`
-	Provider     string `bun:"provider,notnull" json:"provider"`
-	RepoOwner    string `bun:"repo_owner,notnull" json:"repo_owner"`
-	RepoName     string `bun:"repo_name,notnull" json:"repo_name"`
-	Strategy     string `bun:"strategy,notnull" json:"strategy"`
-	AssetPattern string `bun:"asset_pattern" json:"asset_pattern"`
+	ID             int64  `bun:"id,pk,autoincrement" json:"-"`
+	PublicID       string `bun:"public_id,notnull,unique" json:"id"`
+	PackageID      int64  `bun:"package_id,notnull,unique" json:"-"`
+	ConnectionID   *int64 `bun:"connection_id" json:"-"`
+	Provider       string `bun:"provider,notnull" json:"provider"`
+	ProviderConfig string `bun:"provider_config,type:text" json:"-"`
+	RepoKey        string `bun:"repo_key" json:"repo_key,omitempty"`
 	// MetadataSource controls where composer.json content comes from for
 	// each synced version:
 	//   from_zip — read composer.json from inside the dist zip (default).
@@ -35,7 +34,6 @@ type PackageSource struct {
 	// ManualRequire is the JSON-encoded `require` block used when
 	// MetadataSource=manual. Empty = no require.
 	ManualRequire string     `bun:"manual_require,type:text" json:"manual_require,omitempty"`
-	AuthToken     string     `bun:"auth_token" json:"-"`
 	WebhookSecret string     `bun:"webhook_secret" json:"-"`
 	LastSyncedAt  *time.Time `bun:"last_synced_at" json:"last_synced_at,omitempty"`
 	CreatedAt     time.Time  `bun:"created_at,notnull,default:current_timestamp" json:"created_at"`

@@ -23,6 +23,7 @@ func init() {
 			(*model.Version)(nil),
 			(*model.APIToken)(nil),
 			(*model.AdminToken)(nil),
+			(*model.ProviderConnection)(nil),
 			(*model.PackageSource)(nil),
 			(*model.DownloadEvent)(nil),
 			(*model.SyncJob)(nil),
@@ -55,6 +56,9 @@ func init() {
 
 		// Indexes for api_tokens.
 		db.NewCreateIndex().Model((*model.APIToken)(nil)).Index("idx_api_tokens_org_id").Column("org_id").IfNotExists().Exec(ctx)
+
+		// Indexes for provider_connections.
+		db.NewCreateIndex().Model((*model.ProviderConnection)(nil)).Index("idx_provider_connections_org_id").Column("org_id").IfNotExists().Exec(ctx)
 
 		// Indexes for package_sources.
 		db.NewCreateIndex().Model((*model.PackageSource)(nil)).Index("idx_package_sources_package_id").Column("package_id").IfNotExists().Exec(ctx)
@@ -94,6 +98,7 @@ func init() {
 			(*model.SyncJob)(nil),
 			(*model.DownloadEvent)(nil),
 			(*model.PackageSource)(nil),
+			(*model.ProviderConnection)(nil),
 			(*model.AdminToken)(nil),
 			(*model.APIToken)(nil),
 			(*model.Version)(nil),

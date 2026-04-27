@@ -43,6 +43,11 @@
   "detail": {
     "back": "Zurück",
     "delete": "Paket löschen",
+    "install": {
+      "title": "Installieren",
+      "copy": "In die Zwischenablage kopieren",
+      "repoHint": "Erstmalig? Füge das Repository zu deinem Projekt hinzu:"
+    },
     "confirmDelete": {
       "title": "{{name}} löschen?",
       "description": "Dies löscht das Paket, alle Versionen und alle hochgeladenen Dateien dauerhaft.",
@@ -127,7 +132,7 @@
         "provider": "Anbieter",
         "providerUpload": "Hochladen",
         "providerGithub": "GitHub",
-        "providerHelp": "Wie neue Versionen in dieses Paket gelangen. Hochladen = Sie legen die ZIPs selbst ab. GitHub = wir synchronisieren aus getaggten Releases.",
+        "providerHelp": "Wie neue Versionen in dieses Paket gelangen. Upload = ZIPs selbst hochladen. GitHub/GitLab = Sync aus getaggten Releases.",
         "owner": "Eigentümer",
         "ownerPlaceholder": "acme",
         "repo": "Repo",
@@ -135,7 +140,7 @@
         "strategy": "Strategie",
         "strategyReleaseAsset": "Release-Asset (hochgeladenes ZIP)",
         "strategySourceArchive": "Quellarchiv (Git-Zipball)",
-        "strategyHelp": "Das Artefakt, das Composer-Clients herunterladen. Release-Asset = ein an ein GitHub-Release angehängtes ZIP. Quellarchiv = der von GitHub automatisch generierte Zipball am Tag.",
+        "strategyHelp": "Das Artefakt, das Composer-Clients herunterladen. Release-Asset = ZIP in einem Provider-Release. Source-Archive = vom Provider erzeugtes Zipball am Tag.",
         "assetPattern": "Asset-Muster",
         "assetPatternHelp": "Shell-Wildcard (`*` beliebige Zeichenfolge, `?` ein Zeichen), das Release-Asset-Namen abgleicht. Beispiel: `myplugin-*.zip`. Leer lassen, um Source-Archive zu verwenden.",
         "metadataSource": "Metadatenquelle",
@@ -151,7 +156,11 @@
         "manualRequireHelp": "Composer-require-Einträge, wenn die Metadatenquelle „manual“ ist.",
         "authToken": "Auth-Token (optional)",
         "authTokenHelp": "GitHub Personal Access Token für private Repos. Wird nicht auf dem Server gespeichert.",
-        "preview": "Releases-Vorschau"
+        "preview": "Releases-Vorschau",
+        "providerGitlab": "GitLab",
+        "connection": "Verbindung",
+        "connectionNone": "Keine Verbindung (öffentliches Repository)",
+        "connectionHelp": "Wähle gespeicherte Zugangsdaten für private Repositorys oder selbst gehostetes GitLab."
       },
       "preview": {
         "title": "Release-Vorschau",
@@ -188,9 +197,51 @@
       },
       "confirmRemove": {
         "title": "Quelle entfernen?",
-        "description": "Beendet die GitHub-Synchronisation für dieses Paket. Vorhandene Versionen bleiben erhalten.",
+        "description": "Stoppt den Repository-Sync für dieses Paket. Bestehende Versionen bleiben erhalten.",
         "confirm": "Entfernen"
-      }
+      },
+      "connection": "Verbindung"
+    }
+  },
+  "connections": {
+    "title": "Provider-Verbindungen",
+    "subtitle": "Wiederverwendbare Git-Provider-Zugangsdaten für Paketquellen.",
+    "add": "Verbindung hinzufügen",
+    "createTitle": "Provider-Verbindung erstellen",
+    "editTitle": "Provider-Verbindung bearbeiten",
+    "sectionTitle": "Verbindungen",
+    "empty": "Noch keine Provider-Verbindungen.",
+    "create": "Verbindung erstellen",
+    "save": "Verbindung speichern",
+    "failedSave": "Provider-Verbindung konnte nicht gespeichert werden.",
+    "failedDelete": "Provider-Verbindung konnte nicht gelöscht werden.",
+    "tokenConfigured": "Token konfiguriert",
+    "noAuth": "Keine Authentifizierung",
+    "inUse": "Verbindung wird von einer Paketquelle verwendet.",
+    "table": {
+      "name": "Name",
+      "provider": "Provider",
+      "auth": "Auth",
+      "usedBy": "Verwendet von",
+      "created": "Erstellt"
+    },
+    "fields": {
+      "name": "Name",
+      "namePlaceholder": "GitHub Produktion",
+      "provider": "Provider",
+      "authType": "Authentifizierung",
+      "authToken": "Token",
+      "authNone": "Keine Authentifizierung",
+      "token": "Token",
+      "tokenPlaceholder": "Provider-Token einfügen",
+      "tokenEditPlaceholder": "Leer lassen, um das vorhandene Token zu behalten",
+      "host": "GitLab-Host",
+      "hostHelp": "Nutze gitlab.com für GitLab SaaS oder den Hostnamen deiner selbst gehosteten GitLab-Instanz."
+    },
+    "confirmDelete": {
+      "title": "{{name}} löschen?",
+      "description": "Pakete, die diese Verbindung verwenden, müssen zuerst umgestellt werden.",
+      "confirm": "Löschen"
     }
   }
 }

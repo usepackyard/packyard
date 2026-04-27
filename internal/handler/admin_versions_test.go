@@ -414,10 +414,8 @@ func TestAdminVersionHandler_Upload_RejectedForGitHubSource(t *testing.T) {
 	src := &model.PackageSource{
 		PackageID:      pkg.ID,
 		Provider:       "github",
-		RepoOwner:      "octo",
-		RepoName:       "hello",
-		Strategy:       "release_asset",
-		AssetPattern:   "*.zip",
+		ProviderConfig: testutil.SourceConfigJSON(t, "octo", "hello", "release_asset", "*.zip"),
+		RepoKey:        "octo/hello",
 		MetadataSource: "from_zip",
 		VersionSource:  "auto",
 		WebhookSecret:  "shhh",
@@ -440,8 +438,7 @@ func TestAdminVersionHandler_Upload_RejectedForGitHubSource(t *testing.T) {
 	if rec.Code != http.StatusConflict {
 		t.Fatalf("status = %d, want 409; body=%s", rec.Code, rec.Body.String())
 	}
-	if !strings.Contains(rec.Body.String(), "upload_forbidden_for_github_source") {
-		t.Errorf("error code should be upload_forbidden_for_github_source: %s", rec.Body.String())
+	if !strings.Contains(rec.Body.String(), "upload_forbidden_for_git_source") {
+		t.Errorf("error code should be upload_forbidden_for_git_source: %s", rec.Body.String())
 	}
 }
-

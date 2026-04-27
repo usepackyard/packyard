@@ -46,11 +46,12 @@ func (f *fakeProvider) ValidateWebhook(r *http.Request, secret string, body []by
 	return errors.New("not used")
 }
 
-// Register a stub provider that returns our fake, so Pool's
-// provider.NewProvider("stub-jobs", ...) resolves to it.
+// Register a stub provider under GitHub so Pool's provider.NewProvider resolves
+// without hitting the network. Source config validation only accepts real git
+// providers, so the source itself remains provider=github.
 func registerStubJobsProvider(t *testing.T, fake *fakeProvider) {
 	t.Helper()
-	provider.Register("stub-jobs", func(token string) provider.Provider { return fake })
+	provider.Register("github", func(token string) provider.Provider { return fake })
 }
 
 func buildZip(t *testing.T, name, version string) []byte {
@@ -79,8 +80,11 @@ func TestPool_EnqueueClaimComplete(t *testing.T) {
 
 	// Source points at our stub provider.
 	src := &model.PackageSource{
-		PackageID: pkg.ID, Provider: "stub-jobs", RepoOwner: "o", RepoName: "r",
-		Strategy: "release_asset", AssetPattern: "*.zip", MetadataSource: "from_zip", VersionSource: "auto",
+		PackageID:      pkg.ID,
+		Provider:       "github",
+		ProviderConfig: testutil.SourceConfigJSON(t, "o", "r", "release_asset", "*.zip"),
+		MetadataSource: "from_zip",
+		VersionSource:  "auto",
 	}
 	if err := stores.Sources.Create(ctx, src); err != nil {
 		t.Fatalf("Create source: %v", err)

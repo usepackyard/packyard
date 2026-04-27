@@ -9,7 +9,8 @@
     "members": "Members",
     "users": "Users",
     "orgs": "Organizations",
-    "adminTokens": "Admin Tokens"
+    "adminTokens": "Admin Tokens",
+    "connections": "Connections"
   },
   "enterSuperAdmin": "Enter Super-admin",
   "backToDashboard": "Back to dashboard",

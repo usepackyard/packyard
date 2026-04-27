@@ -66,12 +66,12 @@ func (h *AdminVersionHandler) Upload(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "package_missing_source", "package is missing its source configuration")
 		return
 	}
-	if src.Provider == "github" {
-		// Packages synced from GitHub must not accept manual uploads.
+	if src.Provider != "upload" {
+		// Packages synced from Git providers must not accept manual uploads.
 		// Mixing provenance would make "where did this version come
 		// from?" a per-row question and break the Sync-now flow.
-		writeError(w, http.StatusConflict, "upload_forbidden_for_github_source",
-			"this package receives versions via GitHub sync; remove the GitHub source to upload manually")
+		writeError(w, http.StatusConflict, "upload_forbidden_for_git_source",
+			"this package receives versions via Git sync; remove the Git source to upload manually")
 		return
 	}
 

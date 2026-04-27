@@ -9,6 +9,7 @@ import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import Packages from "@/pages/Packages";
 import PackageDetail from "@/pages/PackageDetail";
+import Connections from "@/pages/Connections";
 import Tokens from "@/pages/Tokens";
 import MembersPage from "@/pages/Members";
 import OrgSelector from "@/pages/OrgSelector";
@@ -142,6 +143,7 @@ export default function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/packages" element={<Packages />} />
             <Route path="/packages/:id" element={<PackageDetail />} />
+            <Route path="/connections" element={<Connections />} />
             <Route path="/tokens" element={<Tokens />} />
             <Route path="/members" element={<MembersPage />} />
             <Route path="/profile" element={<Profile />} />

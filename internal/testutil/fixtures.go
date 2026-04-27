@@ -4,11 +4,13 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"testing"
 	"time"
 
 	"github.com/usepackyard/packyard/internal/auth"
 	"github.com/usepackyard/packyard/internal/model"
+	"github.com/usepackyard/packyard/internal/provider"
 	"github.com/usepackyard/packyard/internal/store"
 )
 
@@ -101,6 +103,22 @@ func MakeDefaultUploadSource(t *testing.T, stores *store.Stores, packageID int64
 		t.Fatalf("create default upload source: %v", err)
 	}
 	return src
+}
+
+// SourceConfigJSON returns the serialized provider config used by git-backed
+// package sources. Tests use this instead of old flat repo fields.
+func SourceConfigJSON(t *testing.T, owner, repo, strategy, assetPattern string) string {
+	t.Helper()
+	raw, err := json.Marshal(provider.SourceConfig{
+		Owner:        owner,
+		Repo:         repo,
+		Strategy:     strategy,
+		AssetPattern: assetPattern,
+	})
+	if err != nil {
+		t.Fatalf("marshal source config: %v", err)
+	}
+	return string(raw)
 }
 
 // MakeVersion inserts a version row for an existing package.

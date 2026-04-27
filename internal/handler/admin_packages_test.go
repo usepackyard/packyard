@@ -33,7 +33,7 @@ func newPkgSetup(t *testing.T) pkgSetup {
 		t.Fatalf("storage.NewLocal: %v", err)
 	}
 	c := composer.NewCache(stores.Packages, stores.Orgs, "http://test")
-	h := handler.NewAdminPackageHandler(stores.Packages, stores.Sources, st, c)
+	h := handler.NewAdminPackageHandler(stores.Packages, stores.Sources, stores.Connections, st, c)
 	org := testutil.MakeOrg(t, stores, "default", "Default")
 	return pkgSetup{stores, st, c, h, org}
 }

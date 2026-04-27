@@ -43,6 +43,11 @@
   "detail": {
     "back": "Back",
     "delete": "Delete Package",
+    "install": {
+      "title": "Install",
+      "copy": "Copy to clipboard",
+      "repoHint": "First time? Add the repository to your project:"
+    },
     "confirmDelete": {
       "title": "Delete {{name}}?",
       "description": "This will permanently delete the package, all versions, and all uploaded files.",
@@ -127,7 +132,7 @@
         "provider": "Provider",
         "providerUpload": "Upload",
         "providerGithub": "GitHub",
-        "providerHelp": "How new versions enter this package. Upload = drop zips yourself. GitHub = we sync from tagged releases.",
+        "providerHelp": "How new versions enter this package. Upload = drop zips yourself. GitHub/GitLab = sync from tagged releases.",
         "owner": "Owner",
         "ownerPlaceholder": "acme",
         "repo": "Repo",
@@ -135,7 +140,7 @@
         "strategy": "Strategy",
         "strategyReleaseAsset": "Release asset (uploaded zip)",
         "strategySourceArchive": "Source archive (git zipball)",
-        "strategyHelp": "The artifact Composer clients will download. Release asset = a zip attached to a GitHub release. Source archive = GitHub's auto-generated zipball at the tag.",
+        "strategyHelp": "The artifact Composer clients will download. Release asset = a zip attached to a provider release. Source archive = provider-generated zipball at the tag.",
         "assetPattern": "Asset pattern",
         "assetPatternHelp": "Shell-style wildcard (`*` any run of chars, `?` one char) matched against release asset names. Example: `myplugin-*.zip`. Leave blank to use source archives.",
         "metadataSource": "Metadata source",
@@ -151,7 +156,11 @@
         "manualRequireHelp": "Composer require entries used when metadata source is \"manual\".",
         "authToken": "Auth token (optional)",
         "authTokenHelp": "GitHub personal access token for private repos. Not stored on the server.",
-        "preview": "Preview releases"
+        "preview": "Preview releases",
+        "providerGitlab": "GitLab",
+        "connection": "Connection",
+        "connectionNone": "No connection (public repository)",
+        "connectionHelp": "Select saved credentials for private repositories or self-hosted GitLab."
       },
       "preview": {
         "title": "Release preview",
@@ -188,9 +197,51 @@
       },
       "confirmRemove": {
         "title": "Remove source?",
-        "description": "Stops GitHub sync for this package. Existing versions remain.",
+        "description": "Stops repository sync for this package. Existing versions remain.",
         "confirm": "Remove"
-      }
+      },
+      "connection": "Connection"
+    }
+  },
+  "connections": {
+    "title": "Provider Connections",
+    "subtitle": "Reusable Git provider credentials for package sources.",
+    "add": "Add Connection",
+    "createTitle": "Create Provider Connection",
+    "editTitle": "Edit Provider Connection",
+    "sectionTitle": "Connections",
+    "empty": "No provider connections yet.",
+    "create": "Create connection",
+    "save": "Save connection",
+    "failedSave": "Failed to save provider connection.",
+    "failedDelete": "Failed to delete provider connection.",
+    "tokenConfigured": "Token configured",
+    "noAuth": "No auth",
+    "inUse": "Connection is used by a package source.",
+    "table": {
+      "name": "Name",
+      "provider": "Provider",
+      "auth": "Auth",
+      "usedBy": "Used by",
+      "created": "Created"
+    },
+    "fields": {
+      "name": "Name",
+      "namePlaceholder": "Production GitHub",
+      "provider": "Provider",
+      "authType": "Authentication",
+      "authToken": "Token",
+      "authNone": "No auth",
+      "token": "Token",
+      "tokenPlaceholder": "Paste a provider token",
+      "tokenEditPlaceholder": "Leave blank to keep the existing token",
+      "host": "GitLab host",
+      "hostHelp": "Use gitlab.com for GitLab SaaS, or your self-hosted GitLab hostname."
+    },
+    "confirmDelete": {
+      "title": "Delete {{name}}?",
+      "description": "Packages using this connection must be moved first.",
+      "confirm": "Delete"
     }
   }
 }

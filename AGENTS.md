@@ -265,7 +265,7 @@ All prefixed with `PACKYARD_`. Key ones:
 | `PACKYARD_STORAGE_TYPE` | local | `local` or `s3` |
 | `PACKYARD_ADMIN_EMAIL` | admin@example.com | Seeded on first run |
 | `PACKYARD_ADMIN_PASSWORD` | changeme | Seeded on first run |
-| `PACKYARD_GITHUB_TOKEN` | (empty) | PAT for private repo sync |
+| `PACKYARD_CREDENTIALS_KEY` | (empty) | 64-hex-character key used to encrypt saved provider connection tokens. Generate with `openssl rand -hex 32`. |
 | `PACKYARD_SESSION_SECRET` | (required, ≥32 chars) | HMAC key for signing session cookies. Server refuses to start without it. |
 | `PACKYARD_COOKIE_DOMAIN` | (empty) | `Domain` attribute on the session cookie. Empty = host-only. Set to a parent domain (e.g. `.example.com`) to share login across subdomains. |
 | `PACKYARD_COOKIE_SAMESITE` | strict | `SameSite` attribute on the session cookie: `strict` \| `lax` \| `none`. Use `lax` when `PACKYARD_COOKIE_DOMAIN` is set so the cookie travels on cross-subdomain redirects. `none` requires HTTPS. |

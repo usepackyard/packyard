@@ -31,12 +31,23 @@ func (s *sourceStoreDB) GetByPackageID(ctx context.Context, packageID int64) (*m
 	return src, nil
 }
 
-func (s *sourceStoreDB) GetByRepo(ctx context.Context, provider, owner, name string) (*model.PackageSource, error) {
+func (s *sourceStoreDB) GetByPublicID(ctx context.Context, publicID string) (*model.PackageSource, error) {
+	src := new(model.PackageSource)
+	err := s.db.NewSelect().Model(src).Where("public_id = ?", publicID).Scan(ctx)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return src, nil
+}
+
+func (s *sourceStoreDB) GetByProviderRepoKey(ctx context.Context, provider, repoKey string) (*model.PackageSource, error) {
 	src := new(model.PackageSource)
 	err := s.db.NewSelect().Model(src).
 		Where("provider = ?", provider).
-		Where("repo_owner = ?", owner).
-		Where("repo_name = ?", name).
+		Where("repo_key = ?", repoKey).
 		Scan(ctx)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -61,9 +72,9 @@ func (s *sourceStoreDB) Create(ctx context.Context, src *model.PackageSource) er
 func (s *sourceStoreDB) Update(ctx context.Context, src *model.PackageSource) error {
 	src.UpdatedAt = time.Now()
 	_, err := s.db.NewUpdate().Model(src).
-		Column("provider", "repo_owner", "repo_name", "strategy", "asset_pattern",
+		Column("provider", "connection_id", "provider_config", "repo_key",
 			"metadata_source", "version_source", "manual_require",
-			"auth_token", "webhook_secret", "updated_at").
+			"webhook_secret", "updated_at").
 		Where("package_id = ?", src.PackageID).
 		Exec(ctx)
 	return err

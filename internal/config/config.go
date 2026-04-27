@@ -19,7 +19,7 @@ type Config struct {
 	S3        S3Config
 	Session   SessionConfig
 	Admin     AdminConfig
-	Providers ProvidersConfig
+	CredentialsKey string
 
 	// PublicURL is an optional absolute URL to an external homepage
 	// (the operator's main site, company intranet, docs, whatever). When
@@ -132,11 +132,6 @@ type AdminConfig struct {
 	Password string
 }
 
-type ProvidersConfig struct {
-	GitHubToken string
-	GitLabToken string
-}
-
 // Validate returns an error for any configuration that would make the
 // server obviously unsafe to start. Called once from main after Load.
 func (c *Config) Validate() error {
@@ -172,18 +167,6 @@ func parseSameSite(s string) (http.SameSite, bool) {
 		return http.SameSiteNoneMode, true
 	default:
 		return http.SameSiteStrictMode, false
-	}
-}
-
-// TokenFor returns the global auth token for a given provider.
-func (c *ProvidersConfig) TokenFor(provider string) string {
-	switch provider {
-	case "github":
-		return c.GitHubToken
-	case "gitlab":
-		return c.GitLabToken
-	default:
-		return ""
 	}
 }
 
@@ -253,10 +236,7 @@ func Load() *Config {
 			Password: env("PACKYARD_ADMIN_PASSWORD", "changeme"),
 		},
 		PublicURL: env("PACKYARD_PUBLIC_URL", ""),
-		Providers: ProvidersConfig{
-			GitHubToken: env("PACKYARD_GITHUB_TOKEN", ""),
-			GitLabToken: env("PACKYARD_GITLAB_TOKEN", ""),
-		},
+		CredentialsKey: env("PACKYARD_CREDENTIALS_KEY", ""),
 		BcryptCost:            bcryptCost,
 		TrustedProxies:        parseCIDRs(env("PACKYARD_TRUSTED_PROXIES", "")),
 		DownloadRetentionDays: envInt("PACKYARD_DOWNLOAD_RETENTION_DAYS", 90),

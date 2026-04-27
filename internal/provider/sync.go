@@ -47,7 +47,12 @@ func Sync(
 	orgID int64,
 	opts SyncOpts,
 ) (*SyncResult, error) {
-	releases, err := prov.ListReleases(ctx, src.RepoOwner, src.RepoName)
+	sourceConfig, err := ParseSourceConfig(src.Provider, src.ProviderConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	releases, err := prov.ListReleases(ctx, sourceConfig.Owner, sourceConfig.Repo)
 	if err != nil {
 		return nil, fmt.Errorf("list releases: %w", err)
 	}
@@ -112,7 +117,7 @@ func Sync(
 			continue
 		}
 
-		if err := importRelease(ctx, prov, src, pkg, rel, version, packages, strg); err != nil {
+		if err := importRelease(ctx, prov, src, sourceConfig, pkg, rel, version, packages, strg); err != nil {
 			// Explicit skip sentinel — the release was intentionally not
 			// imported (e.g. composer_json version source required but
 			// the source has no version). Report as Skipped with its
@@ -158,8 +163,8 @@ func Sync(
 // ship without composer.json) through this registry.
 //
 // Strategy — where the dist bytes come from — is independent:
-//   - release_asset: a zip matching AssetPattern on the GitHub release
-//   - source_archive: GitHub's zipball of the tagged source tree
+//   - release_asset: a zip matching AssetPattern on the provider release
+//   - source_archive: provider zipball/archive of the tagged source tree
 //
 // Version source — which string becomes the version — is governed by
 // src.VersionSource ("auto" default / "git_tag" / "composer_json"). See
@@ -168,6 +173,7 @@ func importRelease(
 	ctx context.Context,
 	prov Provider,
 	src *model.PackageSource,
+	sourceConfig SourceConfig,
 	pkg *model.Package,
 	rel Release,
 	version string,
@@ -176,7 +182,7 @@ func importRelease(
 ) error {
 	// 1. Fetch the dist bytes per strategy. Always needed — we serve them
 	//    as the installable zip and compute sha1/size from them.
-	distTmpPath, err := fetchDist(ctx, prov, src, rel)
+	distTmpPath, err := fetchDist(ctx, prov, sourceConfig, rel)
 	if err != nil {
 		return err
 	}
@@ -203,8 +209,13 @@ func importRelease(
 	}
 	// Identity check — prevents a compromised or misconfigured source from
 	// writing into an unrelated package path.
-	if cj.Name != pkg.Name {
-		return fmt.Errorf("composer.json name %q does not match package %q", cj.Name, pkg.Name)
+	if cj.Name != pkg.Name && pkg.Name != "" {
+		rewritten, err := rewriteJSONField(cj.RawJSON, "name", pkg.Name)
+		if err != nil {
+			return fmt.Errorf("rewrite name in composer.json: %w", err)
+		}
+		cj.Name = pkg.Name
+		cj.RawJSON = rewritten
 	}
 
 	// 4. Hash + size of the bytes we're actually serving.
@@ -261,11 +272,11 @@ func importRelease(
 	return nil
 }
 
-// fetchDist downloads the bytes we serve as dist, per src.Strategy.
-func fetchDist(ctx context.Context, prov Provider, src *model.PackageSource, rel Release) (string, error) {
-	switch src.Strategy {
+// fetchDist downloads the bytes we serve as dist, per source strategy.
+func fetchDist(ctx context.Context, prov Provider, sourceConfig SourceConfig, rel Release) (string, error) {
+	switch sourceConfig.Strategy {
 	case "release_asset":
-		asset, matchErr := matchAsset(rel.Assets, src.AssetPattern)
+		asset, matchErr := matchAsset(rel.Assets, sourceConfig.AssetPattern)
 		if matchErr != nil {
 			return "", matchErr
 		}
@@ -277,7 +288,7 @@ func fetchDist(ctx context.Context, prov Provider, src *model.PackageSource, rel
 		return composer.SaveTempFile(body, maxDownloadSize)
 
 	case "source_archive":
-		body, err := prov.DownloadSourceArchive(ctx, src.RepoOwner, src.RepoName, rel.TagName)
+		body, err := prov.DownloadSourceArchive(ctx, sourceConfig.Owner, sourceConfig.Repo, rel.TagName)
 		if err != nil {
 			return "", fmt.Errorf("download source: %w", err)
 		}
@@ -285,7 +296,7 @@ func fetchDist(ctx context.Context, prov Provider, src *model.PackageSource, rel
 		return composer.SaveTempFile(body, maxDownloadSize)
 
 	default:
-		return "", fmt.Errorf("unknown strategy: %s", src.Strategy)
+		return "", fmt.Errorf("unknown strategy: %s", sourceConfig.Strategy)
 	}
 }
 
@@ -358,7 +369,7 @@ func resolveVersion(src *model.PackageSource, cj *composer.ComposerJSON, tagName
 		// stored composer.json agrees with the version we advertise.
 		cj.Version = tagVersion
 		if cj.RawJSON != "" {
-			rewritten, err := rewriteVersionField(cj.RawJSON, tagVersion)
+			rewritten, err := rewriteJSONField(cj.RawJSON, "version", tagVersion)
 			if err != nil {
 				return fmt.Errorf("rewrite version in composer.json: %w", err)
 			}
@@ -375,17 +386,16 @@ func resolveVersion(src *model.PackageSource, cj *composer.ComposerJSON, tagName
 	}
 }
 
-// rewriteVersionField replaces (or inserts) the top-level "version" key in
-// a composer.json document, preserving the rest of the JSON. Uses a
-// generic map so we don't lose fields the ComposerJSON struct doesn't
-// model.
-func rewriteVersionField(raw, version string) (string, error) {
+// rewriteJSONField replaces (or inserts) a top-level key in a JSON
+// document, preserving the rest of the object. Uses a generic map so we
+// don't lose fields the ComposerJSON struct doesn't model.
+func rewriteJSONField(raw, key, value string) (string, error) {
 	var doc map[string]json.RawMessage
 	if err := json.Unmarshal([]byte(raw), &doc); err != nil {
 		return "", err
 	}
-	v, _ := json.Marshal(version)
-	doc["version"] = v
+	v, _ := json.Marshal(value)
+	doc[key] = v
 	out, err := json.Marshal(doc)
 	if err != nil {
 		return "", err

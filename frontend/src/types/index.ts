@@ -94,17 +94,28 @@ export interface PackageStats {
 }
 
 // Where a package gets its versions from.
-//   github — sync from GitHub releases (webhook/poll, repo coordinates required).
-//   upload — user drops zips directly; no repo, no sync.
-export type SourceProvider = "github" | "upload";
+//   github/gitlab — sync from release metadata (webhook/poll, repo coordinates required).
+//   upload        — user drops zips directly; no repo, no sync.
+export type SourceProvider = "github" | "gitlab" | "upload";
+
+export interface SourceConfig {
+  owner: string;
+  repo: string;
+  strategy: SourceStrategy;
+  asset_pattern: string;
+}
+
+export interface ConnectionConfig {
+  host?: string;
+}
 
 export interface PackageSource {
   id: string;
   provider: SourceProvider;
-  repo_owner: string;
-  repo_name: string;
-  strategy: SourceStrategy;
-  asset_pattern: string;
+  connection_id?: string;
+  config?: SourceConfig;
+  repo_key?: string;
+  repo_url?: string;
   metadata_source: MetadataSource;
   version_source: VersionSource;
   manual_require?: string;
@@ -174,6 +185,20 @@ export interface ReleasePreview {
 export interface ReleasePreviewAsset {
   name: string;
   size: number;
+}
+
+export type ProviderAuthType = "none" | "token";
+
+export interface ProviderConnection {
+  id: string;
+  name: string;
+  provider: "github" | "gitlab";
+  auth_type: ProviderAuthType;
+  token_prefix?: string;
+  config?: ConnectionConfig;
+  source_count: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface APIToken {

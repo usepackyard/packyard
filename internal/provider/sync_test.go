@@ -22,10 +22,10 @@ import (
 // fakeProvider implements provider.Provider with canned responses.
 // Use the knobs in each test to control what happens.
 type fakeProvider struct {
-	releases          []provider.Release
-	listReleasesErr   error
-	downloadAssetFn   func(url string) (io.ReadCloser, error)
-	downloadSourceFn  func(owner, repo, tag string) (io.ReadCloser, error)
+	releases         []provider.Release
+	listReleasesErr  error
+	downloadAssetFn  func(url string) (io.ReadCloser, error)
+	downloadSourceFn func(owner, repo, tag string) (io.ReadCloser, error)
 }
 
 func (f *fakeProvider) ListReleases(ctx context.Context, owner, repo string) ([]provider.Release, error) {
@@ -78,6 +78,15 @@ func zipReader(b []byte) io.ReadCloser {
 	return io.NopCloser(bytes.NewReader(b))
 }
 
+func gitSource(t *testing.T, packageID int64, strategy, assetPattern string) *model.PackageSource {
+	t.Helper()
+	return &model.PackageSource{
+		PackageID:      packageID,
+		Provider:       "github",
+		ProviderConfig: testutil.SourceConfigJSON(t, "o", "r", strategy, assetPattern),
+	}
+}
+
 func TestSync_ImportsNewRelease(t *testing.T) {
 	stores := testutil.NewStores(t)
 	strg, _ := storage.NewLocal(t.TempDir())
@@ -96,10 +105,7 @@ func TestSync_ImportsNewRelease(t *testing.T) {
 		},
 	}
 
-	src := &model.PackageSource{
-		PackageID: pkg.ID, Provider: "github", RepoOwner: "o", RepoName: "r",
-		Strategy: "release_asset", AssetPattern: "*.zip",
-	}
+	src := gitSource(t, pkg.ID, "release_asset", "*.zip")
 
 	result, err := provider.Sync(context.Background(), p, src, pkg, stores.Packages, strg, cache, org.ID, provider.SyncOpts{})
 	if err != nil {
@@ -136,10 +142,7 @@ func TestSync_SkipsExistingVersion(t *testing.T) {
 		},
 	}
 
-	src := &model.PackageSource{
-		PackageID: pkg.ID, Provider: "github", RepoOwner: "o", RepoName: "r",
-		Strategy: "release_asset", AssetPattern: "*.zip",
-	}
+	src := gitSource(t, pkg.ID, "release_asset", "*.zip")
 
 	result, err := provider.Sync(context.Background(), p, src, pkg, stores.Packages, strg, cache, org.ID, provider.SyncOpts{})
 	if err != nil {
@@ -175,10 +178,7 @@ func TestSync_CollectsErrorsPerRelease(t *testing.T) {
 		},
 	}
 
-	src := &model.PackageSource{
-		PackageID: pkg.ID, Provider: "github", RepoOwner: "o", RepoName: "r",
-		Strategy: "release_asset", AssetPattern: "*.zip",
-	}
+	src := gitSource(t, pkg.ID, "release_asset", "*.zip")
 
 	result, err := provider.Sync(context.Background(), p, src, pkg, stores.Packages, strg, cache, org.ID, provider.SyncOpts{})
 	if err != nil {
@@ -192,7 +192,7 @@ func TestSync_CollectsErrorsPerRelease(t *testing.T) {
 	}
 }
 
-func TestSync_RejectsNameMismatch(t *testing.T) {
+func TestSync_RewritesNameMismatch(t *testing.T) {
 	stores := testutil.NewStores(t)
 	strg, _ := storage.NewLocal(t.TempDir())
 	cache := composer.NewCache(stores.Packages, stores.Orgs, "http://test")
@@ -200,32 +200,75 @@ func TestSync_RejectsNameMismatch(t *testing.T) {
 	org := testutil.MakeOrg(t, stores, "default", "Default")
 	pkg := testutil.MakePackage(t, stores, org.ID, "vendor/pkg")
 
-	// A zip whose internal composer.json name does not match the package being
-	// synced must be rejected.
-	badNameZip := buildZip(t, "attacker/evil", "1.0.0")
+	zipBytes := buildZip(t, "attacker/evil", "1.0.0")
 	p := &fakeProvider{
 		releases: []provider.Release{
 			{TagName: "v1.0.0", Assets: []provider.Asset{{Name: "pkg.zip", URL: "http://x"}}},
 		},
 		downloadAssetFn: func(url string) (io.ReadCloser, error) {
-			return zipReader(badNameZip), nil
+			return zipReader(zipBytes), nil
 		},
 	}
 
-	src := &model.PackageSource{
-		PackageID: pkg.ID, Provider: "github", RepoOwner: "o", RepoName: "r",
-		Strategy: "release_asset", AssetPattern: "*.zip",
-	}
+	src := gitSource(t, pkg.ID, "release_asset", "*.zip")
 
 	result, err := provider.Sync(context.Background(), p, src, pkg, stores.Packages, strg, cache, org.ID, provider.SyncOpts{})
 	if err != nil {
 		t.Fatalf("Sync: %v", err)
 	}
-	if len(result.Imported) != 0 {
-		t.Errorf("Imported should be empty, got %v", result.Imported)
+	if len(result.Imported) != 1 || result.Imported[0] != "1.0.0" {
+		t.Errorf("Imported = %v, want [1.0.0]", result.Imported)
 	}
-	if len(result.Errors) != 1 {
-		t.Fatalf("Errors len = %d, want 1 (name mismatch): %v", len(result.Errors), result.Errors)
+	if len(result.Errors) != 0 {
+		t.Fatalf("unexpected errors: %v", result.Errors)
+	}
+
+	versions, _ := stores.Packages.ListVersions(context.Background(), org.ID, pkg.ID)
+	if len(versions) != 1 {
+		t.Fatalf("expected 1 version, got %d", len(versions))
+	}
+	if !strings.Contains(versions[0].ComposerJSON, `"name":"vendor/pkg"`) {
+		t.Errorf("ComposerJSON should contain rewritten name, got: %s", versions[0].ComposerJSON)
+	}
+	if strings.Contains(versions[0].ComposerJSON, "attacker/evil") {
+		t.Errorf("ComposerJSON should not contain original name, got: %s", versions[0].ComposerJSON)
+	}
+}
+
+func TestSync_NameMatchUnchanged(t *testing.T) {
+	stores := testutil.NewStores(t)
+	strg, _ := storage.NewLocal(t.TempDir())
+	cache := composer.NewCache(stores.Packages, stores.Orgs, "http://test")
+
+	org := testutil.MakeOrg(t, stores, "default", "Default")
+	pkg := testutil.MakePackage(t, stores, org.ID, "vendor/pkg")
+
+	zipBytes := buildZip(t, "vendor/pkg", "1.0.0")
+	p := &fakeProvider{
+		releases: []provider.Release{
+			{TagName: "v1.0.0", Assets: []provider.Asset{{Name: "pkg.zip", URL: "http://x"}}},
+		},
+		downloadAssetFn: func(url string) (io.ReadCloser, error) {
+			return zipReader(zipBytes), nil
+		},
+	}
+
+	src := gitSource(t, pkg.ID, "release_asset", "*.zip")
+
+	result, err := provider.Sync(context.Background(), p, src, pkg, stores.Packages, strg, cache, org.ID, provider.SyncOpts{})
+	if err != nil {
+		t.Fatalf("Sync: %v", err)
+	}
+	if len(result.Imported) != 1 || result.Imported[0] != "1.0.0" {
+		t.Errorf("Imported = %v, want [1.0.0]", result.Imported)
+	}
+
+	versions, _ := stores.Packages.ListVersions(context.Background(), org.ID, pkg.ID)
+	if len(versions) != 1 {
+		t.Fatalf("expected 1 version, got %d", len(versions))
+	}
+	if !strings.Contains(versions[0].ComposerJSON, `"name":"vendor/pkg"`) {
+		t.Errorf("ComposerJSON should contain original name, got: %s", versions[0].ComposerJSON)
 	}
 }
 
@@ -238,9 +281,7 @@ func TestSync_ListReleasesError(t *testing.T) {
 	pkg := testutil.MakePackage(t, stores, org.ID, "vendor/pkg")
 
 	p := &fakeProvider{listReleasesErr: errors.New("API down")}
-	src := &model.PackageSource{
-		PackageID: pkg.ID, Strategy: "release_asset", AssetPattern: "*.zip",
-	}
+	src := gitSource(t, pkg.ID, "release_asset", "*.zip")
 
 	_, err := provider.Sync(context.Background(), p, src, pkg, stores.Packages, strg, cache, org.ID, provider.SyncOpts{})
 	if err == nil {
@@ -261,9 +302,7 @@ func TestSync_NoAssetMatchingPattern(t *testing.T) {
 			{TagName: "v1.0.0", Assets: []provider.Asset{{Name: "pkg.tar", URL: "http://x"}}},
 		},
 	}
-	src := &model.PackageSource{
-		PackageID: pkg.ID, Strategy: "release_asset", AssetPattern: "*.zip",
-	}
+	src := gitSource(t, pkg.ID, "release_asset", "*.zip")
 
 	result, err := provider.Sync(context.Background(), p, src, pkg, stores.Packages, strg, cache, org.ID, provider.SyncOpts{})
 	if err != nil {
@@ -310,13 +349,10 @@ func TestSync_ManualMetadata_SynthesizesComposerJSON(t *testing.T) {
 		},
 	}
 
-	src := &model.PackageSource{
-		PackageID: pkg.ID, Provider: "github", RepoOwner: "o", RepoName: "r",
-		Strategy: "release_asset", AssetPattern: "*.zip",
-		MetadataSource: "manual",
-		VersionSource:  "git_tag",
-		ManualRequire:  `{"composer/installers": "^2.0"}`,
-	}
+	src := gitSource(t, pkg.ID, "release_asset", "*.zip")
+	src.MetadataSource = "manual"
+	src.VersionSource = "git_tag"
+	src.ManualRequire = `{"composer/installers": "^2.0"}`
 
 	result, err := provider.Sync(context.Background(), p, src, pkg, stores.Packages, strg, cache, org.ID, provider.SyncOpts{})
 	if err != nil {
@@ -370,10 +406,8 @@ func TestSync_VersionSource_GitTagOverridesComposerJSON(t *testing.T) {
 		},
 		downloadAssetFn: func(url string) (io.ReadCloser, error) { return zipReader(zipBytes), nil },
 	}
-	src := &model.PackageSource{
-		PackageID: pkg.ID, Strategy: "release_asset", AssetPattern: "*.zip",
-		VersionSource: "git_tag",
-	}
+	src := gitSource(t, pkg.ID, "release_asset", "*.zip")
+	src.VersionSource = "git_tag"
 
 	result, err := provider.Sync(context.Background(), p, src, pkg, stores.Packages, strg, cache, org.ID, provider.SyncOpts{})
 	if err != nil {
@@ -411,10 +445,8 @@ func TestSync_VersionSource_ComposerJSON_RequiresVersion(t *testing.T) {
 		},
 		downloadAssetFn: func(url string) (io.ReadCloser, error) { return zipReader(zipBytes), nil },
 	}
-	src := &model.PackageSource{
-		PackageID: pkg.ID, Strategy: "release_asset", AssetPattern: "*.zip",
-		VersionSource: "composer_json",
-	}
+	src := gitSource(t, pkg.ID, "release_asset", "*.zip")
+	src.VersionSource = "composer_json"
 
 	result, err := provider.Sync(context.Background(), p, src, pkg, stores.Packages, strg, cache, org.ID, provider.SyncOpts{})
 	if err != nil {
@@ -451,7 +483,7 @@ func TestSync_UsesUpstreamPublishedAtForVersionDate(t *testing.T) {
 		},
 		downloadAssetFn: func(url string) (io.ReadCloser, error) { return zipReader(zipBytes), nil },
 	}
-	src := &model.PackageSource{PackageID: pkg.ID, Strategy: "release_asset", AssetPattern: "*.zip"}
+	src := gitSource(t, pkg.ID, "release_asset", "*.zip")
 
 	_, err := provider.Sync(context.Background(), p, src, pkg, stores.Packages, strg, cache, org.ID, provider.SyncOpts{})
 	if err != nil {
@@ -496,7 +528,7 @@ func TestSync_BackfillsReleaseDateOnReSync(t *testing.T) {
 			{TagName: "v1.0.0", PublishedAt: upstreamPublished},
 		},
 	}
-	src := &model.PackageSource{PackageID: pkg.ID, Strategy: "release_asset", AssetPattern: "*.zip"}
+	src := gitSource(t, pkg.ID, "release_asset", "*.zip")
 
 	result, err := provider.Sync(context.Background(), p, src, pkg, stores.Packages, strg, cache, org.ID, provider.SyncOpts{})
 	if err != nil {
@@ -547,7 +579,7 @@ func TestSync_NoopWhenReleaseDateAlreadyCorrect(t *testing.T) {
 			{TagName: "v1.0.0", PublishedAt: publishedAt},
 		},
 	}
-	src := &model.PackageSource{PackageID: pkg.ID, Strategy: "release_asset", AssetPattern: "*.zip"}
+	src := gitSource(t, pkg.ID, "release_asset", "*.zip")
 
 	result, _ := provider.Sync(context.Background(), p, src, pkg, stores.Packages, strg, cache, org.ID, provider.SyncOpts{})
 	if len(result.Refreshed) != 0 {
@@ -583,7 +615,7 @@ func TestSync_NoUpdateWhenProviderPublishedAtZero(t *testing.T) {
 			{TagName: "v1.0.0"}, // PublishedAt zero value
 		},
 	}
-	src := &model.PackageSource{PackageID: pkg.ID, Strategy: "release_asset", AssetPattern: "*.zip"}
+	src := gitSource(t, pkg.ID, "release_asset", "*.zip")
 
 	result, _ := provider.Sync(context.Background(), p, src, pkg, stores.Packages, strg, cache, org.ID, provider.SyncOpts{})
 	if len(result.Refreshed) != 0 {
@@ -611,14 +643,13 @@ func TestSync_UnknownStrategy(t *testing.T) {
 		releases: []provider.Release{{TagName: "v1.0.0"}},
 	}
 	src := &model.PackageSource{
-		PackageID: pkg.ID, Strategy: "bogus", AssetPattern: "*.zip",
+		PackageID:      pkg.ID,
+		Provider:       "github",
+		ProviderConfig: testutil.SourceConfigJSON(t, "o", "r", "bogus", "*.zip"),
 	}
 
 	result, err := provider.Sync(context.Background(), p, src, pkg, stores.Packages, strg, cache, org.ID, provider.SyncOpts{})
-	if err != nil {
-		t.Fatalf("Sync: %v", err)
-	}
-	if len(result.Errors) != 1 {
-		t.Errorf("Errors len = %d, want 1 (unknown strategy)", len(result.Errors))
+	if err == nil {
+		t.Fatalf("Sync err = nil, result=%+v; want invalid strategy error", result)
 	}
 }

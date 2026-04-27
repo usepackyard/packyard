@@ -15,6 +15,7 @@ import (
 	"github.com/usepackyard/packyard/internal/config"
 	"github.com/usepackyard/packyard/internal/handler"
 	"github.com/usepackyard/packyard/internal/model"
+	"github.com/usepackyard/packyard/internal/pid"
 	"github.com/usepackyard/packyard/internal/store"
 	"github.com/usepackyard/packyard/internal/testutil"
 )
@@ -49,9 +50,9 @@ func TestWebhookHandler_UnsupportedProvider(t *testing.T) {
 	h, _ := newWebhookHandlerSimple(t)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /hooks/{provider}", h.Handle)
+	mux.HandleFunc("POST /hooks/{provider}/{source_id}", h.Handle)
 
-	req := httptest.NewRequest("POST", "/hooks/bitbucket", strings.NewReader("{}"))
+	req := httptest.NewRequest("POST", "/hooks/bitbucket/"+pid.New(pid.PackageSource), strings.NewReader("{}"))
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
 
@@ -61,12 +62,26 @@ func TestWebhookHandler_UnsupportedProvider(t *testing.T) {
 }
 
 func TestWebhookHandler_DraftRelease_Ignored(t *testing.T) {
-	h, _ := newWebhookHandlerSimple(t)
+	h, helpers := newWebhookHandlerSimple(t)
+
+	org := testutil.MakeOrg(t, helpers, "default", "Default")
+	pkg := testutil.MakePackage(t, helpers, org.ID, "octo/hello")
+	src := &model.PackageSource{
+		PackageID:      pkg.ID,
+		Provider:       "github",
+		ProviderConfig: testutil.SourceConfigJSON(t, "octo", "hello", "release_asset", "*.zip"),
+		RepoKey:        "octo/hello",
+		WebhookSecret:  "shhh",
+	}
+	if err := helpers.Sources.Create(context.Background(), src); err != nil {
+		t.Fatalf("create source: %v", err)
+	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /hooks/{provider}", h.Handle)
+	mux.HandleFunc("POST /hooks/{provider}/{source_id}", h.Handle)
 
-	req := httptest.NewRequest("POST", "/hooks/github", strings.NewReader(draftPayload))
+	req := httptest.NewRequest("POST", "/hooks/github/"+src.PublicID, strings.NewReader(draftPayload))
+	req.Header.Set("X-Hub-Signature-256", githubSig("shhh", draftPayload))
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
 
@@ -82,9 +97,9 @@ func TestWebhookHandler_NoSourceConfigured(t *testing.T) {
 	h, _ := newWebhookHandlerSimple(t)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /hooks/{provider}", h.Handle)
+	mux.HandleFunc("POST /hooks/{provider}/{source_id}", h.Handle)
 
-	req := httptest.NewRequest("POST", "/hooks/github", strings.NewReader(releasePayload))
+	req := httptest.NewRequest("POST", "/hooks/github/"+pid.New(pid.PackageSource), strings.NewReader(releasePayload))
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
 
@@ -101,11 +116,10 @@ func TestWebhookHandler_FailsClosed_NoSecret(t *testing.T) {
 	org := testutil.MakeOrg(t, helpers, "default", "Default")
 	pkg := testutil.MakePackage(t, helpers, org.ID, "octo/hello")
 	src := &model.PackageSource{
-		PackageID: pkg.ID,
-		Provider:  "github",
-		RepoOwner: "octo",
-		RepoName:  "hello",
-		Strategy:  "asset",
+		PackageID:      pkg.ID,
+		Provider:       "github",
+		ProviderConfig: testutil.SourceConfigJSON(t, "octo", "hello", "release_asset", "*.zip"),
+		RepoKey:        "octo/hello",
 		// WebhookSecret intentionally empty
 	}
 	if err := helpers.Sources.Create(context.Background(), src); err != nil {
@@ -113,9 +127,9 @@ func TestWebhookHandler_FailsClosed_NoSecret(t *testing.T) {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /hooks/{provider}", h.Handle)
+	mux.HandleFunc("POST /hooks/{provider}/{source_id}", h.Handle)
 
-	req := httptest.NewRequest("POST", "/hooks/github", strings.NewReader(releasePayload))
+	req := httptest.NewRequest("POST", "/hooks/github/"+src.PublicID, strings.NewReader(releasePayload))
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
 
@@ -130,21 +144,20 @@ func TestWebhookHandler_InvalidSignature(t *testing.T) {
 	org := testutil.MakeOrg(t, helpers, "default", "Default")
 	pkg := testutil.MakePackage(t, helpers, org.ID, "octo/hello")
 	src := &model.PackageSource{
-		PackageID:     pkg.ID,
-		Provider:      "github",
-		RepoOwner:     "octo",
-		RepoName:      "hello",
-		Strategy:      "asset",
-		WebhookSecret: "shhh",
+		PackageID:      pkg.ID,
+		Provider:       "github",
+		ProviderConfig: testutil.SourceConfigJSON(t, "octo", "hello", "release_asset", "*.zip"),
+		RepoKey:        "octo/hello",
+		WebhookSecret:  "shhh",
 	}
 	if err := helpers.Sources.Create(context.Background(), src); err != nil {
 		t.Fatalf("create source: %v", err)
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /hooks/{provider}", h.Handle)
+	mux.HandleFunc("POST /hooks/{provider}/{source_id}", h.Handle)
 
-	req := httptest.NewRequest("POST", "/hooks/github", strings.NewReader(releasePayload))
+	req := httptest.NewRequest("POST", "/hooks/github/"+src.PublicID, strings.NewReader(releasePayload))
 	req.Header.Set("X-Hub-Signature-256", "sha256=deadbeef")
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
@@ -160,21 +173,20 @@ func TestWebhookHandler_ValidSignatureSyncs(t *testing.T) {
 	org := testutil.MakeOrg(t, helpers, "default", "Default")
 	pkg := testutil.MakePackage(t, helpers, org.ID, "octo/hello")
 	src := &model.PackageSource{
-		PackageID:     pkg.ID,
-		Provider:      "github",
-		RepoOwner:     "octo",
-		RepoName:      "hello",
-		Strategy:      "asset",
-		WebhookSecret: "shhh",
+		PackageID:      pkg.ID,
+		Provider:       "github",
+		ProviderConfig: testutil.SourceConfigJSON(t, "octo", "hello", "release_asset", "*.zip"),
+		RepoKey:        "octo/hello",
+		WebhookSecret:  "shhh",
 	}
 	if err := helpers.Sources.Create(context.Background(), src); err != nil {
 		t.Fatalf("create source: %v", err)
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /hooks/{provider}", h.Handle)
+	mux.HandleFunc("POST /hooks/{provider}/{source_id}", h.Handle)
 
-	req := httptest.NewRequest("POST", "/hooks/github", strings.NewReader(releasePayload))
+	req := httptest.NewRequest("POST", "/hooks/github/"+src.PublicID, strings.NewReader(releasePayload))
 	req.Header.Set("X-Hub-Signature-256", githubSig("shhh", releasePayload))
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)

@@ -76,11 +76,22 @@ type SessionStore interface {
 
 type SourceStore interface {
 	GetByPackageID(ctx context.Context, packageID int64) (*model.PackageSource, error)
-	GetByRepo(ctx context.Context, provider, owner, name string) (*model.PackageSource, error)
+	GetByPublicID(ctx context.Context, publicID string) (*model.PackageSource, error)
+	GetByProviderRepoKey(ctx context.Context, provider, repoKey string) (*model.PackageSource, error)
 	Create(ctx context.Context, src *model.PackageSource) error
 	Update(ctx context.Context, src *model.PackageSource) error
 	Delete(ctx context.Context, packageID int64) error
 	UpdateLastSynced(ctx context.Context, packageID int64) error
+}
+
+type ProviderConnectionStore interface {
+	List(ctx context.Context, orgID int64) ([]model.ProviderConnection, error)
+	GetByID(ctx context.Context, orgID, id int64) (*model.ProviderConnection, error)
+	GetByPublicID(ctx context.Context, orgID int64, publicID string) (*model.ProviderConnection, error)
+	Create(ctx context.Context, conn *model.ProviderConnection) error
+	Update(ctx context.Context, conn *model.ProviderConnection) error
+	Delete(ctx context.Context, orgID, id int64) error
+	CountSources(ctx context.Context, id int64) (int64, error)
 }
 
 type AdminTokenStore interface {
@@ -212,6 +223,7 @@ type Stores struct {
 	Users       UserStore
 	Sessions    SessionStore
 	Sources     SourceStore
+	Connections ProviderConnectionStore
 	Orgs        OrgStore
 	SSOTickets  SSOTicketStore
 	Downloads   DownloadStore
@@ -226,6 +238,7 @@ func NewStores(db *bun.DB) *Stores {
 		Users:       NewUserStoreDB(db),
 		Sessions:    NewSessionStoreDB(db),
 		Sources:     NewSourceStoreDB(db),
+		Connections: NewProviderConnectionStoreDB(db),
 		Orgs:        NewOrgStoreDB(db),
 		SSOTickets:  NewSSOTicketStoreDB(db),
 		Downloads:   NewDownloadStoreDB(db),

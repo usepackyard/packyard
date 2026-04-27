@@ -4,9 +4,11 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/usepackyard/packyard/internal/config"
 	"github.com/usepackyard/packyard/internal/model"
+	"github.com/usepackyard/packyard/internal/pid"
 	"github.com/usepackyard/packyard/internal/provider"
 	"github.com/usepackyard/packyard/internal/store"
 )
@@ -33,6 +35,11 @@ func NewWebhookHandler(sources store.SourceStore, packages store.PackageStore, j
 
 func (h *WebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	providerType := r.PathValue("provider")
+	sourcePublicID := r.PathValue("source_id")
+	if _, err := pid.Parse(sourcePublicID, pid.PackageSource); err != nil {
+		writeError(w, http.StatusNotFound, "no_source_configured", "no source configured")
+		return
+	}
 
 	prov, err := provider.NewProvider(providerType, "")
 	if err != nil {
@@ -46,26 +53,19 @@ func (h *WebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	event, err := prov.ParseWebhook(body)
-	if err != nil {
-		slog.Error("webhook: parse error", "error", err, "provider", providerType)
-		writeError(w, http.StatusBadRequest, "invalid_payload", "invalid payload")
-		return
-	}
-
-	if event.Action != "published" || event.IsDraft {
-		writeJSON(w, http.StatusOK, map[string]string{"status": "ignored"})
-		return
-	}
-
-	src, err := h.sources.GetByRepo(r.Context(), providerType, event.RepoOwner, event.RepoName)
+	src, err := h.sources.GetByPublicID(r.Context(), sourcePublicID)
 	if err != nil {
 		slog.Error("webhook: source lookup error", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal_error", "internal error")
 		return
 	}
-	if src == nil {
-		writeError(w, http.StatusNotFound, "no_source_configured_for_repo", "no source configured for this repository")
+	if src == nil || src.Provider != providerType {
+		writeError(w, http.StatusNotFound, "no_source_configured", "no source configured")
+		return
+	}
+	sourceConfig, err := provider.ParseSourceConfig(src.Provider, src.ProviderConfig)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_source_config", "invalid source config")
 		return
 	}
 
@@ -74,14 +74,29 @@ func (h *WebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	// up the source — the URL alone is not sufficient authentication.
 	if src.WebhookSecret == "" {
 		slog.Warn("webhook: rejected — source has no signing secret",
-			"repo", event.RepoOwner+"/"+event.RepoName)
+			"repo", sourceConfig.Owner+"/"+sourceConfig.Repo)
 		writeError(w, http.StatusUnauthorized, "webhook_secret_not_configured", "webhook signing secret not configured for this source")
 		return
 	}
 	if err := prov.ValidateWebhook(r, src.WebhookSecret, body); err != nil {
 		slog.Warn("webhook: signature validation failed", "error", err,
-			"repo", event.RepoOwner+"/"+event.RepoName)
+			"repo", sourceConfig.Owner+"/"+sourceConfig.Repo)
 		writeError(w, http.StatusUnauthorized, "invalid_signature", "invalid signature")
+		return
+	}
+
+	event, err := prov.ParseWebhook(body)
+	if err != nil {
+		slog.Error("webhook: parse error", "error", err, "provider", providerType)
+		writeError(w, http.StatusBadRequest, "invalid_payload", "invalid payload")
+		return
+	}
+	if event.Action != "published" || event.IsDraft {
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ignored"})
+		return
+	}
+	if !strings.EqualFold(event.RepoOwner, sourceConfig.Owner) || !strings.EqualFold(event.RepoName, sourceConfig.Repo) {
+		writeError(w, http.StatusBadRequest, "webhook_repo_mismatch", "webhook repository does not match source")
 		return
 	}
 
@@ -102,7 +117,7 @@ func (h *WebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	} else if existing != nil {
 		slog.Info("webhook: sync already active, skipping enqueue",
-			"repo", src.RepoOwner+"/"+src.RepoName, "job", existing.ID)
+			"repo", sourceConfig.Owner+"/"+sourceConfig.Repo, "job", existing.ID)
 		writeJSON(w, http.StatusOK, map[string]interface{}{
 			"status": "already-queued",
 			"job":    existing,
@@ -117,12 +132,12 @@ func (h *WebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := h.jobs.Enqueue(r.Context(), job); err != nil {
 		slog.Error("webhook: enqueue sync job", "error", err,
-			"repo", src.RepoOwner+"/"+src.RepoName)
+			"repo", sourceConfig.Owner+"/"+sourceConfig.Repo)
 		writeError(w, http.StatusInternalServerError, "failed_enqueue_sync", "failed to enqueue sync")
 		return
 	}
 
 	slog.Info("webhook: sync enqueued",
-		"repo", src.RepoOwner+"/"+src.RepoName, "job", job.ID)
+		"repo", sourceConfig.Owner+"/"+sourceConfig.Repo, "job", job.ID)
 	writeJSON(w, http.StatusOK, map[string]interface{}{"status": "queued", "job": job})
 }

@@ -15,16 +15,19 @@ import (
 	"github.com/usepackyard/packyard/internal/auth"
 	"github.com/usepackyard/packyard/internal/composer"
 	"github.com/usepackyard/packyard/internal/config"
+	"github.com/usepackyard/packyard/internal/credentials"
 	"github.com/usepackyard/packyard/internal/handler"
 	"github.com/usepackyard/packyard/internal/model"
 	"github.com/usepackyard/packyard/internal/provider"
 	"github.com/usepackyard/packyard/internal/storage"
+	"github.com/usepackyard/packyard/internal/store"
 	"github.com/usepackyard/packyard/internal/testutil"
 )
 
 type sourceCtx struct {
-	org *model.Organization
-	pkg *model.Package
+	stores *store.Stores
+	org    *model.Organization
+	pkg    *model.Package
 }
 
 func newSourceHandler(t *testing.T) (*handler.AdminSourceHandler, sourceCtx) {
@@ -32,11 +35,14 @@ func newSourceHandler(t *testing.T) (*handler.AdminSourceHandler, sourceCtx) {
 	stores := testutil.NewStores(t)
 	st, _ := storage.NewLocal(t.TempDir())
 	c := composer.NewCache(stores.Packages, stores.Orgs, "http://test")
-	cfg := &config.Config{BaseURL: "http://test"}
-	h := handler.NewAdminSourceHandler(stores.Sources, stores.Packages, stores.Jobs, st, c, cfg)
+	cfg := &config.Config{
+		BaseURL:        "http://test",
+		CredentialsKey: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+	}
+	h := handler.NewAdminSourceHandler(stores.Sources, stores.Connections, stores.Packages, stores.Jobs, st, c, cfg)
 	org := testutil.MakeOrg(t, stores, "default", "Default")
 	pkg := testutil.MakePackage(t, stores, org.ID, "vendor/pkg")
-	return h, sourceCtx{org, pkg}
+	return h, sourceCtx{stores, org, pkg}
 }
 
 func TestAdminSourceHandler_Set_NewSourceReturnsWebhookURLAndSecret(t *testing.T) {
@@ -45,7 +51,7 @@ func TestAdminSourceHandler_Set_NewSourceReturnsWebhookURLAndSecret(t *testing.T
 	mux := http.NewServeMux()
 	mux.HandleFunc("PUT /api/packages/{id}/source", h.Set)
 
-	body := `{"provider":"github","repo_owner":"octo","repo_name":"hello","strategy":"release_asset","asset_pattern":"*.zip"}`
+	body := `{"provider":"github","config":{"owner":"octo","repo":"hello","strategy":"release_asset","asset_pattern":"*.zip"}}`
 	req := httptest.NewRequest("PUT", "/api/packages/"+ctx.pkg.PublicID+"/source",
 		strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -71,7 +77,7 @@ func TestAdminSourceHandler_Set_RequiresRepoFields(t *testing.T) {
 	mux.HandleFunc("PUT /api/packages/{id}/source", h.Set)
 
 	req := httptest.NewRequest("PUT", "/api/packages/"+ctx.pkg.PublicID+"/source",
-		strings.NewReader(`{"provider":"github","repo_owner":"","repo_name":""}`))
+		strings.NewReader(`{"provider":"github","config":{"owner":"","repo":""}}`))
 	req.Header.Set("Content-Type", "application/json")
 	req = req.WithContext(auth.SetOrgInContext(req.Context(), ctx.org, nil))
 	rec := httptest.NewRecorder()
@@ -89,7 +95,7 @@ func TestAdminSourceHandler_Set_RejectsUnknownProvider(t *testing.T) {
 	mux.HandleFunc("PUT /api/packages/{id}/source", h.Set)
 
 	req := httptest.NewRequest("PUT", "/api/packages/"+ctx.pkg.PublicID+"/source",
-		strings.NewReader(`{"provider":"bitbucket","repo_owner":"o","repo_name":"r"}`))
+		strings.NewReader(`{"provider":"bitbucket","config":{"owner":"o","repo":"r"}}`))
 	req.Header.Set("Content-Type", "application/json")
 	req = req.WithContext(auth.SetOrgInContext(req.Context(), ctx.org, nil))
 	rec := httptest.NewRecorder()
@@ -107,7 +113,7 @@ func TestAdminSourceHandler_Set_PackageNotFound(t *testing.T) {
 	mux.HandleFunc("PUT /api/packages/{id}/source", h.Set)
 
 	req := httptest.NewRequest("PUT", "/api/packages/9999/source",
-		strings.NewReader(`{"repo_owner":"o","repo_name":"r"}`))
+		strings.NewReader(`{"provider":"github","config":{"owner":"o","repo":"r"}}`))
 	req.Header.Set("Content-Type", "application/json")
 	req = req.WithContext(auth.SetOrgInContext(req.Context(), ctx.org, nil))
 	rec := httptest.NewRecorder()
@@ -126,14 +132,14 @@ func TestAdminSourceHandler_Set_UpdateExisting(t *testing.T) {
 
 	// First Set creates.
 	req1 := httptest.NewRequest("PUT", "/api/packages/"+ctx.pkg.PublicID+"/source",
-		strings.NewReader(`{"repo_owner":"old","repo_name":"r"}`))
+		strings.NewReader(`{"provider":"github","config":{"owner":"old","repo":"r"}}`))
 	req1.Header.Set("Content-Type", "application/json")
 	req1 = req1.WithContext(auth.SetOrgInContext(req1.Context(), ctx.org, nil))
 	mux.ServeHTTP(httptest.NewRecorder(), req1)
 
 	// Second Set updates.
 	req2 := httptest.NewRequest("PUT", "/api/packages/"+ctx.pkg.PublicID+"/source",
-		strings.NewReader(`{"repo_owner":"new","repo_name":"r"}`))
+		strings.NewReader(`{"provider":"github","config":{"owner":"new","repo":"r"}}`))
 	req2.Header.Set("Content-Type", "application/json")
 	req2 = req2.WithContext(auth.SetOrgInContext(req2.Context(), ctx.org, nil))
 	rec := httptest.NewRecorder()
@@ -155,7 +161,7 @@ func TestAdminSourceHandler_Set_ValidatesStrategy(t *testing.T) {
 	mux.HandleFunc("PUT /api/packages/{id}/source", h.Set)
 
 	req := httptest.NewRequest("PUT", "/api/packages/"+ctx.pkg.PublicID+"/source",
-		strings.NewReader(`{"provider":"github","repo_owner":"o","repo_name":"r","strategy":"clown"}`))
+		strings.NewReader(`{"provider":"github","config":{"owner":"o","repo":"r","strategy":"clown"}}`))
 	req.Header.Set("Content-Type", "application/json")
 	req = req.WithContext(auth.SetOrgInContext(req.Context(), ctx.org, nil))
 	rec := httptest.NewRecorder()
@@ -209,7 +215,7 @@ func TestAdminSourceHandler_GetAfterSet_ReturnsURL(t *testing.T) {
 
 	// Create.
 	setReq := httptest.NewRequest("PUT", "/api/packages/"+ctx.pkg.PublicID+"/source",
-		strings.NewReader(`{"repo_owner":"o","repo_name":"r"}`))
+		strings.NewReader(`{"provider":"github","config":{"owner":"o","repo":"r"}}`))
 	setReq.Header.Set("Content-Type", "application/json")
 	setReq = setReq.WithContext(auth.SetOrgInContext(setReq.Context(), ctx.org, nil))
 	mux.ServeHTTP(httptest.NewRecorder(), setReq)
@@ -292,7 +298,7 @@ func TestAdminSourceHandler_Delete(t *testing.T) {
 	mux.HandleFunc("DELETE /api/packages/{id}/source", h.Delete)
 
 	setReq := httptest.NewRequest("PUT", "/api/packages/"+ctx.pkg.PublicID+"/source",
-		strings.NewReader(`{"repo_owner":"o","repo_name":"r"}`))
+		strings.NewReader(`{"provider":"github","config":{"owner":"o","repo":"r"}}`))
 	setReq.Header.Set("Content-Type", "application/json")
 	setReq = setReq.WithContext(auth.SetOrgInContext(setReq.Context(), ctx.org, nil))
 	mux.ServeHTTP(httptest.NewRecorder(), setReq)
@@ -348,11 +354,11 @@ func TestAdminSourceHandler_Set_ValidatesMetadataAndVersionSources(t *testing.T)
 		name string
 		body string
 	}{
-		{"unknown metadata_source", `{"provider":"github","repo_owner":"o","repo_name":"r","metadata_source":"wat"}`},
-		{"unknown version_source", `{"provider":"github","repo_owner":"o","repo_name":"r","version_source":"wat"}`},
-		{"manual+source_archive rejected", `{"provider":"github","repo_owner":"o","repo_name":"r","strategy":"source_archive","metadata_source":"manual"}`},
-		{"manual_require invalid JSON", `{"provider":"github","repo_owner":"o","repo_name":"r","metadata_source":"manual","manual_require":"not-json"}`},
-		{"manual_require not an object", `{"provider":"github","repo_owner":"o","repo_name":"r","metadata_source":"manual","manual_require":"[1,2,3]"}`},
+		{"unknown metadata_source", `{"provider":"github","config":{"owner":"o","repo":"r"},"metadata_source":"wat"}`},
+		{"unknown version_source", `{"provider":"github","config":{"owner":"o","repo":"r"},"version_source":"wat"}`},
+		{"manual+source_archive rejected", `{"provider":"github","config":{"owner":"o","repo":"r","strategy":"source_archive"},"metadata_source":"manual"}`},
+		{"manual_require invalid JSON", `{"provider":"github","config":{"owner":"o","repo":"r"},"metadata_source":"manual","manual_require":"not-json"}`},
+		{"manual_require not an object", `{"provider":"github","config":{"owner":"o","repo":"r"},"metadata_source":"manual","manual_require":"[1,2,3]"}`},
 	}
 
 	mux := http.NewServeMux()
@@ -386,7 +392,7 @@ func TestAdminSourceHandler_Set_ManualMetadata_CoercesVersionSource(t *testing.T
 
 	// Send metadata_source=manual with version_source=composer_json (nonsense
 	// in manual mode) — backend must coerce to git_tag, not reject.
-	body := `{"provider":"github","repo_owner":"o","repo_name":"r","strategy":"release_asset","metadata_source":"manual","version_source":"composer_json","manual_require":"{\"composer/installers\":\"^2.0\"}"}`
+	body := `{"provider":"github","config":{"owner":"o","repo":"r","strategy":"release_asset"},"metadata_source":"manual","version_source":"composer_json","manual_require":"{\"composer/installers\":\"^2.0\"}"}`
 	setReq := httptest.NewRequest("PUT", "/api/packages/"+ctx.pkg.PublicID+"/source",
 		strings.NewReader(body))
 	setReq.Header.Set("Content-Type", "application/json")
@@ -528,7 +534,7 @@ func TestAdminSourceHandler_Set_UploadProvider_ManualMetadataCoercesVersionSourc
 func TestAdminSourceHandler_PreviewReleases_HappyPath(t *testing.T) {
 	h, ctx := newSourceHandler(t)
 
-	registerStubProvider(t, "stub-preview", &stubProvider{
+	registerStubProvider(t, "gitlab", &stubProvider{
 		releases: []provider.Release{
 			{TagName: "v2.0.0-beta.47", Assets: []provider.Asset{
 				{Name: "digital-license-manager-pro-v2.0.0-beta.47.zip", Size: 1024},
@@ -549,7 +555,7 @@ func TestAdminSourceHandler_PreviewReleases_HappyPath(t *testing.T) {
 	mux.HandleFunc("POST /api/sources/preview", h.PreviewReleases)
 
 	req := httptest.NewRequest("POST", "/api/sources/preview",
-		strings.NewReader(`{"provider":"stub-preview","owner":"o","repo":"r"}`))
+		strings.NewReader(`{"provider":"gitlab","config":{"owner":"o","repo":"r"}}`))
 	req.Header.Set("Content-Type", "application/json")
 	req = req.WithContext(auth.SetOrgInContext(req.Context(), ctx.org, nil))
 	rec := httptest.NewRecorder()
@@ -591,7 +597,7 @@ func TestAdminSourceHandler_PreviewReleases_RequiresOwnerAndRepo(t *testing.T) {
 	mux.HandleFunc("POST /api/sources/preview", h.PreviewReleases)
 
 	// Each body is missing owner, repo, or both. All should 400.
-	for _, body := range []string{`{}`, `{"owner":"o"}`, `{"repo":"r"}`} {
+	for _, body := range []string{`{}`, `{"config":{"owner":"o"}}`, `{"config":{"repo":"r"}}`} {
 		req := httptest.NewRequest("POST", "/api/sources/preview", strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		req = req.WithContext(auth.SetOrgInContext(req.Context(), ctx.org, nil))
@@ -606,7 +612,7 @@ func TestAdminSourceHandler_PreviewReleases_RequiresOwnerAndRepo(t *testing.T) {
 func TestAdminSourceHandler_PreviewReleases_UpstreamFailure(t *testing.T) {
 	h, ctx := newSourceHandler(t)
 
-	registerStubProvider(t, "stub-preview-fail", &stubProvider{
+	registerStubProvider(t, "gitlab", &stubProvider{
 		listErr: errors.New("GitHub says 404"),
 	})
 
@@ -614,7 +620,7 @@ func TestAdminSourceHandler_PreviewReleases_UpstreamFailure(t *testing.T) {
 	mux.HandleFunc("POST /api/sources/preview", h.PreviewReleases)
 
 	req := httptest.NewRequest("POST", "/api/sources/preview",
-		strings.NewReader(`{"provider":"stub-preview-fail","owner":"o","repo":"r"}`))
+		strings.NewReader(`{"provider":"gitlab","config":{"owner":"o","repo":"r"}}`))
 	req.Header.Set("Content-Type", "application/json")
 	req = req.WithContext(auth.SetOrgInContext(req.Context(), ctx.org, nil))
 	rec := httptest.NewRecorder()
@@ -625,23 +631,39 @@ func TestAdminSourceHandler_PreviewReleases_UpstreamFailure(t *testing.T) {
 	}
 }
 
-// Per-call auth_token overrides the org-configured provider token. Verify by
-// registering a stub whose factory records the token it was built with and
-// asserting the request-scoped value was passed through.
-func TestAdminSourceHandler_PreviewReleases_UsesAuthTokenFromBody(t *testing.T) {
+// Preview auth comes from the selected provider connection. Verify by
+// registering a stub whose factory records the decrypted token it was built
+// with and asserting the connection-scoped value was passed through.
+func TestAdminSourceHandler_PreviewReleases_UsesSelectedConnectionToken(t *testing.T) {
 	h, ctx := newSourceHandler(t)
 
 	var capturedToken string
-	provider.Register("stub-preview-token", func(token string) provider.Provider {
+	provider.Register("gitlab", func(token string) provider.Provider {
 		capturedToken = token
 		return &stubProvider{releases: []provider.Release{}}
 	})
+
+	encrypted, err := credentials.EncryptString("ghp_saved_token", "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef")
+	if err != nil {
+		t.Fatalf("encrypt token: %v", err)
+	}
+	conn := &model.ProviderConnection{
+		OrgID:           ctx.org.ID,
+		Name:            "GitLab test connection",
+		Provider:        "gitlab",
+		AuthType:        model.ProviderAuthToken,
+		SecretEncrypted: encrypted,
+		TokenPrefix:     credentials.TokenPrefix("ghp_saved_token"),
+	}
+	if err := ctx.stores.Connections.Create(context.Background(), conn); err != nil {
+		t.Fatalf("create provider connection: %v", err)
+	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/sources/preview", h.PreviewReleases)
 
 	req := httptest.NewRequest("POST", "/api/sources/preview",
-		strings.NewReader(`{"provider":"stub-preview-token","owner":"o","repo":"r","auth_token":"ghp_adhoc_token"}`))
+		strings.NewReader(`{"provider":"gitlab","connection_id":"`+conn.PublicID+`","config":{"owner":"o","repo":"r"}}`))
 	req.Header.Set("Content-Type", "application/json")
 	req = req.WithContext(auth.SetOrgInContext(req.Context(), ctx.org, nil))
 	rec := httptest.NewRecorder()
@@ -650,8 +672,7 @@ func TestAdminSourceHandler_PreviewReleases_UsesAuthTokenFromBody(t *testing.T) 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d; body=%s", rec.Code, rec.Body.String())
 	}
-	if capturedToken != "ghp_adhoc_token" {
-		t.Errorf("provider built with token = %q, want ghp_adhoc_token", capturedToken)
+	if capturedToken != "ghp_saved_token" {
+		t.Errorf("provider built with token = %q, want ghp_saved_token", capturedToken)
 	}
 }
-

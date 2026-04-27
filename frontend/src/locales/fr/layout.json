@@ -9,7 +9,8 @@
     "members": "Membres",
     "users": "Utilisateurs",
     "orgs": "Organisations",
-    "adminTokens": "Jetons admin"
+    "adminTokens": "Jetons admin",
+    "connections": "Connexions"
   },
   "enterSuperAdmin": "Entrer en super-admin",
   "backToDashboard": "Retour au tableau de bord",
