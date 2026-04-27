@@ -5,7 +5,7 @@ Private Composer v2 package registry. Single binary, embedded admin dashboard, S
 [![License: AGPL v3](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
 [![Go](https://img.shields.io/badge/Go-1.25+-00ADD8)](https://go.dev)
 
-> Don't want to self-host? [packyard.dev](https://packyard.dev) offers managed hosting with zero ops.
+> For documentation and more details, visit [packyard.dev](https://packyard.dev).
 
 <!-- screenshot: dashboard overview showing packages list, sidebar navigation, org switcher -->
 
