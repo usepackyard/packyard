@@ -520,10 +520,22 @@ func installService(p *installPlan) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("create service user: %w", err)
 		}
-		if err := os.Chown(p.DataDir, serviceUser, serviceGroup); err != nil {
+		// Recursive: by this point doInstall has already created the
+		// SQLite db (probeDatabase + bootstrapDB) and the storage dir
+		// as root. A non-recursive os.Chown would leave their contents
+		// root-owned and SQLite would refuse writes from the service.
+		if err := cli.ChownTree(p.DataDir, serviceUser, serviceGroup); err != nil {
 			return "", fmt.Errorf("chown data dir: %w", err)
 		}
-		if err := os.Chown(p.ConfigFile, serviceUser, serviceGroup); err != nil {
+		// Storage path can live outside DataDir when --storage-path is
+		// used (e.g. /mnt/packages); chown it separately. Cheap and
+		// idempotent if it's actually a subdirectory of DataDir.
+		if p.StorageType == "local" && p.StorageLocal != "" {
+			if err := cli.ChownTree(p.StorageLocal, serviceUser, serviceGroup); err != nil {
+				return "", fmt.Errorf("chown storage dir: %w", err)
+			}
+		}
+		if err := os.Lchown(p.ConfigFile, serviceUser, serviceGroup); err != nil {
 			return "", fmt.Errorf("chown config: %w", err)
 		}
 		unitPath, err := cli.WriteSystemdUnit(cli.SystemdUnit{
