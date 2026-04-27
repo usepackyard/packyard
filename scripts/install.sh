@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Packyard install script.
 #
-#   curl -sSf https://get.packyard.dev/install.sh | sh
+#   curl -sSf https://get.packyard.dev/install.sh | bash
 #
 # Downloads the latest `packyard` binary for this Linux host, verifies
 # the SHA-256 checksum, places it in a PATH directory, then hands off
@@ -28,16 +28,57 @@
 # Everything after the first `--` is passed verbatim to `packyard init`,
 # so you can do:
 #
-#   curl -sSf https://get.packyard.dev/install.sh | sh -s -- \
+#   curl -sSf https://get.packyard.dev/install.sh | bash -s -- \
 #     -- --unattended --port 9090 --admin-email admin@example.com
 #
 # Safety notes:
 #   - set -euo pipefail from the first line
 #   - Whole script wrapped in main(); nothing runs until the full file
-#     is downloaded (partial `curl | sh` can't execute half a script)
+#     is downloaded (partial `curl | bash` can't execute half a script)
 #   - Downloaded tarball is SHA-256 verified against a checksum published
 #     alongside it on the same release
 #   - Never uses `eval` on untrusted input
+
+# Bootstrap under bash. The script body uses bash-only features (set -o
+# pipefail, arrays). When invoked via `curl … | sh` — where `sh` is dash
+# on Debian/Ubuntu and chokes on `set -o pipefail` — we re-exec under
+# bash. This guard is intentionally POSIX so it parses cleanly on dash,
+# ash, and ksh; everything below it is allowed to use bashisms.
+if [ -z "${BASH_VERSION:-}" ]; then
+    if ! command -v bash >/dev/null 2>&1; then
+        printf 'install.sh: bash is required but was not found on PATH.\n' >&2
+        printf 'Install bash and re-run: curl -sSf https://get.packyard.dev/install.sh | bash\n' >&2
+        exit 1
+    fi
+    # If we were invoked from a real script file (./install.sh or
+    # `sh install.sh`), exec bash on it directly. When piped via
+    # `curl | sh`, $0 is the shell binary itself ("sh", "dash") — not
+    # a usable path — so we fall through to a re-fetch.
+    case "$0" in
+        *.sh)
+            if [ -f "$0" ] && [ -r "$0" ]; then
+                exec bash "$0" "$@"
+            fi
+            ;;
+    esac
+    _packyard_install_url="${PACKYARD_INSTALL_URL:-https://get.packyard.dev/install.sh}"
+    if command -v curl >/dev/null 2>&1; then
+        _packyard_install_body="$(curl -sSfL "$_packyard_install_url")" || {
+            printf 'install.sh: failed to refetch installer from %s\n' "$_packyard_install_url" >&2
+            exit 1
+        }
+    elif command -v wget >/dev/null 2>&1; then
+        _packyard_install_body="$(wget -qO- "$_packyard_install_url")" || {
+            printf 'install.sh: failed to refetch installer from %s\n' "$_packyard_install_url" >&2
+            exit 1
+        }
+    else
+        printf 'install.sh: need curl or wget on PATH to bootstrap bash interpreter\n' >&2
+        exit 1
+    fi
+    exec bash -c "$_packyard_install_body" install.sh "$@"
+fi
+
 set -euo pipefail
 
 PACKYARD_REPO="${PACKYARD_REPO:-usepackyard/packyard}"
@@ -284,7 +325,7 @@ usage() {
 Packyard installer (Linux amd64).
 
 Usage:
-  curl -sSf https://get.packyard.dev/install.sh | sh [-- INIT_ARGS...]
+  curl -sSf https://get.packyard.dev/install.sh | bash [-- INIT_ARGS...]
   ./install.sh [flags] [-- INIT_ARGS...]
 
 Flags:
@@ -297,7 +338,7 @@ Flags:
 
 Arguments after `--` are passed to `packyard init`. Example:
 
-  curl -sSf https://get.packyard.dev/install.sh | sh -s -- \
+  curl -sSf https://get.packyard.dev/install.sh | bash -s -- \
     -- --unattended --port 9090 --admin-email admin@example.com
 
 See https://get.packyard.dev/installation for the long-form guide.

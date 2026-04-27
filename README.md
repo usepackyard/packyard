@@ -10,7 +10,7 @@ Packyard gives you a Composer package registry you can run on your own infrastru
 ## Install
 
 ```bash
-curl -sSf https://get.packyard.dev/install.sh | sh
+curl -sSf https://get.packyard.dev/install.sh | bash
 ```
 
 The installer downloads Packyard and starts an interactive setup for the database, storage, public URL, admin user, and optional service unit.
