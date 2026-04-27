@@ -231,26 +231,32 @@ export default function PackageDetail() {
         onSaved={load}
       />
 
-      {/* Upload zone */}
-      <Card className="mb-6">
-        <CardContent className="pt-6">
-          <div
-            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
-              dragOver ? "border-primary bg-primary/5" : "border-muted-foreground/25 hover:border-primary/50"
-            }`}
-            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={handleDrop}
-            onClick={() => fileRef.current?.click()}
-          >
-            <Upload className="h-8 w-8 mx-auto mb-3 text-muted-foreground" />
-            <p className="text-sm font-medium">{uploading ? t("detail.upload.uploading") : t("detail.upload.dragOrClick")}</p>
-            <p className="text-xs text-muted-foreground mt-1">{t("detail.upload.title")}</p>
-            <input ref={fileRef} type="file" accept=".zip" className="hidden"
-              onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0])} />
-          </div>
-        </CardContent>
-      </Card>
+      {/* Upload zone — only relevant for the upload provider (or when no
+          source is configured yet, since a fresh package defaults to
+          upload). Git-backed providers (GitHub, GitLab) get their
+          versions through sync, so showing a drop-zone there is
+          confusing. */}
+      {(!source || source.provider === "upload") && (
+        <Card className="mb-6">
+          <CardContent className="pt-6">
+            <div
+              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
+                dragOver ? "border-primary bg-primary/5" : "border-muted-foreground/25 hover:border-primary/50"
+              }`}
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={handleDrop}
+              onClick={() => fileRef.current?.click()}
+            >
+              <Upload className="h-8 w-8 mx-auto mb-3 text-muted-foreground" />
+              <p className="text-sm font-medium">{uploading ? t("detail.upload.uploading") : t("detail.upload.dragOrClick")}</p>
+              <p className="text-xs text-muted-foreground mt-1">{t("detail.upload.title")}</p>
+              <input ref={fileRef} type="file" accept=".zip" className="hidden"
+                onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0])} />
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Versions */}
       <VersionsTable versions={pkg.versions ?? []} onDelete={handleDeleteVersion} />
