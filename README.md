@@ -2,7 +2,7 @@
 
 Private Composer v2 package registry. Single binary, embedded admin dashboard, SQLite/MySQL/PostgreSQL, local or S3 storage.
 
-[![License: BSL 1.1](https://img.shields.io/badge/license-BSL--1.1-blue)](LICENSE)
+[![License: AGPL v3](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
 [![Go](https://img.shields.io/badge/Go-1.25+-00ADD8)](https://go.dev)
 
 > Don't want to self-host? [packyard.dev](https://packyard.dev) offers managed hosting with zero ops.
@@ -40,7 +40,7 @@ curl -sSf https://get.packyard.dev/install.sh | sh -s -- \
 
 See the [installation guide](docs/installation.md) for air-gapped installs, reverse-proxy recipes (Caddy / nginx / Traefik), unattended flags, and upgrades.
 
-### From source (contributors)
+### Build from source
 
 Prerequisites: [Go 1.25+](https://go.dev/dl/), [Bun](https://bun.sh).
 
@@ -54,7 +54,7 @@ make dev-multi      # multi-tenant mode on :9090
 
 Open `http://localhost:9090` and log in with `admin@example.com` / `changeme`.
 
-Or with Docker:
+### Docker
 
 ```bash
 docker build -t packyard .
@@ -113,6 +113,10 @@ Set `PACKYARD_MODE=multi` to enable organizations. Each org has its own slug, pa
 
 See [AGENTS.md](AGENTS.md) for full architecture, routes, and deployment notes.
 
+## 🤝 Contributing
+
+Issues and pull requests are welcome. Before submitting, please read [CONTRIBUTING.md](CONTRIBUTING.md) — it covers how to get started, how to report security issues privately, and the contributor terms.
+
 ## 🛠️ Development
 
 ```bash
@@ -149,4 +153,8 @@ frontend/            React 19 + TypeScript + Tailwind CSS 4 + shadcn/ui
 
 ## License
 
-Business Source License 1.1, converting to Apache 2.0 four years after each release. See [LICENSE](LICENSE).
+Packyard is licensed under the **GNU Affero General Public License v3.0** (AGPL-3.0). See [LICENSE](LICENSE) for the full text.
+
+You can run, study, modify, and redistribute Packyard freely. If you offer Packyard (or a modified version) to others over a network, you must make the corresponding source available to those users under the same license.
+
+For commercial licensing arrangements that don't require AGPL compliance, contact [hello@packyard.dev](mailto:hello@packyard.dev).

@@ -27,3 +27,10 @@ internal/frontend/dist/
 
 # Environment
 .env
+
+# AI coding agent symlinks. AGENTS.md is the source of truth; contributors
+# can symlink it to their tool's expected name locally:
+#   ln -s AGENTS.md CLAUDE.md
+CLAUDE.md
+COPILOT.md
+GEMINI.md

@@ -7,7 +7,7 @@ This file provides guidance to AI coding agents when working with code in this r
 Packyard is a private Composer package registry built in Go. It serves the Composer v2 repository protocol, provides a React admin dashboard, and supports syncing packages from GitHub/GitLab releases. Single binary deployment with embedded SPA.
 
 - **Go module**: `github.com/usepackyard/packyard`
-- **License**: BSL 1.1 (converts to Apache 2.0 after 4 years per release)
+- **License**: AGPL-3.0
 - **ORM**: Bun (`github.com/uptrace/bun`)
 - **Frontend**: React 19 + TypeScript + Tailwind CSS 4 + shadcn/ui
 - **Databases**: SQLite, MySQL, PostgreSQL
