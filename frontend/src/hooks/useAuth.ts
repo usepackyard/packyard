@@ -13,7 +13,7 @@ export interface AuthContextType {
   api: ReturnType<typeof createApi>;
 }
 
-const defaultApi = createApi("single", "default");
+const defaultApi = createApi("default");
 
 export const AuthContext = createContext<AuthContextType>({
   user: null,

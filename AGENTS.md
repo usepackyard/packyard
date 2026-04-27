@@ -16,8 +16,7 @@ Packyard is a private Composer package registry built in Go. It serves the Compo
 ## Common Commands
 
 ```bash
-make dev              # Build + run single-tenant mode on :9090
-make dev-multi        # Build + run multi-tenant mode on :9090
+make dev              # Build + run on :9090
 make frontend         # Build frontend (bun) + copy to internal/frontend/dist
 make build            # Production binary (CGO_ENABLED=0)
 make test             # go test ./...
@@ -28,7 +27,7 @@ make clean            # Remove binaries, databases, build artifacts
 
 Binary is `packyard`. All config via `PACKYARD_*` env vars (see `.env.example`).
 
-**Important**: `PACKYARD_BASE_URL` is load-bearing — it's embedded in dist URLs inside the Composer metadata cache and exposed to the frontend via `/api/config`. `make dev` / `make dev-multi` set it to `http://localhost:9090` explicitly. If the server runs on a non-default host/port without `PACKYARD_BASE_URL`, Composer clients will try to download from the wrong URL.
+**Important**: `PACKYARD_BASE_URL` is load-bearing — it's embedded in dist URLs inside the Composer metadata cache and exposed to the frontend via `/api/config`. `make dev` sets it to `http://localhost:9090` explicitly. If the server runs on a non-default host/port without `PACKYARD_BASE_URL`, Composer clients will try to download from the wrong URL.
 
 ### Frontend Development
 
@@ -87,7 +86,7 @@ The binary supports a few subcommands in addition to the default server mode. Ru
 | Command | Purpose |
 |---|---|
 | `packyard serve` | Run the HTTP server. Default when no subcommand is given. |
-| `packyard init` | Interactive installer (`huh` TUI): paths, mode, database + live connection probe, port + availability check, public URL, storage, admin user, systemd/launchd service install. Supports `--unattended` with flag/env-driven answers for automation. `--uninstall` reverses the install (data dir preserved unless `--purge-data`). |
+| `packyard init` | Interactive installer (`huh` TUI): paths, database + live connection probe, port + availability check, public URL, storage, admin user, systemd/launchd service install. Supports `--unattended` with flag/env-driven answers for automation. `--uninstall` reverses the install (data dir preserved unless `--purge-data`). |
 | `packyard version [--short]` | Print version, commit SHA, build date, Go version, OS/arch. `--short` prints only the version string. |
 | `packyard healthcheck [--url URL] [--timeout DUR]` | Hit `/healthz` and exit 0 on HTTP 200, non-zero otherwise. Defaults to `http://127.0.0.1:$PACKYARD_PORT/healthz`. Used by the Dockerfile `HEALTHCHECK` directive. |
 | `packyard check-config` | Load env into a Config, run Validate(), exit 0 if healthy. No side effects — no DB connection, no port bind. |
@@ -97,18 +96,19 @@ The binary supports a few subcommands in addition to the default server mode. Ru
 
 ## Architecture
 
-### Modes
+### Tenancy
 
-- **Single mode** (`PACKYARD_MODE=single`, default): Self-hosted, one implicit org, routes at `/api/...`
-- **Multi mode** (`PACKYARD_MODE=multi`): multi-tenant, multiple orgs, routes at `/api/orgs/{org}/...`
+Every install runs with the same shape: one super-admin user plus at
+least one organization. URLs and tokens are always slug-prefixed; orgs
+exist as a first-class concept on day one.
 
-On first run (empty users table) in **both** modes, `seedDefaults` creates:
-- A "default" org (id=1, slug `default`)
+On first run (empty users table), `seedDefaults` creates:
+- A `default` org (id=1, slug `default`)
 - An admin user from `PACKYARD_ADMIN_EMAIL`/`PACKYARD_ADMIN_PASSWORD` as owner of that org
 
 Seeding is idempotent — no-ops once any user exists. If login fails after config changes, delete `packyard.db*` to re-seed.
 
-In multi mode, additional organizations are provisioned by the super-admin through the dashboard or the admin API. From the dashboard: log in as the super-admin and use the `/admin` section. Programmatically, mint an admin Bearer token from the dashboard and call:
+Additional organizations are provisioned by the super-admin through the dashboard or the admin API. From the dashboard: log in as the super-admin and use the `/admin` section. Programmatically, mint an admin Bearer token from the dashboard and call:
 
 ```bash
 curl -X POST http://localhost:9090/api/admin/orgs \
@@ -126,17 +126,20 @@ curl -X POST http://localhost:9090/api/admin/orgs/acme/members \
 
 ### Startup Lifecycle
 
-`cmd/packyard/serve.go` runs: config load → DB connect (WAL mode for SQLite, pool: 25 open / 5 idle) → migrations → seed default org + admin user (single mode, first run) → warm Composer metadata cache → start session cleanup goroutine (every 1h) → HTTP server with 30s graceful shutdown.
+`cmd/packyard/serve.go` runs: config load → DB connect (WAL mode for SQLite, pool: 25 open / 5 idle) → migrations → seed default org + admin user on first run → warm Composer metadata cache → start session cleanup goroutine (every 1h) → HTTP server with 30s graceful shutdown.
 
 ### Request Flow
 
 Middleware chain: **Logging → Recovery → (route-specific auth) → Handler**
 
-- **Composer endpoints** (`/packages.json`, `/p2/...`, `/dist/...`): HTTP Basic auth middleware resolves API token → sets org ID in context
-- **Admin API** (`/api/orgs/{slug}/...`): Session auth middleware → org middleware (resolves org from URL path in multi mode, or injects id=1 in single mode) → handler
+- **Composer endpoints** (`/{slug}/packages.json`, `/{slug}/p2/...`, `/{slug}/dist/...`): `ComposerAuth` middleware reads the slug from the URL, resolves the API token via SHA-256(username), enforces token-to-org match, sets org ID in context.
+- **Admin API** (`/api/orgs/{org}/...`): Session auth middleware → `OrgMiddleware` (resolves org from URL path, verifies the user is a member) → handler.
 - **Super-admin API** (`/api/admin/...`): Either session-cookie super-admin OR `Authorization: Bearer <admin-token>`. Used by the dashboard's super-admin section and by external automation for org lifecycle (suspend/reactivate/archive). Admin tokens are minted and revoked through the same endpoint surface.
 
-Permission checks happen **inside handlers** (not as route middleware). Handlers call `auth.MemberFromContext(r.Context())` and check role/permissions manually. Single mode handlers skip permission checks entirely.
+Permission checks happen via the `RequirePermission` middleware on
+write routes. Handlers can additionally call
+`auth.MemberFromContext(r.Context())` for finer-grained logic. Owners
+bypass all permission checks.
 
 ### Directory Structure
 
@@ -186,7 +189,7 @@ Handlers talk to interfaces only — never to `*bun.DB` directly. All handlers f
 ### Auth
 
 - **Composer clients**: HTTP Basic auth. Token is the username, the per-token generated password is the password. Both are generated when creating a token and shown once. Token is SHA256-hashed in the DB (`token_hash`), password is bcrypt-hashed (`password_hash`); neither stored plaintext. Expiration checked on every request. Last-used timestamp updated asynchronously in a background goroutine.
-- **Admin dashboard**: Session cookies (`packyard_session`). Session ID is 32 random bytes hex-encoded, signed with HMAC-SHA256 (`PACKYARD_SESSION_SECRET`, ≥32 chars, fail-fast at startup). Secure flag set based on `PACKYARD_BASE_URL` scheme. SameSite defaults to Strict — override via `PACKYARD_COOKIE_SAMESITE`. Cookie `Domain` defaults to host-only — set `PACKYARD_COOKIE_DOMAIN` to a parent domain to share login across subdomains. Org resolved from URL path (multi mode) or injected as id=1 (single mode).
+- **Admin dashboard**: Session cookies (`packyard_session`). Session ID is 32 random bytes hex-encoded, signed with HMAC-SHA256 (`PACKYARD_SESSION_SECRET`, ≥32 chars, fail-fast at startup). Secure flag set based on `PACKYARD_BASE_URL` scheme. SameSite defaults to Strict — override via `PACKYARD_COOKIE_SAMESITE`. Cookie `Domain` defaults to host-only — set `PACKYARD_COOKIE_DOMAIN` to a parent domain to share login across subdomains. Org resolved from the `{org}` URL path segment by `OrgMiddleware`.
 - **Super-admin API** (`/api/admin/*`): Either session-cookie super-admin OR `Authorization: Bearer <admin-token>`. Admin tokens live in `admin_tokens` (separate from org-scoped Composer tokens), prefix `adm_`, SHA-256 hashed in DB. Used for machine-to-machine org lifecycle (suspend/reactivate/archive).
 - **Org lifecycle**: `organizations.status` ∈ {`active`, `suspended`, `archived`}. Suspended → 402, archived → 404 (data preserved either way). Hard delete requires `?force=true` and refuses if packages exist without it.
 
@@ -209,14 +212,13 @@ Sync logic at `internal/provider/sync.go` is provider-agnostic.
 
 ### API Routes
 
-**Composer protocol** (HTTP Basic auth, org from token):
-- `GET /packages.json` — package index (returns `metadata-url: /p2/%package%.json`)
-- `GET /p2/{vendor}/{package}` — per-package metadata (handler must strip `.json` suffix from the `{package}` path value since Composer v2 always appends `.json`)
-- `GET /dist/{vendor}/{package}/{version}` — ZIP download
+**Composer protocol** (HTTP Basic auth via `ComposerAuth`, slug + token must match):
+- `GET /{slug}/packages.json` — package index for an org (returns `metadata-url: /{slug}/p2/%package%.json`)
+- `GET /{slug}/p2/{vendor}/{package}` — per-package metadata (handler must strip `.json` suffix from the `{package}` path value since Composer v2 always appends `.json`)
+- `GET /{slug}/dist/{vendor}/{package}/{version}` — ZIP download
 
-**Admin API** (session auth + org middleware):
-- Single mode: `/api/packages`, `/api/tokens`, `/api/members`, `/api/users`
-- Multi mode: `/api/orgs/{org}/packages`, `/api/orgs/{org}/tokens`, `/api/orgs/{org}/members`
+**Admin API** (session auth + `OrgMiddleware`):
+- `/api/orgs/{org}/packages`, `/api/orgs/{org}/tokens`, `/api/orgs/{org}/members`, `/api/orgs/{org}/packages/{id}/source`, `/api/orgs/{org}/sources/preview`
 
 **Super-admin API** (`/api/admin/*`, session-cookie super-admin OR `Authorization: Bearer <admin-token>`):
 - `GET/POST /api/admin/orgs`, `GET /api/admin/orgs/{slug}`, `PUT /api/admin/orgs/{slug}/status`, `DELETE /api/admin/orgs/{slug}?force=true`
@@ -258,7 +260,6 @@ All prefixed with `PACKYARD_`. Key ones:
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `PACKYARD_PORT` | 8080 | HTTP port |
-| `PACKYARD_MODE` | single | `single` or `multi` |
 | `PACKYARD_DB_DRIVER` | sqlite | `sqlite`, `mysql`, `postgres` |
 | `PACKYARD_DB_PATH` | ./packyard.db | SQLite file path |
 | `PACKYARD_STORAGE_TYPE` | local | `local` or `s3` |
@@ -282,7 +283,7 @@ These aren't in `.env.example` and most operators don't need them.
 
 ## Default Credentials
 
-- **Super-admin**: `PACKYARD_ADMIN_EMAIL` / `PACKYARD_ADMIN_PASSWORD` (default `admin@example.com` / `changeme`). Seeded on first run in **both** modes — `seedDefaults` in `cmd/packyard/serve.go` flips `is_super_admin=true` on this user. Single mode also seeds a "default" org with the admin as owner; multi mode creates only the super-admin (additional orgs are provisioned via `/api/admin/orgs`).
+- **Super-admin**: `PACKYARD_ADMIN_EMAIL` / `PACKYARD_ADMIN_PASSWORD` (default `admin@example.com` / `changeme`). Seeded on first run — `seedDefaults` in `cmd/packyard/serve.go` flips `is_super_admin=true` on this user and creates a `default` org with the admin as its owner. Additional orgs come from the dashboard's super-admin section or `POST /api/admin/orgs`.
 - **Composer password**: Generated per-token at creation time. Shown once alongside the token, never stored plaintext.
 
 ### Promoting an existing user to super-admin
@@ -295,27 +296,21 @@ UPDATE users SET is_super_admin = true WHERE email = 'someone@example.com';
 
 ## Deployment
 
-### URL shape (multi mode)
+### URL shape
 
-A typical multi-tenant deployment splits hostnames:
+A typical deployment splits hostnames:
 
 - **Dashboard host** (e.g. `app.example.com`): admin UI + org-scoped API at `/api/orgs/{slug}/...` + super-admin API at `/api/admin/...`.
-- **Composer host** (e.g. `repo.example.com`): `repo.example.com/{slug}/packages.json`, `p2/...`, `dist/...` — all tenant-prefixed. Tenants configure `composer.json` as `{"type": "composer", "url": "https://repo.example.com/{slug}"}`.
+- **Composer host** (e.g. `repo.example.com`): `repo.example.com/{slug}/packages.json`, `p2/...`, `dist/...` — all slug-prefixed. Clients configure `composer.json` as `{"type": "composer", "url": "https://repo.example.com/{slug}"}`.
 
-A single binary serves both — there's no separate process. Route them through the same ingress; differentiate by `Host` header at the load balancer if you want different rate limits or caching policies for the Composer endpoint vs the dashboard.
+A single binary serves both — there's no separate process. Route them through the same ingress; differentiate by `Host` header at the load balancer if you want different rate limits or caching policies for the Composer endpoint vs the dashboard. For solo / single-team installs the seeded `default` slug is what every URL uses.
 
 ### DNS + TLS
 
-- Two A/CNAME records (e.g. `app.example.com` and `repo.example.com`). **No wildcard needed** — multi-tenant routing is path-based, not subdomain-based.
+- Two A/CNAME records (e.g. `app.example.com` and `repo.example.com`). **No wildcard needed** — org routing is path-based, not subdomain-based.
 - Single TLS cert covering both hostnames (or two separate certs). cert-manager handles this automatically on Kubernetes.
 - `PACKYARD_BASE_URL=https://repo.example.com` — embedded into the Composer metadata `dist.url` values, so clients see the canonical URL even when requests are served through an internal hostname.
 
-### Single mode (self-hosted) URL shape
-
-- Everything served from one host.
-- Composer URLs are tenant-less: `/packages.json`, `/p2/...`, `/dist/...`.
-- `/api/admin/*` exists but isn't required for normal operation — the super-admin role is available if you want it.
-
-### External automation (multi mode)
+### External automation
 
 The admin API (`/api/admin/*`) accepts either a session-cookie super-admin or an `Authorization: Bearer <admin-token>`. Tokens are minted from the dashboard (Super-admin → Admin Tokens) and used by external automation (CI, provisioning scripts) to manage organizations programmatically.

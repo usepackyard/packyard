@@ -53,26 +53,12 @@ func MemberFromContext(ctx context.Context) *model.OrgMember {
 	return m
 }
 
-// OrgMiddleware resolves the current organization and membership.
-// In "single" mode it sets org_id=1 and skips member checks.
-// In "multi" mode it reads {org} from the path, looks up the org, and verifies membership.
-func OrgMiddleware(orgs store.OrgStore, mode string) func(http.Handler) http.Handler {
+// OrgMiddleware resolves the current organization and membership: it reads
+// {org} from the URL path, looks up the org by slug, verifies the user is
+// a member, and stores both in the request context.
+func OrgMiddleware(orgs store.OrgStore) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if mode == "single" {
-				org, err := orgs.GetByID(r.Context(), 1)
-				if err != nil || org == nil {
-					http.Error(w, "organization not found", http.StatusInternalServerError)
-					return
-				}
-				if !enforceOrgStatus(w, org) {
-					return
-				}
-				ctx := SetOrgInContext(r.Context(), org, nil)
-				next.ServeHTTP(w, r.WithContext(ctx))
-				return
-			}
-
 			slug := r.PathValue("org")
 			if slug == "" {
 				http.Error(w, "organization required", http.StatusBadRequest)
@@ -156,8 +142,7 @@ func RequirePermission(perm string) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			member := MemberFromContext(r.Context())
 			if member == nil {
-				// Single mode has no member — allow all.
-				next.ServeHTTP(w, r)
+				http.Error(w, "membership required", http.StatusForbidden)
 				return
 			}
 

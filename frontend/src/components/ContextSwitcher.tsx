@@ -22,8 +22,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 
-// ContextSwitcher sits at the top of the sidebar in multi mode. Handles
-// org switching and entering/exiting the super-admin context.
+// ContextSwitcher sits at the top of the sidebar. Handles org switching
+// and entering/exiting the super-admin context.
 export default function ContextSwitcher() {
   const { t } = useTranslation("layout");
   const { user, org, orgs, setOrg } = useAuth();

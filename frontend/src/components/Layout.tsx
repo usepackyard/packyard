@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
 import {
-  ArrowLeft,
   Building2,
   ExternalLink,
   Key,
@@ -9,10 +8,9 @@ import {
   LogOut,
   Menu,
   Package,
-  Shield,
   UserCircle,
-  UsersRound,
   Users,
+  UsersRound,
   X,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -31,7 +29,6 @@ export default function Layout() {
   const { t } = useTranslation(["common", "layout"]);
   const location = useLocation();
   const navigate = useNavigate();
-  const isMulti = config?.mode === "multi";
   const isAdminView = location.pathname.startsWith("/admin");
 
   // Mobile sidebar state. Below the md breakpoint (768px) the sidebar is
@@ -46,9 +43,7 @@ export default function Layout() {
     { to: "/", label: t("layout:nav.dashboard"), icon: LayoutDashboard },
     { to: "/packages", label: t("layout:nav.packages"), icon: Package },
     { to: "/tokens", label: t("layout:nav.tokens"), icon: Key },
-    isMulti
-      ? { to: "/members", label: t("layout:nav.members"), icon: UsersRound }
-      : { to: "/users", label: t("layout:nav.users"), icon: Users },
+    { to: "/members", label: t("layout:nav.members"), icon: UsersRound },
   ];
 
   const adminNav: NavItem[] = [
@@ -103,16 +98,12 @@ export default function Layout() {
           </button>
         </div>
 
-        {/* Context switcher — multi mode only. Handles both org switching
-            and entering/exiting super-admin. */}
-        {isMulti && (
-          <>
-            <Separator />
-            <div className="p-3">
-              <ContextSwitcher />
-            </div>
-          </>
-        )}
+        {/* Context switcher — handles both org switching and
+            entering/exiting super-admin. */}
+        <Separator />
+        <div className="p-3">
+          <ContextSwitcher />
+        </div>
 
         <Separator />
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
@@ -139,34 +130,6 @@ export default function Layout() {
             );
           })}
         </nav>
-
-        {/* Single-mode super-admin entry/exit. Multi mode does this via the
-            ContextSwitcher at the top; single mode has no switcher, so we
-            surface the toggle here. */}
-        {!isMulti && user?.is_super_admin && (
-          <>
-            <Separator />
-            <div className="p-3">
-              {isAdminView ? (
-                <Link
-                  to="/"
-                  className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  {t("layout:backToDashboard")}
-                </Link>
-              ) : (
-                <Link
-                  to="/admin/orgs"
-                  className="flex items-center gap-3 px-3 py-2 rounded-md text-sm border border-amber-500/40 bg-amber-50/50 dark:bg-amber-500/5 hover:bg-amber-100/60 dark:hover:bg-amber-500/10 transition-colors"
-                >
-                  <Shield className="h-4 w-4 text-amber-600" />
-                  {t("layout:enterSuperAdmin")}
-                </Link>
-              )}
-            </div>
-          </>
-        )}
 
         <Separator />
         <div className="p-3">

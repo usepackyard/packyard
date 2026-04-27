@@ -27,37 +27,7 @@ func captureHandler(c *captured) http.Handler {
 	})
 }
 
-func TestOrgMiddleware_SingleMode_InjectsDefaultOrg(t *testing.T) {
-	stores := testutil.NewStores(t)
-	ctx := context.Background()
-
-	// In single mode, OrgMiddleware looks up org id=1 unconditionally.
-	org := &model.Organization{Slug: "default", Name: "Default"}
-	if err := stores.Orgs.Create(ctx, org); err != nil {
-		t.Fatalf("create org: %v", err)
-	}
-	if org.ID != 1 {
-		t.Fatalf("expected first org to get id=1, got %d", org.ID)
-	}
-
-	mw := auth.OrgMiddleware(stores.Orgs, "single")
-	c := &captured{}
-	req := httptest.NewRequest("GET", "/api/packages", nil)
-	rec := httptest.NewRecorder()
-	mw(captureHandler(c)).ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Fatalf("status = %d, want 200; body=%s", rec.Code, rec.Body.String())
-	}
-	if c.org == nil || c.org.ID != 1 {
-		t.Errorf("expected org id=1 in context, got %+v", c.org)
-	}
-	if c.member != nil {
-		t.Errorf("expected member to be nil in single mode, got %+v", c.member)
-	}
-}
-
-func TestOrgMiddleware_MultiMode_RequiresMembership(t *testing.T) {
+func TestOrgMiddleware_RequiresMembership(t *testing.T) {
 	stores := testutil.NewStores(t)
 	ctx := context.Background()
 
@@ -73,7 +43,7 @@ func TestOrgMiddleware_MultiMode_RequiresMembership(t *testing.T) {
 	// Build a small mux so {org} path-value resolution works.
 	mux := http.NewServeMux()
 	c := &captured{}
-	mux.Handle("GET /api/orgs/{org}/x", auth.OrgMiddleware(stores.Orgs, "multi")(captureHandler(c)))
+	mux.Handle("GET /api/orgs/{org}/x", auth.OrgMiddleware(stores.Orgs)(captureHandler(c)))
 
 	t.Run("not authenticated", func(t *testing.T) {
 		c.hit = false
@@ -144,7 +114,7 @@ func TestOrgMiddleware_SuspendedOrgReturns402(t *testing.T) {
 	}
 
 	mux := http.NewServeMux()
-	mux.Handle("GET /api/orgs/{org}/x", auth.OrgMiddleware(stores.Orgs, "multi")(
+	mux.Handle("GET /api/orgs/{org}/x", auth.OrgMiddleware(stores.Orgs)(
 		http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		})))
@@ -171,7 +141,7 @@ func TestOrgMiddleware_ArchivedOrgReturns404(t *testing.T) {
 	}
 
 	mux := http.NewServeMux()
-	mux.Handle("GET /api/orgs/{org}/x", auth.OrgMiddleware(stores.Orgs, "multi")(
+	mux.Handle("GET /api/orgs/{org}/x", auth.OrgMiddleware(stores.Orgs)(
 		http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		})))
@@ -235,10 +205,10 @@ func TestRequirePermission(t *testing.T) {
 
 	tests := []struct {
 		name   string
-		member *model.OrgMember // nil = no member in context (single mode)
+		member *model.OrgMember
 		want   int
 	}{
-		{"single mode (no member) → bypass", nil, http.StatusOK},
+		{"no member in context → forbidden", nil, http.StatusForbidden},
 		{"owner → bypass", &model.OrgMember{Role: "owner", Permissions: model.JSONStringSlice{}}, http.StatusOK},
 		{"has explicit permission", &model.OrgMember{Role: "member", Permissions: model.JSONStringSlice{"packages:read", "packages:write"}}, http.StatusOK},
 		{"lacks permission", &model.OrgMember{Role: "member", Permissions: model.JSONStringSlice{"packages:read"}}, http.StatusForbidden},
@@ -259,4 +229,3 @@ func TestRequirePermission(t *testing.T) {
 		})
 	}
 }
-

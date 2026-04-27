@@ -31,7 +31,7 @@ func newSourceHandler(t *testing.T) (*handler.AdminSourceHandler, sourceCtx) {
 	t.Helper()
 	stores := testutil.NewStores(t)
 	st, _ := storage.NewLocal(t.TempDir())
-	c := composer.NewCache(stores.Packages, stores.Orgs, "http://test", "single")
+	c := composer.NewCache(stores.Packages, stores.Orgs, "http://test")
 	cfg := &config.Config{BaseURL: "http://test"}
 	h := handler.NewAdminSourceHandler(stores.Sources, stores.Packages, stores.Jobs, st, c, cfg)
 	org := testutil.MakeOrg(t, stores, "default", "Default")

@@ -38,7 +38,7 @@ func newComposerSetup(t *testing.T) composerSetup {
 	if err != nil {
 		t.Fatalf("storage.NewLocal: %v", err)
 	}
-	c := composer.NewCache(s.Packages, s.Orgs, baseURL, "single")
+	c := composer.NewCache(s.Packages, s.Orgs, baseURL)
 	return composerSetup{
 		stores:  s,
 		storage: st,
@@ -86,7 +86,7 @@ func TestComposerHandler_PackagesJSON_ServesFromCache(t *testing.T) {
 func TestComposerHandler_ProviderJSON_StripsJSONSuffix(t *testing.T) {
 	stores := testutil.NewStores(t)
 	st, _ := storage.NewLocal(t.TempDir())
-	c := composer.NewCache(stores.Packages, stores.Orgs, baseURL, "single")
+	c := composer.NewCache(stores.Packages, stores.Orgs, baseURL)
 	h := handler.NewComposerHandler(c, st, stores.Packages, stores.Downloads)
 
 	org := testutil.MakeOrg(t, stores, "default", "Default")
@@ -115,7 +115,7 @@ func TestComposerHandler_ProviderJSON_StripsJSONSuffix(t *testing.T) {
 func TestComposerHandler_ProviderJSON_NotFound(t *testing.T) {
 	stores := testutil.NewStores(t)
 	st, _ := storage.NewLocal(t.TempDir())
-	c := composer.NewCache(stores.Packages, stores.Orgs, baseURL, "single")
+	c := composer.NewCache(stores.Packages, stores.Orgs, baseURL)
 	h := handler.NewComposerHandler(c, st, stores.Packages, stores.Downloads)
 
 	org := testutil.MakeOrg(t, stores, "default", "Default")
@@ -143,7 +143,7 @@ func TestComposerHandler_Dist_ServesFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewLocal: %v", err)
 	}
-	c := composer.NewCache(stores.Packages, stores.Orgs, baseURL, "single")
+	c := composer.NewCache(stores.Packages, stores.Orgs, baseURL)
 	h := handler.NewComposerHandler(c, st, stores.Packages, stores.Downloads)
 
 	org := testutil.MakeOrg(t, stores, "default", "Default")
@@ -202,7 +202,7 @@ func TestComposerHandler_Dist_ServesFile(t *testing.T) {
 func TestComposerHandler_Dist_VersionNotFound(t *testing.T) {
 	stores := testutil.NewStores(t)
 	st, _ := storage.NewLocal(t.TempDir())
-	c := composer.NewCache(stores.Packages, stores.Orgs, baseURL, "single")
+	c := composer.NewCache(stores.Packages, stores.Orgs, baseURL)
 	h := handler.NewComposerHandler(c, st, stores.Packages, stores.Downloads)
 
 	org := testutil.MakeOrg(t, stores, "default", "Default")

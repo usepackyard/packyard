@@ -11,26 +11,22 @@ import (
 	"github.com/usepackyard/packyard/internal/store"
 )
 
-// ComposerTenantAuth returns middleware for the slug-prefixed Composer
-// routes used in multi mode (e.g. /{slug}/packages.json). It:
+// ComposerAuth returns middleware for the slug-prefixed Composer routes
+// (e.g. /{slug}/packages.json). It:
 //
 //   - reads the org slug from the URL ({slug} path value)
 //   - validates the Basic-auth password (constant-time)
 //   - resolves the API token by SHA-256 of username
-//   - **rejects cross-tenant token misuse**: token.OrgID must match the
-//     org loaded from the slug
+//   - rejects cross-org token misuse: token.OrgID must match the org
+//     loaded from the slug
 //   - enforces org lifecycle status (suspended → 402, archived → 404)
-//   - sets org + token in context so handlers behave like under BasicAuth
-//
-// Distinct from BasicAuth, which serves the legacy single-mode tenant-less
-// URLs. Both routes can coexist; the server registers one or the other
-// based on cfg.Mode.
-func ComposerTenantAuth(tokens store.TokenStore, orgs store.OrgStore) func(http.Handler) http.Handler {
+//   - sets org + token in context so handlers can read both
+func ComposerAuth(tokens store.TokenStore, orgs store.OrgStore) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			slug := r.PathValue("slug")
 			if slug == "" {
-				http.Error(w, "tenant slug required", http.StatusBadRequest)
+				http.Error(w, "organization slug required", http.StatusBadRequest)
 				return
 			}
 
@@ -46,7 +42,7 @@ func ComposerTenantAuth(tokens store.TokenStore, orgs store.OrgStore) func(http.
 
 			token, err := tokens.GetByHash(r.Context(), tokenHash)
 			if err != nil {
-				slog.Error("composer tenant: token lookup error", "error", err)
+				slog.Error("composer auth: token lookup error", "error", err)
 				http.Error(w, "internal error", http.StatusInternalServerError)
 				return
 			}
@@ -67,7 +63,7 @@ func ComposerTenantAuth(tokens store.TokenStore, orgs store.OrgStore) func(http.
 
 			org, err := orgs.GetBySlug(r.Context(), slug)
 			if err != nil {
-				slog.Error("composer tenant: org lookup error", "error", err)
+				slog.Error("composer auth: org lookup error", "error", err)
 				http.Error(w, "internal error", http.StatusInternalServerError)
 				return
 			}

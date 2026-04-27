@@ -19,9 +19,8 @@ func NewMux(cfg *config.Config, stores *store.Stores, strg storage.Storage, cach
 	mux := http.NewServeMux()
 
 	// Middleware wrappers.
-	basicAuthMw := auth.BasicAuth(stores.Tokens, stores.Orgs)
 	sessionAuthMw := auth.SessionAuth(stores.Sessions, cfg.Session.Secret)
-	orgMw := auth.OrgMiddleware(stores.Orgs, cfg.Mode)
+	orgMw := auth.OrgMiddleware(stores.Orgs)
 
 	// Handlers.
 	composerH := handler.NewComposerHandler(cache, strg, stores.Packages, stores.Downloads)
@@ -47,12 +46,11 @@ func NewMux(cfg *config.Config, stores *store.Stores, strg storage.Storage, cach
 		w.Write([]byte("ok\n"))
 	})
 
-	// Public config (tells frontend which mode we're in, and optionally
-	// a public-facing homepage URL the dashboard can surface as a
-	// "back" link).
+	// Public config — surfaces the canonical base URL, plus an optional
+	// public-facing homepage URL the dashboard can render as a "back"
+	// link.
 	mux.HandleFunc("GET /api/config", func(w http.ResponseWriter, r *http.Request) {
 		payload := map[string]string{
-			"mode":     cfg.Mode,
 			"base_url": cfg.BaseURL,
 		}
 		if cfg.PublicURL != "" {
@@ -62,9 +60,9 @@ func NewMux(cfg *config.Config, stores *store.Stores, strg storage.Storage, cach
 		_ = json.NewEncoder(w).Encode(payload)
 	})
 
-	// Composer protocol. URL shape depends on mode:
-	//   - single mode: tenant-less URLs (/packages.json, /p2/..., /dist/...)
-	//   - multi mode:  /{slug}/packages.json etc., enforcing token-to-slug binding
+	// Composer protocol — slug-prefixed URLs (/{slug}/packages.json,
+	// /{slug}/p2/..., /{slug}/dist/...). The middleware enforces that the
+	// supplied token belongs to the org named by the URL slug.
 	//
 	// Dist is rate-limited per-IP: every 200 triggers a download counter
 	// update + event insert, so an authenticated attacker with a valid
@@ -76,18 +74,11 @@ func NewMux(cfg *config.Config, stores *store.Stores, strg storage.Storage, cach
 		limiter := middleware.NewIPRateLimiter(cfg.DistRateLimit, cfg.DistRateLimitWindow, cfg.TrustedProxies)
 		wrapDist = limiter.Middleware
 	}
-	if cfg.Mode == "multi" {
-		composerTenantMw := auth.ComposerTenantAuth(stores.Tokens, stores.Orgs)
-		mux.Handle("GET /{slug}/packages.json", composerTenantMw(http.HandlerFunc(composerH.PackagesJSON)))
-		mux.Handle("GET /{slug}/p2/{vendor}/{package}", composerTenantMw(http.HandlerFunc(composerH.ProviderJSON)))
-		mux.Handle("GET /{slug}/dist/{vendor}/{package}/{version}",
-			wrapDist(composerTenantMw(http.HandlerFunc(composerH.Dist))))
-	} else {
-		mux.Handle("GET /packages.json", basicAuthMw(http.HandlerFunc(composerH.PackagesJSON)))
-		mux.Handle("GET /p2/{vendor}/{package}", basicAuthMw(http.HandlerFunc(composerH.ProviderJSON)))
-		mux.Handle("GET /dist/{vendor}/{package}/{version}",
-			wrapDist(basicAuthMw(http.HandlerFunc(composerH.Dist))))
-	}
+	composerMw := auth.ComposerAuth(stores.Tokens, stores.Orgs)
+	mux.Handle("GET /{slug}/packages.json", composerMw(http.HandlerFunc(composerH.PackagesJSON)))
+	mux.Handle("GET /{slug}/p2/{vendor}/{package}", composerMw(http.HandlerFunc(composerH.ProviderJSON)))
+	mux.Handle("GET /{slug}/dist/{vendor}/{package}/{version}",
+		wrapDist(composerMw(http.HandlerFunc(composerH.Dist))))
 
 	// Admin auth. POST endpoints require X-Requested-With header (CSRF defense).
 	// Browsers can't set custom headers cross-origin without a CORS preflight
@@ -177,72 +168,38 @@ func NewMux(cfg *config.Config, stores *store.Stores, strg storage.Storage, cach
 	}
 
 	// Chain: csrf -> sessionAuth -> orgMiddleware -> requirePermission -> handler.
-	// In single mode, member is nil, so RequirePermission is a no-op (see auth.RequirePermission).
 	orgAuthPerm := func(perm string, h http.HandlerFunc) http.Handler {
 		return middleware.RequireCSRFHeader(sessionAuthMw(orgMw(auth.RequirePermission(perm)(http.HandlerFunc(h)))))
 	}
 
-	if cfg.Mode == "single" {
-		// Single mode: routes stay at /api/...
-		mux.Handle("GET /api/packages", orgAuth(adminPkgH.List))
-		mux.Handle("POST /api/packages", orgAuth(adminPkgH.Create))
-		mux.Handle("GET /api/packages/stats", orgAuth(pkgStatsH.Stats))
-		mux.Handle("GET /api/packages/{id}", orgAuth(adminPkgH.Get))
-		mux.Handle("DELETE /api/packages/{id}", orgAuth(adminPkgH.Delete))
+	// Org-scoped routes under /api/orgs/{org}/...
+	// Permissions enforced via RequirePermission. Owners bypass all checks.
+	mux.Handle("GET /api/orgs/{org}/packages", orgAuthPerm("packages:read", adminPkgH.List))
+	mux.Handle("POST /api/orgs/{org}/packages", orgAuthPerm("packages:write", adminPkgH.Create))
+	mux.Handle("GET /api/orgs/{org}/packages/stats", orgAuthPerm("packages:read", pkgStatsH.Stats))
+	mux.Handle("GET /api/orgs/{org}/packages/{id}", orgAuthPerm("packages:read", adminPkgH.Get))
+	mux.Handle("DELETE /api/orgs/{org}/packages/{id}", orgAuthPerm("packages:delete", adminPkgH.Delete))
 
-		mux.Handle("POST /api/packages/{id}/versions", orgAuth(adminVerH.Upload))
-		mux.Handle("DELETE /api/versions/{id}", orgAuth(adminVerH.Delete))
+	mux.Handle("POST /api/orgs/{org}/packages/{id}/versions", orgAuthPerm("packages:write", adminVerH.Upload))
+	mux.Handle("DELETE /api/orgs/{org}/versions/{id}", orgAuthPerm("packages:delete", adminVerH.Delete))
 
-		mux.Handle("GET /api/tokens", orgAuth(adminTokH.List))
-		mux.Handle("POST /api/tokens", orgAuth(adminTokH.Create))
-		mux.Handle("DELETE /api/tokens/{id}", orgAuth(adminTokH.Delete))
+	mux.Handle("GET /api/orgs/{org}/tokens", orgAuthPerm("tokens:manage", adminTokH.List))
+	mux.Handle("POST /api/orgs/{org}/tokens", orgAuthPerm("tokens:manage", adminTokH.Create))
+	mux.Handle("DELETE /api/orgs/{org}/tokens/{id}", orgAuthPerm("tokens:manage", adminTokH.Delete))
 
-		mux.Handle("GET /api/users", orgAuth(adminUserH.List))
-		mux.Handle("POST /api/users", orgAuth(adminUserH.Create))
-		mux.Handle("DELETE /api/users/{id}", orgAuth(adminUserH.Delete))
+	// Members: list is visible to any org member; writes require members:manage.
+	mux.Handle("GET /api/orgs/{org}/members", orgAuth(adminMemH.List))
+	mux.Handle("POST /api/orgs/{org}/members", orgAuthPerm("members:manage", adminMemH.Add))
+	mux.Handle("PUT /api/orgs/{org}/members/{id}", orgAuthPerm("members:manage", adminMemH.Update))
+	mux.Handle("DELETE /api/orgs/{org}/members/{id}", orgAuthPerm("members:manage", adminMemH.Remove))
 
-		mux.Handle("GET /api/packages/{id}/source", orgAuth(adminSrcH.Get))
-		mux.Handle("PUT /api/packages/{id}/source", orgAuth(adminSrcH.Set))
-		mux.Handle("DELETE /api/packages/{id}/source", orgAuth(adminSrcH.Delete))
-		mux.Handle("POST /api/packages/{id}/source/sync", orgAuth(adminSrcH.Sync))
-		mux.Handle("GET /api/packages/{id}/sync", orgAuth(adminSrcH.ListSyncJobs))
-		mux.Handle("GET /api/packages/{id}/sync/{job_id}", orgAuth(adminSrcH.GetSyncJob))
-		mux.Handle("POST /api/sources/preview", orgAuth(adminSrcH.PreviewReleases))
-
-		mux.Handle("GET /api/members", orgAuth(adminMemH.List))
-		mux.Handle("POST /api/members", orgAuth(adminMemH.Add))
-		mux.Handle("PUT /api/members/{id}", orgAuth(adminMemH.Update))
-		mux.Handle("DELETE /api/members/{id}", orgAuth(adminMemH.Remove))
-	} else {
-		// Multi mode: org-scoped routes under /api/orgs/{org}/...
-		// Permissions enforced via RequirePermission middleware. Owners bypass all checks.
-		mux.Handle("GET /api/orgs/{org}/packages", orgAuthPerm("packages:read", adminPkgH.List))
-		mux.Handle("POST /api/orgs/{org}/packages", orgAuthPerm("packages:write", adminPkgH.Create))
-		mux.Handle("GET /api/orgs/{org}/packages/stats", orgAuthPerm("packages:read", pkgStatsH.Stats))
-		mux.Handle("GET /api/orgs/{org}/packages/{id}", orgAuthPerm("packages:read", adminPkgH.Get))
-		mux.Handle("DELETE /api/orgs/{org}/packages/{id}", orgAuthPerm("packages:delete", adminPkgH.Delete))
-
-		mux.Handle("POST /api/orgs/{org}/packages/{id}/versions", orgAuthPerm("packages:write", adminVerH.Upload))
-		mux.Handle("DELETE /api/orgs/{org}/versions/{id}", orgAuthPerm("packages:delete", adminVerH.Delete))
-
-		mux.Handle("GET /api/orgs/{org}/tokens", orgAuthPerm("tokens:manage", adminTokH.List))
-		mux.Handle("POST /api/orgs/{org}/tokens", orgAuthPerm("tokens:manage", adminTokH.Create))
-		mux.Handle("DELETE /api/orgs/{org}/tokens/{id}", orgAuthPerm("tokens:manage", adminTokH.Delete))
-
-		// Members: list is visible to any org member; writes require members:manage.
-		mux.Handle("GET /api/orgs/{org}/members", orgAuth(adminMemH.List))
-		mux.Handle("POST /api/orgs/{org}/members", orgAuthPerm("members:manage", adminMemH.Add))
-		mux.Handle("PUT /api/orgs/{org}/members/{id}", orgAuthPerm("members:manage", adminMemH.Update))
-		mux.Handle("DELETE /api/orgs/{org}/members/{id}", orgAuthPerm("members:manage", adminMemH.Remove))
-
-		mux.Handle("GET /api/orgs/{org}/packages/{id}/source", orgAuthPerm("sources:manage", adminSrcH.Get))
-		mux.Handle("PUT /api/orgs/{org}/packages/{id}/source", orgAuthPerm("sources:manage", adminSrcH.Set))
-		mux.Handle("DELETE /api/orgs/{org}/packages/{id}/source", orgAuthPerm("sources:manage", adminSrcH.Delete))
-		mux.Handle("POST /api/orgs/{org}/packages/{id}/source/sync", orgAuthPerm("sources:manage", adminSrcH.Sync))
-		mux.Handle("GET /api/orgs/{org}/packages/{id}/sync", orgAuthPerm("sources:manage", adminSrcH.ListSyncJobs))
-		mux.Handle("GET /api/orgs/{org}/packages/{id}/sync/{job_id}", orgAuthPerm("sources:manage", adminSrcH.GetSyncJob))
-		mux.Handle("POST /api/orgs/{org}/sources/preview", orgAuthPerm("sources:manage", adminSrcH.PreviewReleases))
-	}
+	mux.Handle("GET /api/orgs/{org}/packages/{id}/source", orgAuthPerm("sources:manage", adminSrcH.Get))
+	mux.Handle("PUT /api/orgs/{org}/packages/{id}/source", orgAuthPerm("sources:manage", adminSrcH.Set))
+	mux.Handle("DELETE /api/orgs/{org}/packages/{id}/source", orgAuthPerm("sources:manage", adminSrcH.Delete))
+	mux.Handle("POST /api/orgs/{org}/packages/{id}/source/sync", orgAuthPerm("sources:manage", adminSrcH.Sync))
+	mux.Handle("GET /api/orgs/{org}/packages/{id}/sync", orgAuthPerm("sources:manage", adminSrcH.ListSyncJobs))
+	mux.Handle("GET /api/orgs/{org}/packages/{id}/sync/{job_id}", orgAuthPerm("sources:manage", adminSrcH.GetSyncJob))
+	mux.Handle("POST /api/orgs/{org}/sources/preview", orgAuthPerm("sources:manage", adminSrcH.PreviewReleases))
 
 	// SPA fallback (serves React frontend).
 	if frontendFS != nil {

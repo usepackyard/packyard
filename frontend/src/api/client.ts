@@ -63,11 +63,11 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return data;
 }
 
-// Creates an org-scoped API client.
-// In single mode: prefix is "/api"
-// In multi mode: prefix is "/api/orgs/{slug}"
-export function createApi(mode: string, orgSlug: string) {
-  const prefix = mode === "multi" ? `/api/orgs/${orgSlug}` : "/api";
+// Creates an org-scoped API client. All admin endpoints live under
+// /api/orgs/{slug}; the slug is the only "context" the dashboard cares
+// about.
+export function createApi(orgSlug: string) {
+  const prefix = `/api/orgs/${orgSlug}`;
 
   return {
     // Packages
@@ -160,7 +160,7 @@ export function createApi(mode: string, orgSlug: string) {
         body: JSON.stringify({ provider, owner, repo, auth_token: authToken ?? "" }),
       }),
 
-    // Members (multi mode, also registered in single mode)
+    // Members
     listMembers: () => request<{ members: OrgMember[] }>(`${prefix}/members`),
     addMember: (data: { email: string; password?: string; name?: string; role: string; permissions: string[] }) =>
       request<{ member: OrgMember }>(`${prefix}/members`, {
@@ -171,12 +171,6 @@ export function createApi(mode: string, orgSlug: string) {
         method: "PUT", body: JSON.stringify(data),
       }),
     removeMember: (id: string) => request(`${prefix}/members/${id}`, { method: "DELETE" }),
-
-    // Users (single mode only)
-    listUsers: () => request<{ users: User[] }>(`/api/users`),
-    createUser: (data: { email: string; password: string; name: string }) =>
-      request<{ user: User }>(`/api/users`, { method: "POST", body: JSON.stringify(data) }),
-    deleteUser: (id: string) => request(`/api/users/${id}`, { method: "DELETE" }),
   };
 }
 

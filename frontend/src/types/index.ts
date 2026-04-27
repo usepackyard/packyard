@@ -187,7 +187,6 @@ export interface APIToken {
 }
 
 export interface AppConfig {
-  mode: "single" | "multi";
   base_url: string;
   // Optional absolute URL of an external homepage (operator's main
   // site, docs, intranet). When present, the dashboard renders a

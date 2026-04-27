@@ -1,19 +1,13 @@
-.PHONY: dev dev-multi build run clean frontend test
+.PHONY: dev build run clean frontend test
 
 # Dev-only fixed session secret (32+ chars). NEVER use in production.
 DEV_SESSION_SECRET = devdevdevdevdevdevdevdevdevdev01
 
-# Development: single-tenant mode (self-hosted)
+# Development: build frontend, build backend, run on :9090. The seeded
+# default org (slug=default) is auto-created on first boot.
 dev: frontend
 	go build -o packyard ./cmd/packyard/
 	PACKYARD_PORT=9090 PACKYARD_BASE_URL=http://localhost:9090 \
-		PACKYARD_SESSION_SECRET=$(DEV_SESSION_SECRET) ./packyard
-
-# Development: multi-tenant mode
-dev-multi: frontend
-	go build -o packyard ./cmd/packyard/
-	PACKYARD_PORT=9090 PACKYARD_BASE_URL=http://localhost:9090 \
-		PACKYARD_MODE=multi \
 		PACKYARD_SESSION_SECRET=$(DEV_SESSION_SECRET) ./packyard
 
 # Build frontend

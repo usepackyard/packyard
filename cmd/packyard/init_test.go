@@ -39,7 +39,6 @@ func TestRunInit_UnattendedSQLite(t *testing.T) {
 	}
 	body, _ := os.ReadFile(env)
 	for _, needle := range []string{
-		"PACKYARD_MODE=single",
 		"PACKYARD_PORT=19799",
 		"PACKYARD_DB_DRIVER=sqlite",
 		"PACKYARD_ADMIN_EMAIL=unit@test.local",

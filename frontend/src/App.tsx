@@ -10,7 +10,6 @@ import Dashboard from "@/pages/Dashboard";
 import Packages from "@/pages/Packages";
 import PackageDetail from "@/pages/PackageDetail";
 import Tokens from "@/pages/Tokens";
-import UsersPage from "@/pages/Users";
 import MembersPage from "@/pages/Members";
 import OrgSelector from "@/pages/OrgSelector";
 import Profile from "@/pages/Profile";
@@ -70,12 +69,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
         const list = orgsRes.organizations || [];
         setOrgs(list);
 
-        if (cfgRes.mode === "single" && list.length > 0) {
-          setOrgState(list[0]);
-          return;
-        }
-
-        if (cfgRes.mode === "multi" && list.length > 0) {
+        if (list.length > 0) {
           // Prefer the last-used org from storage, else fall back to the
           // only org if there's just one (zero-click UX for the common
           // case of a single membership).
@@ -94,8 +88,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }, []);
 
   const api = useMemo(
-    () => createApi(config?.mode || "single", org?.slug || "default"),
-    [config?.mode, org?.slug]
+    () => createApi(org?.slug || "default"),
+    [org?.slug]
   );
 
   if (loading) {
@@ -108,13 +102,13 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (!user) return <Navigate to="/login" replace />;
 
-  // Admin routes are tenant-less — super-admins operate across all orgs.
+  // Admin routes are org-agnostic — super-admins operate across all orgs.
   // Don't force the org selector here; SuperAdminRoute handles access.
   const isAdminRoute = location.pathname.startsWith("/admin");
 
-  // Multi mode: if no org selected AND not heading to an admin route,
-  // show the org selector.
-  if (config?.mode === "multi" && !org && !isAdminRoute) {
+  // If no org selected AND not heading to an admin route, show the org
+  // selector.
+  if (!org && !isAdminRoute) {
     return (
       <AuthContext.Provider value={{ user, setUser, config, org, setOrg, orgs, setOrgs, api }}>
         <OrgSelector />
@@ -131,7 +125,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
-  const api = useMemo(() => createApi("single", "default"), []);
+  const api = useMemo(() => createApi("default"), []);
 
   return (
     <AuthContext.Provider value={{ user, setUser, config: null, org: null, setOrg: () => {}, orgs: [], setOrgs: () => {}, api }}>
@@ -149,7 +143,6 @@ export default function App() {
             <Route path="/packages" element={<Packages />} />
             <Route path="/packages/:id" element={<PackageDetail />} />
             <Route path="/tokens" element={<Tokens />} />
-            <Route path="/users" element={<UsersPage />} />
             <Route path="/members" element={<MembersPage />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/admin" element={<SuperAdminRoute><AdminOrgs /></SuperAdminRoute>} />

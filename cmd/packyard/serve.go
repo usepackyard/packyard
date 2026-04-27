@@ -41,7 +41,7 @@ func runServe(_ []string) int {
 		return 1
 	}
 
-	slog.Info("starting packyard", "version", version, "port", cfg.Port, "db_driver", cfg.DB.Driver, "storage", cfg.Storage.Type, "mode", cfg.Mode)
+	slog.Info("starting packyard", "version", version, "port", cfg.Port, "db_driver", cfg.DB.Driver, "storage", cfg.Storage.Type)
 
 	// Database.
 	db, err := database.Open(cfg.DB)
@@ -71,7 +71,7 @@ func runServe(_ []string) int {
 	}
 
 	// Composer metadata cache.
-	cache := composer.NewCache(stores.Packages, stores.Orgs, cfg.BaseURL, cfg.Mode)
+	cache := composer.NewCache(stores.Packages, stores.Orgs, cfg.BaseURL)
 	if err := cache.RebuildAll(context.Background()); err != nil {
 		slog.Error("failed to build initial metadata cache", "error", err)
 		return 1
@@ -150,9 +150,9 @@ func runServe(_ []string) int {
 // seedDefaults provisions a super-admin user from PACKYARD_ADMIN_EMAIL /
 // PACKYARD_ADMIN_PASSWORD on first run (empty users table) and a "default"
 // organization with the admin as owner, so the dashboard is usable
-// immediately after install in both single and multi mode. In multi mode the
-// super-admin can then provision additional organizations through the admin
-// API or dashboard. Idempotent: no-ops once any user exists.
+// immediately after install. The super-admin can then provision
+// additional organizations through the admin API or dashboard.
+// Idempotent: no-ops once any user exists.
 func seedDefaults(stores *store.Stores, cfg *config.Config) error {
 	ctx := context.Background()
 
@@ -181,9 +181,9 @@ func seedDefaults(stores *store.Stores, cfg *config.Config) error {
 	}
 	slog.Info("created super-admin user", "email", cfg.Admin.Email)
 
-	// Provision a default org the admin owns. In multi mode this gives the
-	// super-admin an organization to land in on first login; they can
-	// create additional tenants through the admin API or dashboard.
+	// Provision a default org the admin owns so the super-admin has an
+	// organization to land in on first login. Additional orgs come from
+	// the admin API or dashboard.
 	org := &model.Organization{Slug: "default", Name: "Default"}
 	if err := stores.Orgs.Create(ctx, org); err != nil {
 		return fmt.Errorf("create default org: %w", err)

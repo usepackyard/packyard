@@ -20,19 +20,17 @@ type Cache struct {
 	pkgStore store.PackageStore
 	orgStore store.OrgStore
 	baseURL  string
-	mode     string // "single" or "multi" — controls whether URLs include the slug prefix
 	orgs     map[int64]*orgCache
 }
 
-// NewCache constructs a metadata cache. mode is either "single" (URLs are
-// tenant-less for self-hosters: /p2/..., /dist/...) or "multi" (URLs are
-// prefixed with the org slug: /{slug}/p2/..., /{slug}/dist/...).
-func NewCache(pkgStore store.PackageStore, orgStore store.OrgStore, baseURL, mode string) *Cache {
+// NewCache constructs a metadata cache. URLs are always slug-prefixed
+// (/{slug}/p2/..., /{slug}/dist/...) — every Packyard install has at
+// least the seeded `default` org.
+func NewCache(pkgStore store.PackageStore, orgStore store.OrgStore, baseURL string) *Cache {
 	return &Cache{
 		pkgStore: pkgStore,
 		orgStore: orgStore,
 		baseURL:  baseURL,
-		mode:     mode,
 		orgs:     make(map[int64]*orgCache),
 	}
 }
@@ -44,16 +42,14 @@ func (c *Cache) Rebuild(ctx context.Context, orgID int64) error {
 		return err
 	}
 
-	// Resolve org slug for URL prefixing in multi mode.
+	// Resolve the org's slug for URL prefixing.
+	org, err := c.orgStore.GetByID(ctx, orgID)
+	if err != nil {
+		return err
+	}
 	slug := ""
-	if c.mode == "multi" {
-		org, err := c.orgStore.GetByID(ctx, orgID)
-		if err != nil {
-			return err
-		}
-		if org != nil {
-			slug = org.Slug
-		}
+	if org != nil {
+		slug = org.Slug
 	}
 
 	packagesJSON, err := BuildPackagesJSON(packages, slug)

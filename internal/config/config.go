@@ -21,8 +21,6 @@ type Config struct {
 	Admin     AdminConfig
 	Providers ProvidersConfig
 
-	Mode string // "single" or "multi"
-
 	// PublicURL is an optional absolute URL to an external homepage
 	// (the operator's main site, company intranet, docs, whatever). When
 	// set, the dashboard renders a "back" link in the header pointing at
@@ -254,7 +252,6 @@ func Load() *Config {
 			Email:    env("PACKYARD_ADMIN_EMAIL", "admin@example.com"),
 			Password: env("PACKYARD_ADMIN_PASSWORD", "changeme"),
 		},
-		Mode:      env("PACKYARD_MODE", "single"),
 		PublicURL: env("PACKYARD_PUBLIC_URL", ""),
 		Providers: ProvidersConfig{
 			GitHubToken: env("PACKYARD_GITHUB_TOKEN", ""),

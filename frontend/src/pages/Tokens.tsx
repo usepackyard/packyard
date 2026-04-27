@@ -88,11 +88,11 @@ export default function Tokens() {
                 </div>
                 {(() => {
                   const base = (config?.base_url || "").replace(/\/+$/, "");
-                  const repoURL = config?.mode === "multi" && org ? `${base}/${org.slug}` : base;
+                  const repoURL = org ? `${base}/${org.slug}` : base;
                   let hostKey = "your-repo.example.com";
                   try {
                     const u = new URL(config?.base_url || "");
-                    hostKey = config?.mode === "multi" && org ? `${u.host}/${org.slug}` : u.host;
+                    hostKey = org ? `${u.host}/${org.slug}` : u.host;
                   } catch { /* keep fallback */ }
                   return (
                     <>

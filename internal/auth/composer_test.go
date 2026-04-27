@@ -11,7 +11,7 @@ import (
 	"github.com/usepackyard/packyard/internal/testutil"
 )
 
-func TestComposerTenantAuth_HappyPath(t *testing.T) {
+func TestComposerAuth_HappyPath(t *testing.T) {
 	stores := testutil.NewStores(t)
 	ctx := context.Background()
 
@@ -28,7 +28,7 @@ func TestComposerTenantAuth_HappyPath(t *testing.T) {
 		t.Fatalf("create token: %v", err)
 	}
 
-	mw := auth.ComposerTenantAuth(stores.Tokens, stores.Orgs)
+	mw := auth.ComposerAuth(stores.Tokens, stores.Orgs)
 
 	mux := http.NewServeMux()
 	mux.Handle("GET /{slug}/packages.json", mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -48,7 +48,7 @@ func TestComposerTenantAuth_HappyPath(t *testing.T) {
 	}
 }
 
-func TestComposerTenantAuth_CrossTenantTokenMisuse(t *testing.T) {
+func TestComposerAuth_CrossTenantTokenMisuse(t *testing.T) {
 	stores := testutil.NewStores(t)
 	ctx := context.Background()
 
@@ -67,7 +67,7 @@ func TestComposerTenantAuth_CrossTenantTokenMisuse(t *testing.T) {
 		t.Fatalf("create token: %v", err)
 	}
 
-	mw := auth.ComposerTenantAuth(stores.Tokens, stores.Orgs)
+	mw := auth.ComposerAuth(stores.Tokens, stores.Orgs)
 
 	mux := http.NewServeMux()
 	mux.Handle("GET /{slug}/packages.json", mw(okHandler()))
@@ -82,7 +82,7 @@ func TestComposerTenantAuth_CrossTenantTokenMisuse(t *testing.T) {
 	}
 }
 
-func TestComposerTenantAuth_UnknownSlug(t *testing.T) {
+func TestComposerAuth_UnknownSlug(t *testing.T) {
 	stores := testutil.NewStores(t)
 	ctx := context.Background()
 
@@ -99,7 +99,7 @@ func TestComposerTenantAuth_UnknownSlug(t *testing.T) {
 		t.Fatalf("create token: %v", err)
 	}
 
-	mw := auth.ComposerTenantAuth(stores.Tokens, stores.Orgs)
+	mw := auth.ComposerAuth(stores.Tokens, stores.Orgs)
 	mux := http.NewServeMux()
 	mux.Handle("GET /{slug}/packages.json", mw(okHandler()))
 
@@ -113,7 +113,7 @@ func TestComposerTenantAuth_UnknownSlug(t *testing.T) {
 	}
 }
 
-func TestComposerTenantAuth_SuspendedOrg(t *testing.T) {
+func TestComposerAuth_SuspendedOrg(t *testing.T) {
 	stores := testutil.NewStores(t)
 	ctx := context.Background()
 
@@ -133,7 +133,7 @@ func TestComposerTenantAuth_SuspendedOrg(t *testing.T) {
 		t.Fatalf("create token: %v", err)
 	}
 
-	mw := auth.ComposerTenantAuth(stores.Tokens, stores.Orgs)
+	mw := auth.ComposerAuth(stores.Tokens, stores.Orgs)
 	mux := http.NewServeMux()
 	mux.Handle("GET /{slug}/packages.json", mw(okHandler()))
 
@@ -147,7 +147,7 @@ func TestComposerTenantAuth_SuspendedOrg(t *testing.T) {
 	}
 }
 
-func TestComposerTenantAuth_WrongPassword(t *testing.T) {
+func TestComposerAuth_WrongPassword(t *testing.T) {
 	stores := testutil.NewStores(t)
 	ctx := context.Background()
 
@@ -163,7 +163,7 @@ func TestComposerTenantAuth_WrongPassword(t *testing.T) {
 		t.Fatalf("create token: %v", err)
 	}
 
-	mw := auth.ComposerTenantAuth(stores.Tokens, stores.Orgs)
+	mw := auth.ComposerAuth(stores.Tokens, stores.Orgs)
 	mux := http.NewServeMux()
 	mux.Handle("GET /{slug}/packages.json", mw(okHandler()))
 
@@ -177,9 +177,9 @@ func TestComposerTenantAuth_WrongPassword(t *testing.T) {
 	}
 }
 
-func TestComposerTenantAuth_MissingSlug(t *testing.T) {
+func TestComposerAuth_MissingSlug(t *testing.T) {
 	stores := testutil.NewStores(t)
-	mw := auth.ComposerTenantAuth(stores.Tokens, stores.Orgs)
+	mw := auth.ComposerAuth(stores.Tokens, stores.Orgs)
 
 	req := httptest.NewRequest("GET", "/packages.json", nil)
 	req.SetBasicAuth("x", "y")

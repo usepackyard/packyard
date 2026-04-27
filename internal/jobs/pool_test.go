@@ -72,7 +72,7 @@ func TestPool_EnqueueClaimComplete(t *testing.T) {
 	defer cancel()
 
 	strg, _ := storage.NewLocal(t.TempDir())
-	cache := composer.NewCache(stores.Packages, stores.Orgs, "http://test", "single")
+	cache := composer.NewCache(stores.Packages, stores.Orgs, "http://test")
 
 	org := testutil.MakeOrg(t, stores, "default", "Default")
 	pkg := testutil.MakePackage(t, stores, org.ID, "vendor/pkg")
@@ -149,7 +149,7 @@ func TestPool_MissingSource_MarksFailed(t *testing.T) {
 	defer cancel()
 
 	strg, _ := storage.NewLocal(t.TempDir())
-	cache := composer.NewCache(stores.Packages, stores.Orgs, "http://test", "single")
+	cache := composer.NewCache(stores.Packages, stores.Orgs, "http://test")
 
 	org := testutil.MakeOrg(t, stores, "default", "Default")
 	pkg := testutil.MakePackage(t, stores, org.ID, "vendor/pkg")

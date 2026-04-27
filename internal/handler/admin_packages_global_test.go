@@ -17,7 +17,7 @@ func newAdminPackagesHandler(t *testing.T) (*handler.AdminGlobalPackageHandler, 
 	t.Helper()
 	stores := testutil.NewStores(t)
 	st, _ := storage.NewLocal(t.TempDir())
-	c := composer.NewCache(stores.Packages, stores.Orgs, "http://test", "single")
+	c := composer.NewCache(stores.Packages, stores.Orgs, "http://test")
 	h := handler.NewAdminGlobalPackageHandler(stores.Orgs, stores.Packages, st, c)
 	return h, stores
 }

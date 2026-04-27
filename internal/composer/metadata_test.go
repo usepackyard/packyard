@@ -8,7 +8,9 @@ import (
 )
 
 func TestBuildPackagesJSON_NoSlug_LegacyURL(t *testing.T) {
-	// Single mode passes empty slug → tenant-less URLs (existing behavior).
+	// Empty slug produces unprefixed URLs — only seen during initial
+	// seed when no org has been resolved yet. Asserts the fallback
+	// path keeps producing a valid response shape.
 	pkgs := []model.Package{
 		{Name: "vendor/with-version", Versions: []model.Version{{Version: "1.0.0"}}},
 		{Name: "vendor/empty"}, // no versions — should be excluded

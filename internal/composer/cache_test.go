@@ -21,7 +21,7 @@ func TestCache_RebuildPerOrg(t *testing.T) {
 	testutil.MakeVersion(t, stores, pkgA.ID, "1.0.0", "sha", 100)
 	testutil.MakeVersion(t, stores, pkgB.ID, "2.0.0", "sha", 100)
 
-	c := composer.NewCache(stores.Packages, stores.Orgs, "http://test", "single")
+	c := composer.NewCache(stores.Packages, stores.Orgs, "http://test")
 
 	// Before Rebuild, both orgs are empty.
 	if c.GetPackagesJSON(orgA.ID) != nil {
@@ -60,7 +60,7 @@ func TestCache_RebuildAll(t *testing.T) {
 	testutil.MakeVersion(t, stores, pA.ID, "1.0.0", "sha", 100)
 	testutil.MakeVersion(t, stores, pB.ID, "1.0.0", "sha", 100)
 
-	c := composer.NewCache(stores.Packages, stores.Orgs, "http://test", "single")
+	c := composer.NewCache(stores.Packages, stores.Orgs, "http://test")
 	if err := c.RebuildAll(ctx); err != nil {
 		t.Fatalf("RebuildAll: %v", err)
 	}
@@ -81,7 +81,7 @@ func TestCache_GetProviderJSON(t *testing.T) {
 	pkg := testutil.MakePackage(t, stores, org.ID, "vendor/pkg")
 	testutil.MakeVersion(t, stores, pkg.ID, "1.0.0", "deadbeef", 100)
 
-	c := composer.NewCache(stores.Packages, stores.Orgs, "http://test", "single")
+	c := composer.NewCache(stores.Packages, stores.Orgs, "http://test")
 	if err := c.Rebuild(ctx, org.ID); err != nil {
 		t.Fatalf("Rebuild: %v", err)
 	}
@@ -113,7 +113,7 @@ func TestCache_Invalidate_RepopulatesFromStore(t *testing.T) {
 	pkg := testutil.MakePackage(t, stores, org.ID, "vendor/a")
 	testutil.MakeVersion(t, stores, pkg.ID, "1.0.0", "sha", 100)
 
-	c := composer.NewCache(stores.Packages, stores.Orgs, "http://test", "single")
+	c := composer.NewCache(stores.Packages, stores.Orgs, "http://test")
 	if err := c.Rebuild(ctx, org.ID); err != nil {
 		t.Fatalf("Rebuild: %v", err)
 	}
@@ -145,7 +145,7 @@ func TestCache_ConcurrentReadsSafe(t *testing.T) {
 	pkg := testutil.MakePackage(t, stores, org.ID, "vendor/a")
 	testutil.MakeVersion(t, stores, pkg.ID, "1.0.0", "sha", 100)
 
-	c := composer.NewCache(stores.Packages, stores.Orgs, "http://test", "single")
+	c := composer.NewCache(stores.Packages, stores.Orgs, "http://test")
 	if err := c.Rebuild(ctx, org.ID); err != nil {
 		t.Fatalf("Rebuild: %v", err)
 	}

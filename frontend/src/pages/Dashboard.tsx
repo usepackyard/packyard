@@ -6,7 +6,6 @@ import {
   Key,
   Package as PackageIcon,
   Upload,
-  Users,
   UsersRound,
 } from "lucide-react";
 
@@ -83,13 +82,11 @@ export default function Dashboard() {
     };
   }, [api, t]);
 
-  const isMulti = config?.mode === "multi";
-
-  // Composer repository URL — tenant-prefixed in multi mode.
+  // Composer repository URL — always slug-prefixed.
   const repoURL = useMemo(() => {
     const base = config?.base_url?.replace(/\/+$/, "") ?? "";
-    return isMulti && org ? `${base}/${org.slug}` : base;
-  }, [config?.base_url, isMulti, org]);
+    return org ? `${base}/${org.slug}` : base;
+  }, [config?.base_url, org]);
 
   return (
     <div className="space-y-6">
@@ -101,7 +98,7 @@ export default function Dashboard() {
         </Card>
       )}
 
-      <StatCards data={data} isMulti={isMulti} />
+      <StatCards data={data} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2">
@@ -127,7 +124,7 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <TokenActivityCard tokens={data?.tokens ?? null} />
-        {isMulti && <OrganizationCard org={org} members={data?.members ?? null} />}
+        <OrganizationCard org={org} members={data?.members ?? null} />
       </div>
     </div>
   );
@@ -169,7 +166,7 @@ function DashboardHeader({ orgStatus }: { orgStatus: string }) {
 
 // ---------- stat cards ----------
 
-function StatCards({ data, isMulti }: { data: DashboardData | null; isMulti: boolean }) {
+function StatCards({ data }: { data: DashboardData | null }) {
   const { t } = useTranslation("dashboard");
   if (!data) {
     return (
@@ -239,7 +236,7 @@ function StatCards({ data, isMulti }: { data: DashboardData | null; isMulti: boo
       to: "/tokens",
     },
     {
-      label: isMulti ? t("stats.members") : t("stats.users"),
+      label: t("stats.members"),
       value: data.members.length,
       secondary:
         data.members.length === 0
@@ -248,8 +245,8 @@ function StatCards({ data, isMulti }: { data: DashboardData | null; isMulti: boo
               owners: t("stats.owners", { count: owners }),
               members: t("stats.membersCount", { count: membersCount }),
             }),
-      icon: isMulti ? UsersRound : Users,
-      to: isMulti ? "/members" : "/users",
+      icon: UsersRound,
+      to: "/members",
     },
   ];
 

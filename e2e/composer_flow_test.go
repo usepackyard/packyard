@@ -37,9 +37,9 @@ type fixture struct {
 	adminToken string // plaintext Bearer admin token
 }
 
-// start boots a full Packyard server in multi mode on a random port,
-// seeds a super-admin user, mints an admin Bearer token, and returns
-// the fixture for tests.
+// start boots a full Packyard server on a random port, seeds a
+// super-admin user, mints an admin Bearer token, and returns the
+// fixture for tests.
 func start(t *testing.T) *fixture {
 	t.Helper()
 
@@ -50,13 +50,12 @@ func start(t *testing.T) *fixture {
 	}
 
 	cfg := &config.Config{
-		Mode:       "multi",
 		BaseURL:    "", // set after server starts
 		BcryptCost: 4, // fast for tests
 		Session:    config.SessionConfig{Secret: sessionSecret, MaxAge: 3600},
 		Storage:    config.StorageConfig{Type: "local"},
 	}
-	cache := composer.NewCache(stores.Packages, stores.Orgs, cfg.BaseURL, cfg.Mode)
+	cache := composer.NewCache(stores.Packages, stores.Orgs, cfg.BaseURL)
 	mux := server.NewMux(cfg, stores, strg, cache, nil)
 	ts := httptest.NewServer(server.Wrap(cfg, mux))
 	t.Cleanup(ts.Close)
@@ -64,7 +63,7 @@ func start(t *testing.T) *fixture {
 	// Now that we have a URL, rebuild with the real BaseURL embedded in
 	// Composer dist URLs.
 	cfg.BaseURL = ts.URL
-	cache2 := composer.NewCache(stores.Packages, stores.Orgs, cfg.BaseURL, cfg.Mode)
+	cache2 := composer.NewCache(stores.Packages, stores.Orgs, cfg.BaseURL)
 	ts.Config.Handler = server.Wrap(cfg, server.NewMux(cfg, stores, strg, cache2, nil))
 
 	// Seed a super-admin user (mirrors what cmd/packyard/serve.go does on first run).

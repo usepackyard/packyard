@@ -16,18 +16,9 @@ import (
 // On user cancel (Ctrl-C) huh returns an error and we propagate it.
 func runWizard(p *installPlan, f *initFlags) error {
 	// Group 1 — basics
-	modeOpts := []huh.Option[string]{
-		huh.NewOption("Single-tenant (one implicit org, simplest)", "single"),
-		huh.NewOption("Multi-tenant (organizations with URL prefixes)", "multi"),
-	}
 	portStr := strconv.Itoa(p.Port)
 
 	basics := huh.NewGroup(
-		huh.NewSelect[string]().
-			Title("Install mode").
-			Options(modeOpts...).
-			Value(&p.Mode),
-
 		huh.NewInput().
 			Title("HTTP listen port").
 			Description("Packyard binds this port on the local host.").

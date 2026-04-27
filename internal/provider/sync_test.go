@@ -81,7 +81,7 @@ func zipReader(b []byte) io.ReadCloser {
 func TestSync_ImportsNewRelease(t *testing.T) {
 	stores := testutil.NewStores(t)
 	strg, _ := storage.NewLocal(t.TempDir())
-	cache := composer.NewCache(stores.Packages, stores.Orgs, "http://test", "single")
+	cache := composer.NewCache(stores.Packages, stores.Orgs, "http://test")
 
 	org := testutil.MakeOrg(t, stores, "default", "Default")
 	pkg := testutil.MakePackage(t, stores, org.ID, "vendor/pkg")
@@ -122,7 +122,7 @@ func TestSync_ImportsNewRelease(t *testing.T) {
 func TestSync_SkipsExistingVersion(t *testing.T) {
 	stores := testutil.NewStores(t)
 	strg, _ := storage.NewLocal(t.TempDir())
-	cache := composer.NewCache(stores.Packages, stores.Orgs, "http://test", "single")
+	cache := composer.NewCache(stores.Packages, stores.Orgs, "http://test")
 
 	org := testutil.MakeOrg(t, stores, "default", "Default")
 	pkg := testutil.MakePackage(t, stores, org.ID, "vendor/pkg")
@@ -156,7 +156,7 @@ func TestSync_SkipsExistingVersion(t *testing.T) {
 func TestSync_CollectsErrorsPerRelease(t *testing.T) {
 	stores := testutil.NewStores(t)
 	strg, _ := storage.NewLocal(t.TempDir())
-	cache := composer.NewCache(stores.Packages, stores.Orgs, "http://test", "single")
+	cache := composer.NewCache(stores.Packages, stores.Orgs, "http://test")
 
 	org := testutil.MakeOrg(t, stores, "default", "Default")
 	pkg := testutil.MakePackage(t, stores, org.ID, "vendor/pkg")
@@ -195,7 +195,7 @@ func TestSync_CollectsErrorsPerRelease(t *testing.T) {
 func TestSync_RejectsNameMismatch(t *testing.T) {
 	stores := testutil.NewStores(t)
 	strg, _ := storage.NewLocal(t.TempDir())
-	cache := composer.NewCache(stores.Packages, stores.Orgs, "http://test", "single")
+	cache := composer.NewCache(stores.Packages, stores.Orgs, "http://test")
 
 	org := testutil.MakeOrg(t, stores, "default", "Default")
 	pkg := testutil.MakePackage(t, stores, org.ID, "vendor/pkg")
@@ -232,7 +232,7 @@ func TestSync_RejectsNameMismatch(t *testing.T) {
 func TestSync_ListReleasesError(t *testing.T) {
 	stores := testutil.NewStores(t)
 	strg, _ := storage.NewLocal(t.TempDir())
-	cache := composer.NewCache(stores.Packages, stores.Orgs, "http://test", "single")
+	cache := composer.NewCache(stores.Packages, stores.Orgs, "http://test")
 
 	org := testutil.MakeOrg(t, stores, "default", "Default")
 	pkg := testutil.MakePackage(t, stores, org.ID, "vendor/pkg")
@@ -251,7 +251,7 @@ func TestSync_ListReleasesError(t *testing.T) {
 func TestSync_NoAssetMatchingPattern(t *testing.T) {
 	stores := testutil.NewStores(t)
 	strg, _ := storage.NewLocal(t.TempDir())
-	cache := composer.NewCache(stores.Packages, stores.Orgs, "http://test", "single")
+	cache := composer.NewCache(stores.Packages, stores.Orgs, "http://test")
 
 	org := testutil.MakeOrg(t, stores, "default", "Default")
 	pkg := testutil.MakePackage(t, stores, org.ID, "vendor/pkg")
@@ -288,7 +288,7 @@ func TestSync_NoAssetMatchingPattern(t *testing.T) {
 func TestSync_ManualMetadata_SynthesizesComposerJSON(t *testing.T) {
 	stores := testutil.NewStores(t)
 	strg, _ := storage.NewLocal(t.TempDir())
-	cache := composer.NewCache(stores.Packages, stores.Orgs, "http://test", "single")
+	cache := composer.NewCache(stores.Packages, stores.Orgs, "http://test")
 
 	org := testutil.MakeOrg(t, stores, "default", "Default")
 	pkg := testutil.MakePackage(t, stores, org.ID, "vendor/pkg")
@@ -357,7 +357,7 @@ func TestSync_ManualMetadata_SynthesizesComposerJSON(t *testing.T) {
 func TestSync_VersionSource_GitTagOverridesComposerJSON(t *testing.T) {
 	stores := testutil.NewStores(t)
 	strg, _ := storage.NewLocal(t.TempDir())
-	cache := composer.NewCache(stores.Packages, stores.Orgs, "http://test", "single")
+	cache := composer.NewCache(stores.Packages, stores.Orgs, "http://test")
 
 	org := testutil.MakeOrg(t, stores, "default", "Default")
 	pkg := testutil.MakePackage(t, stores, org.ID, "vendor/pkg")
@@ -398,7 +398,7 @@ func TestSync_VersionSource_GitTagOverridesComposerJSON(t *testing.T) {
 func TestSync_VersionSource_ComposerJSON_RequiresVersion(t *testing.T) {
 	stores := testutil.NewStores(t)
 	strg, _ := storage.NewLocal(t.TempDir())
-	cache := composer.NewCache(stores.Packages, stores.Orgs, "http://test", "single")
+	cache := composer.NewCache(stores.Packages, stores.Orgs, "http://test")
 
 	org := testutil.MakeOrg(t, stores, "default", "Default")
 	pkg := testutil.MakePackage(t, stores, org.ID, "vendor/pkg")
@@ -434,7 +434,7 @@ func TestSync_VersionSource_ComposerJSON_RequiresVersion(t *testing.T) {
 func TestSync_UsesUpstreamPublishedAtForVersionDate(t *testing.T) {
 	stores := testutil.NewStores(t)
 	strg, _ := storage.NewLocal(t.TempDir())
-	cache := composer.NewCache(stores.Packages, stores.Orgs, "http://test", "single")
+	cache := composer.NewCache(stores.Packages, stores.Orgs, "http://test")
 
 	org := testutil.MakeOrg(t, stores, "default", "Default")
 	pkg := testutil.MakePackage(t, stores, org.ID, "vendor/pkg")
@@ -473,7 +473,7 @@ func TestSync_UsesUpstreamPublishedAtForVersionDate(t *testing.T) {
 func TestSync_BackfillsReleaseDateOnReSync(t *testing.T) {
 	stores := testutil.NewStores(t)
 	strg, _ := storage.NewLocal(t.TempDir())
-	cache := composer.NewCache(stores.Packages, stores.Orgs, "http://test", "single")
+	cache := composer.NewCache(stores.Packages, stores.Orgs, "http://test")
 
 	org := testutil.MakeOrg(t, stores, "default", "Default")
 	pkg := testutil.MakePackage(t, stores, org.ID, "vendor/pkg")
@@ -528,7 +528,7 @@ func TestSync_BackfillsReleaseDateOnReSync(t *testing.T) {
 func TestSync_NoopWhenReleaseDateAlreadyCorrect(t *testing.T) {
 	stores := testutil.NewStores(t)
 	strg, _ := storage.NewLocal(t.TempDir())
-	cache := composer.NewCache(stores.Packages, stores.Orgs, "http://test", "single")
+	cache := composer.NewCache(stores.Packages, stores.Orgs, "http://test")
 
 	org := testutil.MakeOrg(t, stores, "default", "Default")
 	pkg := testutil.MakePackage(t, stores, org.ID, "vendor/pkg")
@@ -564,7 +564,7 @@ func TestSync_NoopWhenReleaseDateAlreadyCorrect(t *testing.T) {
 func TestSync_NoUpdateWhenProviderPublishedAtZero(t *testing.T) {
 	stores := testutil.NewStores(t)
 	strg, _ := storage.NewLocal(t.TempDir())
-	cache := composer.NewCache(stores.Packages, stores.Orgs, "http://test", "single")
+	cache := composer.NewCache(stores.Packages, stores.Orgs, "http://test")
 
 	org := testutil.MakeOrg(t, stores, "default", "Default")
 	pkg := testutil.MakePackage(t, stores, org.ID, "vendor/pkg")
@@ -602,7 +602,7 @@ func TestSync_NoUpdateWhenProviderPublishedAtZero(t *testing.T) {
 func TestSync_UnknownStrategy(t *testing.T) {
 	stores := testutil.NewStores(t)
 	strg, _ := storage.NewLocal(t.TempDir())
-	cache := composer.NewCache(stores.Packages, stores.Orgs, "http://test", "single")
+	cache := composer.NewCache(stores.Packages, stores.Orgs, "http://test")
 
 	org := testutil.MakeOrg(t, stores, "default", "Default")
 	pkg := testutil.MakePackage(t, stores, org.ID, "vendor/pkg")

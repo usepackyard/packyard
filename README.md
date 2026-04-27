@@ -14,7 +14,7 @@ Private Composer v2 package registry. Single binary, embedded admin dashboard, S
 - **Composer v2 protocol** — `packages.json`, `/p2/` provider metadata, `/dist/` ZIP downloads
 - **Per-org API tokens** — SHA-256 hashed at rest, optional expiry, scoped to one organization
 - **GitHub release sync** — webhook-driven or manual; release assets, source archives, or manual metadata
-- **Multi-tenant mode** — organizations, members, role-based permissions, per-org isolation
+- **Organizations, members, roles** — every install ships with a `default` org; add more for per-team or per-customer isolation
 - **Pluggable storage & databases** — SQLite / MySQL / PostgreSQL; local filesystem or S3-compatible (R2, MinIO)
 - **Single-binary deploy** — `CGO_ENABLED=0`, React admin dashboard embedded, 7-locale i18n built in
 
@@ -38,7 +38,7 @@ curl -sSf https://get.packyard.dev/install.sh | sh -s -- \
      --admin-email admin@example.com
 ```
 
-See the [installation guide](docs/installation.md) for air-gapped installs, reverse-proxy recipes (Caddy / nginx / Traefik), unattended flags, and upgrades.
+See the [installation guide](https://packyard.dev/documentation/installation) for air-gapped installs, reverse-proxy recipes (Caddy / nginx / Traefik), unattended flags, and upgrades.
 
 ### Build from source
 
@@ -47,9 +47,7 @@ Prerequisites: [Go 1.25+](https://go.dev/dl/), [Bun](https://bun.sh).
 ```bash
 git clone https://github.com/usepackyard/packyard.git
 cd packyard
-make dev            # single-tenant mode on :9090
-# or
-make dev-multi      # multi-tenant mode on :9090
+make dev            # build + run on :9090
 ```
 
 Open `http://localhost:9090` and log in with `admin@example.com` / `changeme`.
@@ -71,7 +69,6 @@ All configuration is via `PACKYARD_*` environment variables. The most important 
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `PACKYARD_MODE` | `single` | `single` (self-hosted) or `multi` (multi-tenant) |
 | `PACKYARD_BASE_URL` | `http://localhost:8080` | Canonical URL embedded in Composer dist URLs |
 | `PACKYARD_SESSION_SECRET` | *(required)* | 32+ char random string for signing session cookies |
 | `PACKYARD_DB_DRIVER` | `sqlite` | `sqlite`, `mysql`, or `postgres` |
@@ -81,20 +78,20 @@ See [`.env.example`](.env.example) for the full list with descriptions.
 
 ## Composer client setup
 
-Add the registry to your project's `composer.json`:
+Add the registry to your project's `composer.json`. Composer URLs are
+slug-prefixed; the seeded org slug is `default`, and you can rename it
+or add more from the dashboard.
 
 ```json
 {
   "repositories": [
     {
       "type": "composer",
-      "url": "https://repo.example.com"
+      "url": "https://repo.example.com/default"
     }
   ]
 }
 ```
-
-In multi-tenant mode, suffix the URL with the organization slug: `https://repo.example.com/acme`.
 
 Authenticate with an API token (minted from the dashboard — both the token and a unique password are generated and shown once):
 
@@ -102,11 +99,13 @@ Authenticate with an API token (minted from the dashboard — both the token and
 composer config --auth http-basic.repo.example.com YOUR_TOKEN YOUR_PASSWORD
 ```
 
-## 🏢 Multi-tenant mode
+## 🏢 Organizations
 
-Set `PACKYARD_MODE=multi` to enable organizations. Each org has its own slug, packages, tokens, and members.
+Every Packyard install ships with a single organization (`slug: default`,
+created on first boot). Add more from the dashboard or the admin API for
+per-team or per-customer isolation.
 
-- Composer URLs are prefixed: `/{slug}/packages.json`, `/{slug}/p2/...`, `/{slug}/dist/...`
+- Composer URLs are slug-prefixed: `/{slug}/packages.json`, `/{slug}/p2/...`, `/{slug}/dist/...`
 - Tokens are scoped to one org and cannot reach another's packages
 - Members have roles (`owner`, `member`) and granular permissions
 - Super-admins manage every org via the `/admin` dashboard section or the `/api/admin/*` API
@@ -120,7 +119,7 @@ Issues and pull requests are welcome. Before submitting, please read [CONTRIBUTI
 ## 🛠️ Development
 
 ```bash
-make dev           # build frontend + run backend (single mode, :9090)
+make dev           # build frontend + run backend on :9090
 make test          # run the full Go test suite
 make build         # produce a production binary
 ```

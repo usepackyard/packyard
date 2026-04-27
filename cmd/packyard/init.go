@@ -36,7 +36,6 @@ type installPlan struct {
 	Binary     string // informational; the binary is already on $PATH by the time init runs
 
 	// Server
-	Mode    string
 	Port    int
 	BaseURL string
 
@@ -84,7 +83,6 @@ type initFlags struct {
 	configFile string
 	dataDir    string
 
-	mode    string
 	port    int
 	baseURL string
 	forcePort bool
@@ -125,7 +123,6 @@ func parseInitFlags(args []string) (*initFlags, error) {
 	fs.StringVar(&f.configFile, "config", envStr("PACKYARD_CONFIG_FILE"), "Path to the env file to write")
 	fs.StringVar(&f.dataDir, "data-dir", envStr("PACKYARD_DATA_DIR"), "Data directory (SQLite DB, local storage)")
 
-	fs.StringVar(&f.mode, "mode", envStrDefault("PACKYARD_MODE", "single"), "`single` or `multi`")
 	fs.IntVar(&f.port, "port", envIntDefault("PACKYARD_PORT", 9090), "HTTP listen port")
 	fs.StringVar(&f.baseURL, "url", envStr("PACKYARD_BASE_URL"), "Public URL (embedded into Composer dist URLs)")
 	fs.BoolVar(&f.forcePort, "force-port", envBool("PACKYARD_FORCE_PORT"), "Skip the port-in-use check")
@@ -208,7 +205,6 @@ func resolvePlan(f *initFlags) (*installPlan, error) {
 		ConfigFile:   firstNonEmpty(f.configFile, paths.ConfigFile),
 		DataDir:      firstNonEmpty(f.dataDir, paths.DataDir),
 		Binary:       paths.Binary,
-		Mode:         f.mode,
 		Port:         f.port,
 		BaseURL:      f.baseURL,
 		DBDriver:     f.db,
@@ -332,9 +328,6 @@ func resolvePlan(f *initFlags) (*installPlan, error) {
 }
 
 func validatePlan(p *installPlan) error {
-	if p.Mode != "single" && p.Mode != "multi" {
-		return fmt.Errorf("invalid --mode %q (want single|multi)", p.Mode)
-	}
 	switch p.DBDriver {
 	case "sqlite":
 		if p.DBPath == "" {
@@ -652,7 +645,6 @@ func printSuccessReport(p *installPlan, serviceHint string) {
 // Separate helper because the systemd and launchd paths both need it.
 func planToEnv(p *installPlan) map[string]string {
 	m := map[string]string{
-		"PACKYARD_MODE":              p.Mode,
 		"PACKYARD_PORT":              strconv.Itoa(p.Port),
 		"PACKYARD_BASE_URL":          p.BaseURL,
 		"PACKYARD_SESSION_SECRET":    p.SessionSecret,

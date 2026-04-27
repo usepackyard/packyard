@@ -14,9 +14,8 @@ type PackagesJSON struct {
 }
 
 // BuildPackagesJSON generates the root packages.json for Composer v2.
-// orgSlug is empty in single mode (URLs stay tenant-less for self-hosters)
-// and set in multi mode so the metadata-url and dist URLs are scoped per
-// tenant: /{slug}/p2/... and /{slug}/dist/...
+// orgSlug scopes the metadata-url and dist URLs under /{slug}/...; empty
+// slug (only seen during initial seed) falls back to unprefixed paths.
 func BuildPackagesJSON(packages []model.Package, orgSlug string) ([]byte, error) {
 	names := make([]string, 0, len(packages))
 	for _, p := range packages {
