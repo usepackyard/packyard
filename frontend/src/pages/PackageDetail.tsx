@@ -575,12 +575,12 @@ function SourceCard({ pkgId, source, webhookUrl, syncing, activeJob, syncResult,
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>{t("detail.source.fields.owner")}</Label>
-                  <Input placeholder="ideologix" value={form.repo_owner}
+                  <Input placeholder={t("detail.source.fields.ownerPlaceholder")} value={form.repo_owner}
                     onChange={(e) => setForm({ ...form, repo_owner: e.target.value })} required />
                 </div>
                 <div className="space-y-2">
                   <Label>{t("detail.source.fields.repo")}</Label>
-                  <Input placeholder="digital-license-manager-pro" value={form.repo_name}
+                  <Input placeholder={t("detail.source.fields.repoPlaceholder")} value={form.repo_name}
                     onChange={(e) => setForm({ ...form, repo_name: e.target.value })} required />
                 </div>
               </div>
