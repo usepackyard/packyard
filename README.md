@@ -7,6 +7,9 @@ Open-source, self-hosted private Composer registry for PHP teams.
 
 Packyard gives you a Composer package registry you can run on your own infrastructure. It ships as a single Go binary with an embedded admin dashboard, organization-scoped tokens, and local or S3-compatible package storage.
 
+<img width="1389" height="755" alt="image (6)" src="https://github.com/user-attachments/assets/1970fae6-795d-4556-ad60-31738037d668" />
+
+
 ## Install
 
 ```bash
