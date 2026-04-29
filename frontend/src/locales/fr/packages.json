@@ -200,6 +200,13 @@
         "description": "Arrête la synchronisation du dépôt pour ce paquet. Les versions existantes restent.",
         "confirm": "Retirer"
       },
+      "rotateSecret": "Renouveler le secret du webhook",
+      "rotateSecretFailed": "Impossible de renouveler le secret du webhook.",
+      "confirmRotateSecret": {
+        "title": "Renouveler le secret du webhook ?",
+        "description": "Invalide immédiatement le secret actuel. Mettez-le à jour dans les paramètres webhook de votre fournisseur, sinon la vérification de signature des prochains envois échouera.",
+        "confirm": "Renouveler"
+      },
       "connection": "Connexion"
     }
   },

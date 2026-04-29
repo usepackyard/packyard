@@ -289,6 +289,111 @@ func TestAdminSourceHandler_Sync_SourceNotConfigured(t *testing.T) {
 	}
 }
 
+func TestAdminSourceHandler_RotateWebhookSecret_HappyPath(t *testing.T) {
+	h, ctx := newSourceHandler(t)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("PUT /api/packages/{id}/source", h.Set)
+	mux.HandleFunc("GET /api/packages/{id}/source", h.Get)
+	mux.HandleFunc("POST /api/packages/{id}/source/rotate-webhook-secret", h.RotateWebhookSecret)
+
+	// Seed: create a github source and capture the initial webhook_secret.
+	setReq := httptest.NewRequest("PUT", "/api/packages/"+ctx.pkg.PublicID+"/source",
+		strings.NewReader(`{"provider":"github","config":{"owner":"o","repo":"r"}}`))
+	setReq.Header.Set("Content-Type", "application/json")
+	setReq = setReq.WithContext(auth.SetOrgInContext(setReq.Context(), ctx.org, nil))
+	setRec := httptest.NewRecorder()
+	mux.ServeHTTP(setRec, setReq)
+	var setResp struct {
+		WebhookSecret string `json:"webhook_secret"`
+	}
+	if err := json.NewDecoder(setRec.Body).Decode(&setResp); err != nil {
+		t.Fatalf("decode set response: %v", err)
+	}
+	if setResp.WebhookSecret == "" {
+		t.Fatalf("seed: expected webhook_secret in initial create response")
+	}
+
+	// Rotate.
+	rotReq := httptest.NewRequest("POST", "/api/packages/"+ctx.pkg.PublicID+"/source/rotate-webhook-secret", nil)
+	rotReq = rotReq.WithContext(auth.SetOrgInContext(rotReq.Context(), ctx.org, nil))
+	rotRec := httptest.NewRecorder()
+	mux.ServeHTTP(rotRec, rotReq)
+
+	if rotRec.Code != http.StatusOK {
+		t.Fatalf("rotate status = %d; body=%s", rotRec.Code, rotRec.Body.String())
+	}
+	var rotResp struct {
+		WebhookURL    string `json:"webhook_url"`
+		WebhookSecret string `json:"webhook_secret"`
+	}
+	if err := json.NewDecoder(rotRec.Body).Decode(&rotResp); err != nil {
+		t.Fatalf("decode rotate response: %v", err)
+	}
+	if rotResp.WebhookSecret == "" {
+		t.Errorf("rotate response missing webhook_secret: %s", rotRec.Body.String())
+	}
+	if rotResp.WebhookSecret == setResp.WebhookSecret {
+		t.Errorf("rotated secret should differ from initial secret")
+	}
+	if rotResp.WebhookURL == "" {
+		t.Errorf("rotate response missing webhook_url: %s", rotRec.Body.String())
+	}
+
+	// GET still must not leak the secret after rotation.
+	getReq := httptest.NewRequest("GET", "/api/packages/"+ctx.pkg.PublicID+"/source", nil)
+	getReq = getReq.WithContext(auth.SetOrgInContext(getReq.Context(), ctx.org, nil))
+	getRec := httptest.NewRecorder()
+	mux.ServeHTTP(getRec, getReq)
+	if strings.Contains(getRec.Body.String(), "webhook_secret") {
+		t.Errorf("GET should not leak webhook_secret after rotation: %s", getRec.Body.String())
+	}
+}
+
+func TestAdminSourceHandler_RotateWebhookSecret_RejectsUploadSource(t *testing.T) {
+	h, ctx := newSourceHandler(t)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("PUT /api/packages/{id}/source", h.Set)
+	mux.HandleFunc("POST /api/packages/{id}/source/rotate-webhook-secret", h.RotateWebhookSecret)
+
+	// Seed an upload source — no webhook secret to rotate.
+	setReq := httptest.NewRequest("PUT", "/api/packages/"+ctx.pkg.PublicID+"/source",
+		strings.NewReader(`{"provider":"upload"}`))
+	setReq.Header.Set("Content-Type", "application/json")
+	setReq = setReq.WithContext(auth.SetOrgInContext(setReq.Context(), ctx.org, nil))
+	mux.ServeHTTP(httptest.NewRecorder(), setReq)
+
+	rotReq := httptest.NewRequest("POST", "/api/packages/"+ctx.pkg.PublicID+"/source/rotate-webhook-secret", nil)
+	rotReq = rotReq.WithContext(auth.SetOrgInContext(rotReq.Context(), ctx.org, nil))
+	rotRec := httptest.NewRecorder()
+	mux.ServeHTTP(rotRec, rotReq)
+
+	if rotRec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400; body=%s", rotRec.Code, rotRec.Body.String())
+	}
+	if !strings.Contains(rotRec.Body.String(), "source_not_syncable") {
+		t.Errorf("expected source_not_syncable error code; body=%s", rotRec.Body.String())
+	}
+}
+
+func TestAdminSourceHandler_RotateWebhookSecret_PackageNotFound(t *testing.T) {
+	h, ctx := newSourceHandler(t)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/packages/{id}/source/rotate-webhook-secret", h.RotateWebhookSecret)
+
+	// Well-formed pid that doesn't exist in this org.
+	req := httptest.NewRequest("POST", "/api/packages/pkg_01JHZ8K3Y5WQ9V2N6TRB4XE7CM/source/rotate-webhook-secret", nil)
+	req = req.WithContext(auth.SetOrgInContext(req.Context(), ctx.org, nil))
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want 404; body=%s", rec.Code, rec.Body.String())
+	}
+}
+
 func TestAdminSourceHandler_Delete(t *testing.T) {
 	h, ctx := newSourceHandler(t)
 

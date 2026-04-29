@@ -505,6 +505,63 @@ func (h *AdminSourceHandler) Sync(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// RotateWebhookSecret mints a fresh webhook signing secret for this
+// package's source and returns it once. The previous secret is
+// invalidated immediately, so the operator must update the provider's
+// webhook configuration with the new value or deliveries will start
+// failing signature verification. Only valid for git providers.
+func (h *AdminSourceHandler) RotateWebhookSecret(w http.ResponseWriter, r *http.Request) {
+	pkgPublicID, err := pathPublicID(r, "id", pid.Package)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "package_not_found", "package not found")
+		return
+	}
+
+	org := auth.OrgFromContext(r.Context())
+	if org == nil {
+		writeError(w, http.StatusInternalServerError, "missing_org_context", "missing org context")
+		return
+	}
+
+	pkg, err := h.packages.GetByPublicID(r.Context(), org.ID, pkgPublicID)
+	if err != nil || pkg == nil {
+		writeError(w, http.StatusNotFound, "package_not_found", "package not found")
+		return
+	}
+
+	src, err := h.sources.GetByPackageID(r.Context(), pkg.ID)
+	if err != nil {
+		slog.Error("source lookup error", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal_error", "internal error")
+		return
+	}
+	if src == nil {
+		writeError(w, http.StatusNotFound, "no_source_configured", "no source configured")
+		return
+	}
+	if !isGitProvider(src.Provider) {
+		writeError(w, http.StatusBadRequest, "source_not_syncable", "source is not syncable")
+		return
+	}
+
+	secret, err := generateWebhookSecret()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed_generate_webhook_secret", "failed to generate webhook secret")
+		return
+	}
+	src.WebhookSecret = secret
+	if err := h.sources.Update(r.Context(), src); err != nil {
+		slog.Error("rotate webhook secret error", "error", err)
+		writeError(w, http.StatusInternalServerError, "failed_update_source", "failed to update source")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"webhook_url":    webhookURL(h.cfg.BaseURL, src),
+		"webhook_secret": secret,
+	})
+}
+
 // GetSyncJob returns the state of a single sync job scoped to this org
 // and package — used by the frontend's poll loop.
 func (h *AdminSourceHandler) GetSyncJob(w http.ResponseWriter, r *http.Request) {

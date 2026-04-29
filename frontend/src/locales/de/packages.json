@@ -200,6 +200,13 @@
         "description": "Stoppt den Repository-Sync für dieses Paket. Bestehende Versionen bleiben erhalten.",
         "confirm": "Entfernen"
       },
+      "rotateSecret": "Webhook-Secret rotieren",
+      "rotateSecretFailed": "Webhook-Secret konnte nicht rotiert werden.",
+      "confirmRotateSecret": {
+        "title": "Webhook-Secret rotieren?",
+        "description": "Macht das aktuelle Webhook-Secret sofort ungültig. Aktualisieren Sie es in den Webhook-Einstellungen Ihres Anbieters, sonst schlägt die Signaturprüfung künftiger Lieferungen fehl.",
+        "confirm": "Rotieren"
+      },
       "connection": "Verbindung"
     }
   },

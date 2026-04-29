@@ -200,6 +200,13 @@
         "description": "Stops repository sync for this package. Existing versions remain.",
         "confirm": "Remove"
       },
+      "rotateSecret": "Rotate webhook secret",
+      "rotateSecretFailed": "Failed to rotate webhook secret.",
+      "confirmRotateSecret": {
+        "title": "Rotate webhook secret?",
+        "description": "Invalidates the current webhook secret immediately. Update it in your provider's webhook settings or deliveries will start failing signature verification.",
+        "confirm": "Rotate"
+      },
       "connection": "Connection"
     }
   },

@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Upload, Trash2, ArrowLeft, RefreshCw, GitBranch, Copy, Check, ExternalLink, ChevronRight, MoreHorizontal, CheckCircle2, MinusCircle, AlertTriangle, XCircle, Terminal } from "lucide-react";
+import { Upload, Trash2, ArrowLeft, RefreshCw, GitBranch, Copy, Check, ExternalLink, ChevronRight, MoreHorizontal, CheckCircle2, MinusCircle, AlertTriangle, XCircle, Terminal, KeyRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDate, formatDateTime, formatNumber, relativeTime } from "@/lib/time";
 import {
@@ -481,6 +481,7 @@ interface SourceCardProps {
 function SourceCard({ pkgId, source, webhookUrl, syncing, activeJob, syncResult, onSync, onRemove, onSaved }: SourceCardProps) {
   const { t } = useTranslation("packages");
   const { api } = useAuth();
+  const { confirm, dialog: confirmDialog } = useConfirm();
   const [editing, setEditing] = useState(false);
   const [connections, setConnections] = useState<ProviderConnection[]>([]);
   const [form, setForm] = useState({
@@ -538,6 +539,22 @@ function SourceCard({ pkgId, source, webhookUrl, syncing, activeJob, syncResult,
     navigator.clipboard.writeText(text);
     setCopied(key);
     setTimeout(() => setCopied(""), 2000);
+  };
+
+  const handleRotateWebhookSecret = async () => {
+    const ok = await confirm({
+      title: t("detail.source.confirmRotateSecret.title"),
+      description: t("detail.source.confirmRotateSecret.description"),
+      confirmLabel: t("detail.source.confirmRotateSecret.confirm"),
+      variant: "destructive",
+    });
+    if (!ok) return;
+    try {
+      const res = await api.rotateWebhookSecret(pkgId);
+      setNewSecret(res.webhook_secret);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : t("detail.source.rotateSecretFailed"));
+    }
   };
 
   const handleSave = async (e: FormEvent) => {
@@ -888,6 +905,8 @@ function SourceCard({ pkgId, source, webhookUrl, syncing, activeJob, syncResult,
   };
 
   return (
+    <>
+      {confirmDialog}
     <Card className="mb-6">
       <CardHeader>
         <div className="flex items-center justify-between gap-4">
@@ -935,6 +954,12 @@ function SourceCard({ pkgId, source, webhookUrl, syncing, activeJob, syncResult,
                 }
               />
               <DropdownMenuContent align="end">
+                {sourceIsGit && (
+                  <DropdownMenuItem onClick={handleRotateWebhookSecret}>
+                    <KeyRound className="h-3.5 w-3.5 mr-2" />
+                    {t("detail.source.rotateSecret")}
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem variant="destructive" onClick={onRemove}>
                   <Trash2 className="h-3.5 w-3.5 mr-2" />
                   {t("detail.source.remove")}
@@ -1032,6 +1057,7 @@ function SourceCard({ pkgId, source, webhookUrl, syncing, activeJob, syncResult,
         {syncResult && <SyncResultView result={syncResult} />}
       </CardContent>
     </Card>
+    </>
   );
 }
 

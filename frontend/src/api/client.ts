@@ -148,6 +148,11 @@ export function createApi(orgSlug: string) {
       ),
     deleteSource: (packageId: string) =>
       request(`${prefix}/packages/${packageId}/source`, { method: "DELETE" }),
+    rotateWebhookSecret: (packageId: string) =>
+      request<{ webhook_url: string; webhook_secret: string }>(
+        `${prefix}/packages/${packageId}/source/rotate-webhook-secret`,
+        { method: "POST" }
+      ),
     // syncSource enqueues a sync job and returns the job record — newly
     // queued (202) or the existing active one (409) with `existing:true`.
     // Both are successful outcomes from the UI's perspective, so we

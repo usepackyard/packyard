@@ -200,6 +200,13 @@
         "description": "Interrompe la sincronizzazione del repository per questo pacchetto. Le versioni esistenti restano.",
         "confirm": "Rimuovi"
       },
+      "rotateSecret": "Ruota il secret del webhook",
+      "rotateSecretFailed": "Impossibile ruotare il secret del webhook.",
+      "confirmRotateSecret": {
+        "title": "Ruotare il secret del webhook?",
+        "description": "Invalida immediatamente il secret attuale del webhook. Aggiornalo nelle impostazioni webhook del tuo provider, altrimenti la verifica della firma fallirà per le prossime consegne.",
+        "confirm": "Ruota"
+      },
       "connection": "Connessione"
     }
   },

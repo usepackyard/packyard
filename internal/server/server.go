@@ -203,6 +203,7 @@ func NewMux(cfg *config.Config, stores *store.Stores, strg storage.Storage, cach
 	mux.Handle("PUT /api/orgs/{org}/packages/{id}/source", orgAuthPerm("sources:manage", adminSrcH.Set))
 	mux.Handle("DELETE /api/orgs/{org}/packages/{id}/source", orgAuthPerm("sources:manage", adminSrcH.Delete))
 	mux.Handle("POST /api/orgs/{org}/packages/{id}/source/sync", orgAuthPerm("sources:manage", adminSrcH.Sync))
+	mux.Handle("POST /api/orgs/{org}/packages/{id}/source/rotate-webhook-secret", orgAuthPerm("sources:manage", adminSrcH.RotateWebhookSecret))
 	mux.Handle("GET /api/orgs/{org}/packages/{id}/sync", orgAuthPerm("sources:manage", adminSrcH.ListSyncJobs))
 	mux.Handle("GET /api/orgs/{org}/packages/{id}/sync/{job_id}", orgAuthPerm("sources:manage", adminSrcH.GetSyncJob))
 	mux.Handle("POST /api/orgs/{org}/sources/preview", orgAuthPerm("sources:manage", adminSrcH.PreviewReleases))
